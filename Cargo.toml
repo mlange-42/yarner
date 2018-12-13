@@ -1,0 +1,25 @@
+[package]
+name = "outline"
+version = "0.1.0"
+authors = ["Cameron Eldridge <cameldridge@gmail.com>"]
+edition = "2018"
+
+[lib]
+name = "outline"
+path = "src/lib.rs"
+
+[features]
+bin = ["clap", "toml"]
+
+[[bin]]
+name = "outline"
+path = "src/bin/main.rs"
+required-features = ["bin"]
+edition = "2018"
+
+[dependencies]
+serde = "1.0"
+serde_derive = "1.0"
+
+toml = { version = "0.4", optional = true }
+clap = { version = "2.32", optional = true }
