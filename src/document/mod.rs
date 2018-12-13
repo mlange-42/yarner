@@ -1,6 +1,5 @@
 //! The internal representation of a literate document
 use std::iter::FromIterator;
-use std::collections::HashMap;
 
 pub mod ast;
 pub mod code;

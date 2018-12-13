@@ -1,0 +1,8 @@
+[bird]
+code_marker = "> "
+code_name_marker = ">>> "
+comment_start = "//"
+interpolation_start = "@{"
+interpolation_end = "}"
+macro_start = "==> "
+macro_end = "."

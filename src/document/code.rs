@@ -61,7 +61,7 @@ impl<'a> Line<'a> {
                 .and_then(|block| block
                     .compile_with(code_blocks, block.assign_vars(scope))
                     .map(|code| code
-                        .lines()
+                        .split("\n")
                         .map(|line| format!("{}{}", self.indent, line))
                         .collect::<Vec<_>>()
                         .join("\n")
@@ -74,12 +74,14 @@ impl<'a> Line<'a> {
 /// A `CodeBlock` is a block of code as defined by the input format.
 #[derive(Clone, Default, Debug)]
 pub struct CodeBlock<'a> {
+    /// The indent of this code block is in the documentation file
+    pub indent: &'a str,
     /// The name of this code block
     pub name: Option<String>,
     /// The variables extracted from the name
     pub vars: Vec<&'a str>,
     /// The language this block was written in
-    pub language: Option<&'a str>,
+    pub language: Option<String>,
     /// The source is the lines of code
     pub source: Vec<Line<'a>>,
 }
@@ -88,26 +90,24 @@ impl<'a> CodeBlock<'a> {
     /// Creates a new empty [`CodeBlock`]
     pub fn new() -> Self { Self::default() }
 
+    /// Indents this code block
+    pub fn indented(self, indent: &'a str) -> Self {
+        Self { indent, ..self }
+    }
+
     /// Names this code block
     pub fn named(self, name: String, vars: Vec<&'a str>) -> Self {
         Self { name: Some(name), vars, ..self }
     }
 
     /// Sets the language of this code block
-    pub fn in_language(self, language: &'a str) -> Self {
+    pub fn in_language(self, language: String) -> Self {
         Self { language: Some(language), ..self }
     }
 
     /// Adds a line to this code block
-    pub fn add_line(mut self, line: Line<'a>) -> Self {
+    pub fn add_line(&mut self, line: Line<'a>) {
         self.source.push(line);
-        self
-    }
-
-    /// Adds multiple lines to this code block
-    pub fn add_lines<I: IntoIterator<Item = Line<'a>>>(mut self, lines: I) -> Self {
-        self.source.extend(lines);
-        self
     }
 
     /// Appends another code block to the end of this one
@@ -118,6 +118,11 @@ impl<'a> CodeBlock<'a> {
     /// "Compiles" this code block into its output code
     pub fn compile(&self, code_blocks: &HashMap<Option<&str>, CodeBlock<'a>>) -> Result<String, CompileError> {
         self.compile_with(code_blocks, HashMap::default())
+    }
+
+    /// Returns the line number of the first line in this code block
+    pub fn line_number(&self) -> Option<usize> {
+        self.source.first().map(|line| line.line_number)
     }
 
     fn compile_with(&self, code_blocks: &HashMap<Option<&str>, CodeBlock<'a>>, scope: HashMap<&str, &str>) -> Result<String, CompileError> {

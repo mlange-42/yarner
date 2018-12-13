@@ -4,11 +4,12 @@
 //! [`ParserConfig`] type to allow configuring that parser
 
 pub mod bird;
-pub mod latex;
-pub mod markdown;
+pub mod tex;
+pub mod md;
 pub mod html;
 
 pub use self::bird::BirdParser;
+pub use self::md::MdParser;
 
 use crate::document::Document;
 use crate::document::code::{Line, CodeBlock, Source, Segment};
@@ -33,12 +34,8 @@ pub trait ParserConfig {
 
 /// A [`Parser`] determines which lines are code and which are text, and may use its `Config` to
 /// actually handle reading the lines of code
-pub trait Parser {
-    type Config: ParserConfig;
+pub trait Parser: ParserConfig{
     type Error: std::error::Error;
-
-    /// The config object to use in the code parser
-    fn config(&self) -> &Self::Config;
 
     /// Parses the text part of the document. Should delegate the code section on a line-by-line
     /// basis to the built in code parser.
@@ -48,9 +45,9 @@ pub trait Parser {
     fn parse_name<'a>(&self, mut input: &'a str) -> Result<(String, Vec<&'a str>), ParseError> {
         let mut name = String::new();
         let mut vars = vec![];
-        let config = self.config();
-        let start = config.interpolation_start();
-        let end = config.interpolation_end();
+        let config = self;
+        let start = self.interpolation_start();
+        let end = self.interpolation_end();
         loop {
             if let Some(start_index) = input.find(start) {
                 if let Some(end_index) = input[start_index + start.len()..].find(end) {
@@ -68,23 +65,21 @@ pub trait Parser {
 
     /// Parses a line as code, returning the parsed [`Line`] object
     fn parse_line<'a>(&self, line_number: usize, input: &'a str) -> Result<Line<'a>, ParseError> {
-        let config = self.config();
-
         let indent_len = input.chars()
             .take_while(|ch| ch.is_whitespace())
             .collect::<String>()
             .len();
         let (indent, rest) = input.split_at(indent_len);
-        let (mut rest, comment) = if let Some(comment_index) = rest.find(config.comment_start()) {
+        let (mut rest, comment) = if let Some(comment_index) = rest.find(self.comment_start()) {
             let (rest, comment) = rest.split_at(comment_index);
-            (rest, Some(comment))
+            (rest, Some(&comment[self.comment_start().len()..]))
         } else {
             (rest, None)
         };
 
-        if rest.starts_with(config.macro_start()) {
-            if let Some(end_index) = rest.find(config.macro_end()) {
-                let (name, scope) = self.parse_name(&rest[config.macro_start().len()..end_index])?;
+        if rest.starts_with(self.macro_start()) {
+            if let Some(end_index) = rest.find(self.macro_end()) {
+                let (name, scope) = self.parse_name(&rest[self.macro_start().len()..end_index])?;
                 return Ok(Line {
                     line_number,
                     indent,
@@ -95,8 +90,8 @@ pub trait Parser {
         }
 
         let mut source = vec![];
-        let start = config.interpolation_start();
-        let end = config.interpolation_end();
+        let start = self.interpolation_start();
+        let end = self.interpolation_end();
         loop {
             if let Some(start_index) = rest.find(start) {
                 if let Some(end_index) = rest[start_index + start.len()..].find(end) {
@@ -126,44 +121,52 @@ pub enum ParseError {} // is there even such a thing as a parse error? who knows
 
 /// A [`Printer`] can invert the parsing process, printing the code blocks how they should be
 /// rendered in the documentation text.
-pub trait Printer {
-    type Config: ParserConfig;
-
-    /// The config object to use in the code parser
-    fn config(&self) -> &Self::Config;
-
+pub trait Printer: ParserConfig {
     /// Prints a code block
     fn print_code_block<'a>(&self, block: &CodeBlock<'a>) -> String;
 
     /// Prints a text block
     fn print_text_block<'a>(&self, block: &TextBlock<'a>) -> String;
 
+    /// Fills a name with its placeholders
+    fn print_name(&self, mut name: String, vars: &[&str]) -> String {
+        let start = self.interpolation_start();
+        let end = self.interpolation_end();
+        let var_placeholder = format!("{}{}", start, end);
+        for var in vars {
+            let var_name = format!("{}{}{}", start, var, end);
+            name = name.replacen(&var_placeholder, &var_name, 1);
+        }
+        name
+    }
+
     /// Prints a line of a code block
-    fn print_line<'a>(&self, line: &Line<'a>) -> String {
-        let mut output = format!("{}", line.indent);
-        let config = self.config();
+    fn print_line<'a>(&self, line: &Line<'a>, print_comments: bool) -> String {
+        let mut output = line.indent.to_string();
         match &line.source {
             Source::Macro { name, scope } => {
-                let var_placeholder = format!("{}{}", config.interpolation_start(), config.interpolation_end());
-                let mut name = name.clone();
-                for var in scope {
-                    let var_name = format!("{}{}{}", config.interpolation_start(), var, config.interpolation_end());
-                    name = name.replacen(&var_placeholder, &var_name, 1);
-                }
-                output.push_str(&format!("{}{}{}", config.macro_start(), name, config.macro_end()));
+                output.push_str(self.macro_start());
+                output.push_str(&self.print_name(name.clone(), &scope));
+                output.push_str(self.macro_end());
             },
             Source::Source(segments) => {
                 for segment in segments {
                     match segment {
                         Segment::Source(source) => output.push_str(source),
-                        Segment::MetaVar(name) => output.push_str(&format!("{}{}{}", config.interpolation_start(), name, config.interpolation_end())),
+                        Segment::MetaVar(name) => {
+                            output.push_str(self.interpolation_start());
+                            output.push_str(&name);
+                            output.push_str(self.interpolation_end());
+                        }
                     }
                 }
             }
         }
-        if let Some(comment) = line.comment {
-            output.push_str(config.comment_start());
-            output.push_str(comment);
+        if print_comments {
+            if let Some(comment) = line.comment {
+                output.push_str(self.comment_start());
+                output.push_str(comment);
+            }
         }
         output
     }

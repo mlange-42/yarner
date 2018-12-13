@@ -5,7 +5,6 @@ use super::text::TextBlock;
 use super::code::CodeBlock;
 use super::{CompileError, CompileErrorKind};
 use crate::parser::Printer;
-use crate::util::try_collect::TryCollectExt;
 
 /// A [`Node`] in the [`Ast`]
 #[derive(Debug)]
@@ -47,9 +46,14 @@ impl<'a> Ast<'a> {
         for node in &self.nodes {
             match node {
                 Node::Text(text_block) => output.push_str(&printer.print_text_block(text_block)),
-                Node::Code(code_block) => output.push_str(&printer.print_code_block(code_block)),
+                Node::Code(code_block) => output.push_str(&printer
+                    .print_code_block(code_block)
+                    .split("\n")
+                    .map(|line| format!("{}{}", code_block.indent, line))
+                    .collect::<Vec<_>>()
+                    .join("\n")
+                ),
             }
-            output.push_str("\n");
         }
         output
     }

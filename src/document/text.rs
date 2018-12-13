@@ -11,11 +11,12 @@ impl<'a> TextBlock<'a> {
         Self::default()
     }
 
-    pub fn add_line(mut self, line: &'a str) -> Self {
+    /// Adds a line to this [`TextBlock`]
+    pub fn add_line(&mut self, line: &'a str) {
         self.text.push(line);
-        self
     }
 
+    /// Renders this [`TextBlock`] as the text it represents
     pub fn to_string(&self) -> String {
         self.text.join("\n")
     }

@@ -2,11 +2,11 @@
 //!
 //! This includes some extensions to support some of the more advanced features of this tool.
 //!
-//! See `wc.c.lit` for an example of how to use this format with the default config, which is
+//! See `examples/bird/wc.c.lit` for an example of how to use this format with the default config, which is
 //! specified as follows:
 //!
 //! *   Code lines begin with `> `, and must be preceded and followed by a blank line.
-//! *   A named code block starts with `>>> Name of the code block` as its first line.
+//! *   A macro (named code block) starts with `>>> Name of the code block` as its first line.
 //! *   The comment symbol is `//`.
 //! *   Interpolation of is done such as `@{a meta variable}`.
 //! *   Macros (named code blocks) are invoked by `==> Macro name.` (note the period at the end)
@@ -32,13 +32,13 @@ use crate::util::try_collect::TryCollectExt;
 
 #[derive(Deserialize, Debug)]
 pub struct BirdParser {
-    code_marker: String,
-    code_name_marker: String,
-    comment_start: String,
-    interpolation_start: String,
-    interpolation_end: String,
-    macro_start: String,
-    macro_end: String,
+    pub code_marker: String,
+    pub code_name_marker: String,
+    pub comment_start: String,
+    pub interpolation_start: String,
+    pub interpolation_end: String,
+    pub macro_start: String,
+    pub macro_end: String,
 }
 
 impl Default for BirdParser {
@@ -64,14 +64,12 @@ impl ParserConfig for BirdParser {
 }
 
 impl Parser for BirdParser {
-    type Config = BirdParser;
     type Error = BirdError;
-    fn config(&self) -> &Self::Config { self }
 
     fn parse<'a>(&self, input: &'a str) -> Result<Document<'a>, Self::Error> {
-        #[derive(Default)]
         struct State<'a> {
-            node: Option<Node<'a>>,
+            node: Node<'a>,
+            blank_line: bool,
         }
 
         enum Parse<'a> {
@@ -80,56 +78,63 @@ impl Parser for BirdParser {
             Error(BirdError),
         }
 
-        let mut state = State::default();
+        let mut state = State {
+            node: Node::Text(TextBlock::new()),
+            blank_line: true,
+        };
         let mut document = input.lines()
             .enumerate()
-            .scan(&mut state, |state, (line_number, line)| match state.node {
-                None if line.is_empty() => Some(Parse::Complete(Node::Text(TextBlock::new()))),
-                None if line.starts_with(&self.code_name_marker) => {
+            .scan(&mut state, |state, (line_number, line)| match state {
+                State { .. } if line.is_empty() => {
+                    state.blank_line = true;
+                    match &mut state.node {
+                        Node::Code(..) => {
+                            let mut new_block = TextBlock::new();
+                            new_block.add_line(line);
+                            let node = std::mem::replace(&mut state.node, Node::Text(new_block));
+                            Some(Parse::Complete(node))
+                        },
+                        Node::Text(text_block) => {
+                            text_block.add_line(line);
+                            Some(Parse::Incomplete)
+                        }
+                    }
+                }
+                State { blank_line: true, .. } if line.starts_with(&self.code_name_marker) => {
                     let (name, vars) = match self.parse_name(&line[self.code_name_marker.len()..]) {
                         Ok((name, vars)) => (name, vars),
                         Err(error) => return Some(Parse::Error(BirdError::Single { line_number, kind: error.into() })),
                     };
                     let code_block = CodeBlock::new().named(name, vars);
-                    state.node = Some(Node::Code(code_block));
-                    Some(Parse::Incomplete)
+                    state.blank_line = false;
+                    let node = std::mem::replace(&mut state.node, Node::Code(code_block));
+                    Some(Parse::Complete(node))
                 }
-                None if line.starts_with(&self.code_marker) => {
+                State { blank_line: true, .. } if line.starts_with(&self.code_marker) => {
                     let line = match self.parse_line(line_number, &line[self.code_marker.len()..]) {
                         Ok(line) => line,
                         Err(error) => return Some(Parse::Error(BirdError::Single { line_number, kind: error.into() })),
                     };
-                    let code_block = CodeBlock::new().add_line(line);
-                    state.node = Some(Node::Code(code_block));
-                    Some(Parse::Incomplete)
-                }
-                None => {
-                    let text_block = TextBlock::new().add_line(&line);
-                    state.node = Some(Node::Text(text_block));
-                    Some(Parse::Incomplete)
-                }
-                Some(..) if line.is_empty() => {
-                    let node = state.node.take().unwrap();
+                    let mut code_block = CodeBlock::new();
+                    code_block.add_line(line);
+                    let node = std::mem::replace(&mut state.node, Node::Code(code_block));
+                    state.blank_line = false;
                     Some(Parse::Complete(node))
                 }
-                Some(Node::Code(..)) if line.starts_with(&self.code_marker) => {
-                    if let Node::Code(code_block) = state.node.take().unwrap() {
-                        let line = match self.parse_line(line_number, &line[self.code_marker.len()..]) {
-                            Ok(line) => line,
-                            Err(error) => return Some(Parse::Error(BirdError::Single { line_number, kind: error.into() })),
-                        };
-                        let code_block = code_block.add_line(line);
-                        state.node = Some(Node::Code(code_block));
-                    } else { unreachable!(); }
+                State { node: Node::Code(code_block), .. } if line.starts_with(&self.code_marker) => {
+                    let line = match self.parse_line(line_number, &line[self.code_marker.len()..]) {
+                        Ok(line) => line,
+                        Err(error) => return Some(Parse::Error(BirdError::Single { line_number, kind: error.into() })),
+                    };
+                    code_block.add_line(line);
                     Some(Parse::Incomplete)
                 }
-                Some(Node::Code(..)) => {
+                State { node: Node::Code(..), .. } => {
                     Some(Parse::Error(BirdError::Single { line_number, kind: BirdErrorKind::UnterminatedCodeBlock }))
                 }
-                Some(Node::Text(..)) => {
-                    if let Node::Text(text_block) = state.node.take().unwrap() {
-                        state.node = Some(Node::Text(text_block.add_line(line)));
-                    } else { unreachable!(); }
+                State { node: Node::Text(text_block), .. } => {
+                    state.blank_line = false;
+                    text_block.add_line(&line);
                     Some(Parse::Incomplete)
                 }
             })
@@ -139,17 +144,12 @@ impl Parser for BirdParser {
                 Parse::Complete(node) => Some(Ok(node)),
             })
             .try_collect::<_, _, Vec<_>, BirdError>()?;
-        if let Some(node) = state.node.take() {
-            document.push(node);
-        }
+        document.push(state.node);
         Ok(Document::from_iter(document))
     }
 }
 
 impl Printer for BirdParser {
-    type Config = BirdParser;
-    fn config(&self) -> &Self::Config { self }
-
     fn print_text_block<'a>(&self, block: &TextBlock<'a>) -> String {
         format!("{}\n", block.to_string())
     }
@@ -157,16 +157,14 @@ impl Printer for BirdParser {
     fn print_code_block<'a>(&self, block: &CodeBlock<'a>) -> String {
         let mut output = String::new();
         if let Some(name) = &block.name {
-            let var_placeholder = format!("{}{}", self.interpolation_start, self.interpolation_end);
-            let mut name = name.clone();
-            for var in &block.vars {
-                let var_name = format!("{}{}{}", self.interpolation_start, var, self.interpolation_end);
-                name = name.replacen(&var_placeholder, &var_name, 1);
-            }
-            output.push_str(&format!("{}{}\n", self.code_name_marker, name));
+            output.push_str(&self.code_name_marker);
+            output.push_str(&self.print_name(name.clone(), &block.vars));
+            output.push('\n');
         }
         for line in &block.source {
-            output.push_str(&format!("{}{}\n", self.code_marker, self.print_line(&line)));
+            output.push_str(&self.code_marker);
+            output.push_str(&self.print_line(&line, true));
+            output.push('\n');
         }
         output
     }
