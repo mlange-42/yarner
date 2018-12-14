@@ -3,13 +3,14 @@ use std::io::Write;
 use std::path::PathBuf;
 use clap::{Arg, App};
 use serde_derive::Deserialize;
-use outline::parser::{Parser, Printer, BirdParser, MdParser, TexParser};
+use outline::parser::{Parser, Printer, BirdParser, MdParser, TexParser, HtmlParser};
 
 #[derive(Deserialize, Default)]
 struct AnyConfig {
     bird: Option<BirdParser>,
     md: Option<MdParser>,
     tex: Option<TexParser>,
+    html: Option<HtmlParser>,
 }
 
 fn main() {
@@ -106,29 +107,34 @@ fn main() {
                     }
                 }
                 "md" => {
-                    let default = if let Some(language) = code_type {
-                        MdParser::for_language(language.to_owned())
-                    } else {
-                        MdParser::default()
-                    };
+                    let default = MdParser::default();
                     let parser = any_config.md
                         .as_ref()
-                        .unwrap_or(&default);
-                    if let Err(error) = compile(parser, &contents, &doc_dir, &code_dir, &file_name) {
+                        .unwrap_or(&default)
+                        .default_language(code_type);
+                    if let Err(error) = compile(&parser, &contents, &doc_dir, &code_dir, &file_name) {
                         eprintln!("{}", error);
                         return;
                     }
                 }
                 "tex" => {
-                    let default = if let Some(language) = code_type {
-                        TexParser::for_language(language.to_owned())
-                    } else {
-                        TexParser::default()
-                    };
+                    let default = TexParser::default();
                     let parser = any_config.tex
                         .as_ref()
-                        .unwrap_or(&default);
-                    if let Err(error) = compile(parser, &contents, &doc_dir, &code_dir, &file_name) {
+                        .unwrap_or(&default)
+                        .default_language(code_type);
+                    if let Err(error) = compile(&parser, &contents, &doc_dir, &code_dir, &file_name) {
+                        eprintln!("{}", error);
+                        return;
+                    }
+                }
+                "html" => {
+                    let default = HtmlParser::default();
+                    let parser = any_config.html
+                        .as_ref()
+                        .unwrap_or(&default)
+                        .default_language(code_type);
+                    if let Err(error) = compile(&parser, &contents, &doc_dir, &code_dir, &file_name) {
                         eprintln!("{}", error);
                         return;
                     }

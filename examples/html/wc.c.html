@@ -1,0 +1,361 @@
+<!DOCTYPE html>
+<html lang="en" dir="ltr">
+  <head>
+    <meta charset="utf-8">
+    <title>Word Count</title>
+    <style>
+    :root {
+      --font--body: 14pt 'Alegreya', serif;
+      --font--code: normal 12pt 'Fira Code', monospace;
+
+      --background-color--code-block: #efefef;
+      --color--code-text: #202020;
+      --color--comment: #888888;
+    }
+
+    body {
+      margin: 0;
+      padding: 0;
+      display: flex;
+    }
+
+    main {
+      position: relative;
+      margin: 0 auto;
+      max-width: 600px;
+      padding: 16px;
+      font: var(--font--body);
+      overflow-x: visible;
+    }
+
+    p {
+      text-indent: 2em;
+    }
+
+    code {
+      font: var(--font--code);
+    }
+
+    code:not(.block) {
+      color: var(--color--code-text);
+    }
+
+    code.block {
+      position: relative;
+      display: block;
+      white-space: pre-wrap;
+      padding: 8px;
+      background-color: var(--background-color--code-block);
+    }
+
+    code.block[data-name] {
+      margin-top: 2em;
+    }
+
+    code.block[data-name]::before {
+      position: absolute;
+      bottom: 100%;
+      content: attr(data-name) '';
+      font: var(--font--body);
+      font-size: 12pt;
+      color: var(--color--comment);
+    }
+
+    aside.comment {
+      position: absolute;
+      left: 100%;
+      font-size: 12pt;
+      display: flex;
+      align-items: center;
+      color: var(--color--comment);
+      white-space: nowrap;
+    }
+    </style>
+    <script>
+    window.onload = (() => {
+      for (const block of document.querySelectorAll('code.block')) {
+        const text = block.textContent.split('\n');
+        while (!text[0].trim()) { text.shift(); }
+        while (!text[text.length - 1].trim()) { text.pop(); }
+        const min_indent = Math.min(...text.filter(str => !!str).map(str => str.match(/^\s*/)[0].length));
+        block.textContent = text.map(line => line.slice(min_indent)).join('\n');
+
+        let comment = block.nextElementSibling;
+        while (comment && comment.tagName === 'ASIDE' && comment.classList.contains('comment')) {
+          const lineNumber = +comment.getAttribute('data-line');
+          const { offsetHeight: height, offsetTop: top } = block;
+          const lineHeight = (height - 16) / text.length;
+          comment.style.top = `${8 + top + lineHeight * lineNumber}px`;
+          comment.style.height = `${lineHeight}px`;
+          comment = comment.nextElementSibling;
+        }
+      }
+    })
+    </script>
+  </head>
+  <body>
+    <main>
+      <h1>The Word Count Program.</h1>
+
+      <p>Here we have an outline of the program:</p>
+
+      <code language="c">
+      ==> Header files to include.
+      ==> Preprocessor definitions.
+      ==> Global variables.
+      ==> Functions.
+      ==> The main program.
+      </code>
+
+      <p>
+        We must include standard I/O definitions, since we want to send formatted output to
+        <i>stdout</i> and <i>stderr</i>.
+      </p>
+
+      <code name="Header files to include">
+      #include <stdio.h>
+      #include <fcntl.h>
+      #include <unistd.h>
+      </code>
+
+      <p>
+        The <code>status</code> variable will tell the operating system if the run was successful
+        or not, and <code>prog_name</code> is used in case there's an error message to be printed.
+      </p>
+
+      <code name="Preprocessor definitions">
+      #define OK 1                // status code for successful run
+      #define usage_error 1       // status code for improper syntax
+      #define cannot_open_file 2  // status code for file access error
+      </code>
+
+      <code name="Global variables">
+      int status = OK;  // exit status of command, initially OK
+      char *prog_name;  // who we are
+      </code>
+
+      <p>
+        Now we come to the general layout of the <code>main()</code> function.
+      </p>
+
+      <code language="c" name="The main program">
+      int main(int argc, char **argv)
+      {
+          ==> Variables local to main.
+          prog_name = argv[0];
+          ==> Set up option selection.
+          ==> Process all the files.
+          ==> Print the grand totals if there were multiple files.
+          return status;
+      }
+      </code>
+
+      <p>
+        If the first argument begins with a <code>-</code>, the user is choosing the desired
+        counts and specifying the order in which they should be displayed. Each selection is given by
+        the initial character (lines, words, or characters). For example, <code>-cl</code> would cause
+        just the number of characters and the number of lines to be printed, in that order. The
+        default, if no special argument is given, is <code>-lwc</code>.
+      </p>
+
+      <p>
+        We do not process this string now; we simply remember where it is. It will be used to control the
+        formatting at output time.
+      </p>
+
+      <p>
+        If the <code>-</code> is immediately followed by <code>s</code>, only summary totals are printed.
+      </p>
+
+      <code language="c" name="Variables local to main">
+      int file_count;  // how many files there are
+      char *which;     // which counts to print
+      int silent = 0;  // nonzero if the silent option was selected
+      </code>
+
+      <code language="c" name="Set up option selection">
+      which = "lwc";   // if no option is given, print all three values
+      if (argc > 1 && *argv[1] == '-') {
+          argv[1]++;
+          if (*argv [1] == 's') silent = 1, argv [1]++;
+          if (*argv [1]) which = argv [1];
+          argc--;
+          argv++;
+      }
+      file_count = argc - 1;
+      </code>
+
+      <p>
+        Now we scan the remaining arguments and try to open a file, if possible. The file is processed
+        and its statistics are given. We use a <code>do ... while</code> loop because we should read
+        from the standard input if no file name is given.
+      </p>
+
+      <code language="c" name="Process all the files">
+      argc--;
+      do {
+          ==> If a file is given, try to open @{*(++argv)}; continue if unsuccessful.
+          ==> Initialize pointers and counters.
+          ==> Scan file.
+          ==> Write statistics for file.
+          ==> Close file.
+          ==> Update grand totals.
+      } while (--argc > 0);
+      </code>
+
+      <p>
+        Heres the code to open the file. A special trick allows us to handle input from <i>stdin</i>
+        when no name is given. Recall that the file descriptor to <i>stdin</i> is <code>0</code>;
+        that's what we use as the default initial value.
+      </p>
+
+      <code language="c" name="Variables local to main">
+      int fd = 0;
+      </code>
+
+      <code language="c" name="Preprocessor definitions">
+      #define READ_ONLY 0
+      </code>
+
+      <code language="c" name="If a file is given, try to open @{next file}; continue if unsuccessful">
+      if (file_count > 0 && (fd = open(@{next file}, READ_ONLY)) < 0) {
+          fprintf(stderr, "%s: cannot open file %s\n", prog_name, *argv);
+          status |= 2;
+          file_count--;
+          continue;
+      }
+      </code>
+
+      <code language="c" name="Close file">
+      close(fd);
+      </code>
+
+      <p>
+        We will do some homemade buffering in order to speed things up: Characters will be read into
+        the <code>buffer</code> array before we process them. To do this we set up appropriate
+        pointers and counters.
+      </p>
+
+      <code language="c" name="Variables local to main">
+      char buffer[BUFSIZ];     // we read the input into this array
+      register char *ptr;      // the first unprocessed character in buffer
+      register char *buf_end;  // the first unused position in buffer
+      register int c;          // current character or number of characters just read
+      int in_word;             // are we within a word?
+      long word_count, line_count, char_count; // number of words, lines, and characters found in the file so far
+      </code>
+
+      <code language="c" name="Initialize pointers and counters">
+      ptr = buf_end = buffer;
+      line_count = word_count = char_count = 0;
+      in_word = 0;
+      </code>
+
+      <p>
+        The grand totals must be initialized to zero at the beginning of the program. If we made these
+        variables local to <code>main</code>, we would have to do this initialization explicitly;
+        however, C's globals are automatically zeroed. (Or rather, &ldqup;statically zeroed.&rdquo;) (Get it?)
+      </p>
+
+      <code language="c" name="Global variables">
+      long tot_word_count, tot_line_count, tot_char_count; // total number of words, lines and chars
+      </code>
+
+      <p>
+        The present section, which does the counting that is <code>wc</code>'s <i>raison d'être</i>, was
+        actually one of the simplest to write. We look at each character and change state if it begins
+        or ends a word.
+      </p>
+
+      <code language="c" name="Scan file">
+      while (1) {
+          ==> Fill buffer if it is empty; break at end of file.
+          c = *ptr++;
+          if (c > ' ' && c < 177) {    // visible ASCII codes
+              if (!in_word) {
+                  word_count++;
+                  in_word = 1;
+              }
+              continue;
+          }
+          if (c == '\n') line_count++;
+          else if (c != ' ' && c != '\t') continue;
+          in_word = 0;  // c is newline, space, or tab
+      }
+      </code>
+
+      <p>
+        Buffered I/O allows us to count the number of characters almost for free.
+      </p>
+
+      <code language="c" name="Fill buffer if it is empty; break at end of file">
+      if (ptr >= buf_end) {
+          ptr = buffer;
+          c = read(fd, ptr, BUFSIZ);
+          if (c <= 0) break;
+          char_count += c;
+          buf_end = buffer + c;
+      }
+      </code>
+
+      <p>
+        It's convenient to output the statistics by defining a new function <code>wc_print()</code>; then the same
+        function can be used for the totals. Additionally we must decide here if we know the name of the
+        file we have processed or if it was just <i>stdin</i>.
+      </p>
+
+      <code language="c" name="Write statistics for file">
+      if (!silent) {
+          wc_print(which, char_count, word_count, line_count);
+          if (file_count) printf(" %s\n", *argv);  // not stdin
+          else printf("\n");                       // stdin
+      }
+      </code>
+
+      <code language="c" name="Update grand totals">
+      tot_line_count += line_count;
+      tot_word_count += word_count;
+      tot_char_count += char_count;
+      </code>
+
+      <p>
+        We might as well improve a bit on UNIX's <code>wc</code> by displaying the number of files too.
+      </p>
+
+      <code language="c" name="Print the grand totals if there were multiple files">
+      if (file_count > 1 || silent) {
+          wc_print(which, tot_char_count, tot_word_count, tot_line_count);
+          if (!file_count) printf("\n");
+          else printf(" total in %d file%s\n", file_count, file_count > 1 ? "s" : "");
+      }
+      </code>
+
+      <p>
+        Here now is the function that prints the values according to the specified options. The calling
+        routine is supposed to supply a newline. If an invalid option character is found we inform the user
+        about proper usage of the command. Counts are printed in 8-digit fields so that they will line up in
+        columns.
+      </p>
+
+      <code language="c" name="Functions">
+      void wc_print(char *which, long char_count, long word_count, long line_count)
+      {
+          while (*which)
+              switch (*which++) {
+              case 'l': printf("%8ld", line_count);
+                  break;
+              case 'w': printf("%8ld", word_count);
+                  break;
+              case 'c': printf("%8ld", char_count);
+                  break;
+              default:
+                  if ((status & 1) == 0) {
+                      fprintf(stderr, "\nUsage: %s [-lwc] [filename ...]\n", prog_name);
+                      status |= 1;
+                  }
+              }
+      }
+      </code>
+    </main>
+  </body>
+</html>

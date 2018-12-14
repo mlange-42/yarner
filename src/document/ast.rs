@@ -49,7 +49,7 @@ impl<'a> Ast<'a> {
                 Node::Code(code_block) => output.push_str(&printer
                     .print_code_block(code_block)
                     .split("\n")
-                    .map(|line| format!("{}{}", code_block.indent, line))
+                    .map(|line| if line.is_empty() { line.to_string() } else { format!("{}{}", code_block.indent, line) })
                     .collect::<Vec<_>>()
                     .join("\n")
                 ),

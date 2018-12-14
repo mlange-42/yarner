@@ -23,7 +23,7 @@
 //! must be written all on one line. The order of language and name, if both are specified, is not
 //! important. Complex names may be grouped with `{}`.
 //!
-//! Currently, the Latex parser does not support code that is written to the compiled file, but
+//! Currently, the TeX parser does not support code that is written to the compiled file, but
 //! not rendered in the documentation file.
 
 use std::collections::HashMap;
@@ -38,7 +38,7 @@ use crate::document::code::CodeBlock;
 use crate::document::text::TextBlock;
 use crate::util::try_collect::TryCollectExt;
 
-#[derive(Deserialize, Debug)]
+#[derive(Clone, Deserialize, Debug)]
 pub struct TexParser {
     pub code_environment: String,
     pub default_language: Option<String>,
@@ -68,6 +68,17 @@ impl TexParser {
         Self {
             default_language: Some(language),
             ..Self::default()
+        }
+    }
+
+    pub fn default_language(&self, language: Option<String>) -> Self {
+        if let Some(language) = language {
+            Self {
+                default_language: Some(language),
+                ..self.clone()
+            }
+        } else {
+            self.clone()
         }
     }
 }
@@ -281,7 +292,6 @@ pub enum TexErrorKind {
     UnknownLanguage,
     MissingValueForArgument,
     UnclosedArgumentList,
-    UnmatchedQuoteInArgumentList,
     InvalidArgumentList,
     Parse(ParseError),
 }

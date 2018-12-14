@@ -6,13 +6,6 @@
 //! which is specified as follows:
 //!
 //! *   Code lines are enclosed in fenced code blocks, using `\`\`\`lang` as the fence.
-//!
-//!     The language tag is optional, but allows multiple languages to be used in one file. If
-//!     there is no language specified, the language is inferred from the file type by using the
-//!     second last extension.
-//!
-//!     When outputting the code, only blocks using the language from the file type will be
-//!     printed. All languages will appear in the documentation.
 //! *   A macro (named code block) separates the name from the language tag ` - `, such as
 //!     `\`\`\`c - Name of the macro`. Note that the hyphen is surrounded by a single space on
 //!     either side, even if there is no language tag.
@@ -41,7 +34,7 @@ use crate::document::code::CodeBlock;
 use crate::document::text::TextBlock;
 use crate::util::try_collect::TryCollectExt;
 
-#[derive(Deserialize, Debug)]
+#[derive(Clone, Deserialize, Debug)]
 pub struct MdParser {
     pub fence_sequence: String,
     pub block_name_start: String,
@@ -77,6 +70,17 @@ impl MdParser {
         Self {
             default_language: Some(language),
             ..Self::default()
+        }
+    }
+
+    pub fn default_language(&self, language: Option<String>) -> Self {
+        if let Some(language) = language {
+            Self {
+                default_language: Some(language),
+                ..self.clone()
+            }
+        } else {
+            self.clone()
         }
     }
 }

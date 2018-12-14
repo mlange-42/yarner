@@ -1,0 +1,11 @@
+[html]
+code_tag = "code"
+language_attribute = "data-language"
+name_attribute = "data-name"
+block_class = "block"
+comments_as_aside = true
+comment_start = "//"
+interpolation_start = "@{"
+interpolation_end = "}"
+macro_start = "==> "
+macro_end = "."

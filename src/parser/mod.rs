@@ -11,6 +11,7 @@ pub mod html;
 pub use self::bird::BirdParser;
 pub use self::md::MdParser;
 pub use self::tex::TexParser;
+pub use self::html::HtmlParser;
 
 use crate::document::Document;
 use crate::document::code::{Line, CodeBlock, Source, Segment};
