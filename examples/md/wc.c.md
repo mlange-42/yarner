@@ -13,22 +13,22 @@ Here we have an outline of the program:
 We must include standard I/O definitions, since we want to send formatted output to *stdout* and
 *stderr*.
 
-```c - Header files to include
+``` - Header files to include
 #include <stdio.h>
 #include <fcntl.h>
 #include <unistd.h>
 ```
 
 The `status` variable will tell the operating system if the run was successful or not, and
-`prog_name` is used in case there’s an error message to be printed.
+`prog_name` is used in case there's an error message to be printed.
 
-```c - Preprocessor definitions
+``` - Preprocessor definitions
 #define OK 1                // status code for successful run
 #define usage_error 1       // status code for improper syntax
 #define cannot_open_file 2  // status code for file access error
 ```
 
-```c - Global variables
+``` - Global variables
 int status = OK;  // exit status of command, initially OK
 char *prog_name;  // who we are
 ```
@@ -92,8 +92,8 @@ do {
 } while (--argc > 0);
 ```
 
-Here’s the code to open the file. A special trick allows us to handle input from *stdin* when no
-name is given. Recall that the file descriptor to *stdin* is `0`; that’s what we use as the default
+Heres the code to open the file. A special trick allows us to handle input from *stdin* when no
+name is given. Recall that the file descriptor to *stdin* is `0`; that's what we use as the default
 initial value.
 
 ```c - Variables local to main
@@ -136,7 +136,7 @@ in_word = 0;
 ```
 
 The grand totals must be initialized to zero at the beginning of the program. If we made these
-variables local to `main`, we would have to do this initialization explicitly; however, C’s globals
+variables local to `main`, we would have to do this initialization explicitly; however, C's globals
 are automatically zeroed. (Or rather, "statically zeroed.") (Get it?)
 
 ```c - Global variables
@@ -175,7 +175,7 @@ if (ptr >= buf_end) {
 }
 ```
 
-It’s convenient to output the statistics by defining a new function `wc_print()`; then the same
+It's convenient to output the statistics by defining a new function `wc_print()`; then the same
 function can be used for the totals. Additionally we must decide here if we know the name of the
 file we have processed or if it was just *stdin*.
 
@@ -193,7 +193,7 @@ tot_word_count += word_count;
 tot_char_count += char_count;
 ```
 
-We might as well improve a bit on UNIX’s `wc` by displaying the number of files too.
+We might as well improve a bit on UNIX's `wc` by displaying the number of files too.
 
 ```c - Print the grand totals if there were multiple files
 if (file_count > 1 || silent) {

@@ -1,0 +1,7 @@
+[md]
+code_environment = "code"
+comment_start = "//"
+interpolation_start = "@{"
+interpolation_end = "}"
+macro_start = "==> "
+macro_end = "."

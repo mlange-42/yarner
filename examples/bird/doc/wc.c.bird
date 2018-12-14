@@ -20,13 +20,13 @@ The status variable will tell the operating system if the run was successful or 
 prog_name is used in case there’s an error message to be printed.
 
 >>> Preprocessor definitions
-> #define OK 1                //// status code for successful run
-> #define usage_error 1       //// status code for improper syntax
-> #define cannot_open_file 2  //// status code for file access error
+> #define OK 1                // status code for successful run
+> #define usage_error 1       // status code for improper syntax
+> #define cannot_open_file 2  // status code for file access error
 
 >>> Global variables
-> int status = OK;  //// exit status of command, initially OK
-> char *prog_name;  //// who we are
+> int status = OK;  // exit status of command, initially OK
+> char *prog_name;  // who we are
 
 Now we come to the general layout of the main() function.
 
@@ -52,12 +52,12 @@ formatting at output time.
 If the '-' is immediately followed by 's', only summary totals are printed.
 
 >>> Variables local to main
-> int file_count;  //// how many files there are
-> char *which;     //// which counts to print
-> int silent = 0;  //// nonzero if the silent option was selected
+> int file_count;  // how many files there are
+> char *which;     // which counts to print
+> int silent = 0;  // nonzero if the silent option was selected
 
 >>> Set up option selection
-> which = "lwc";   //// if no option is given, print all three values
+> which = "lwc";   // if no option is given, print all three values
 > if (argc > 1 && *argv[1] == '-') {
 >     argv[1]++;
 >     if (*argv [1] == 's') silent = 1, argv [1]++;
@@ -74,7 +74,7 @@ if no file name is given.
 >>> Process all the files
 > argc--;
 > do {
->     ==> If a file is given, try to open ; continue if unsuccessful.
+>     ==> If a file is given, try to open @{*(++argv)}; continue if unsuccessful.
 >     ==> Initialize pointers and counters.
 >     ==> Scan file.
 >     ==> Write statistics for file.
@@ -92,7 +92,7 @@ value.
 >>> Preprocessor definitions
 > #define READ_ONLY 0
 
->>> If a file is given, try to open ; continue if unsuccessful
+>>> If a file is given, try to open @{next file}; continue if unsuccessful
 > if (file_count > 0 && (fd = open(@{next file}, READ_ONLY)) < 0) {
 >     fprintf(stderr, "%s: cannot open file %s\n", prog_name, *argv);
 >     status |= 2;
@@ -107,12 +107,12 @@ We will do some homemade buffering in order to speed things up: Characters will 
 buffer array before we process them. To do this we set up appropriate pointers and counters.
 
 >>> Variables local to main
-> char buffer[BUFSIZ];     //// we read the input into this array
-> register char *ptr;      //// the first unprocessed character in buffer
-> register char *buf_end;  //// the first unused position in buffer
-> register int c;          //// current character or number of characters just read
-> int in_word;             //// are we within a word?
-> long word_count, line_count, char_count; //// number of words, lines, and characters found in the file so far
+> char buffer[BUFSIZ];     // we read the input into this array
+> register char *ptr;      // the first unprocessed character in buffer
+> register char *buf_end;  // the first unused position in buffer
+> register int c;          // current character or number of characters just read
+> int in_word;             // are we within a word?
+> long word_count, line_count, char_count; // number of words, lines, and characters found in the file so far
 
 >>> Initialize pointers and counters
 > ptr = buf_end = buffer;
@@ -124,7 +124,7 @@ variables local to main, we would have to do this initialization explicitly; how
 are automatically zeroed. (Or rather, "statically zeroed.") (Get it?)
 
 >>> Global variables
-> long tot_word_count, tot_line_count, tot_char_count; //// total number of words, lines and chars
+> long tot_word_count, tot_line_count, tot_char_count; // total number of words, lines and chars
 
 The present section, which does the counting that is wc's raison d'être, was actually one of the
 simplest to write. We look at each character and change state if it begins or ends a word.
@@ -133,7 +133,7 @@ simplest to write. We look at each character and change state if it begins or en
 > while (1) {
 >     ==> Fill buffer if it is empty; break at end of file.
 >     c = *ptr++;
->     if (c > ' ' && c < 177) {    //// visible ASCII codes
+>     if (c > ' ' && c < 177) {    // visible ASCII codes
 >         if (!in_word) {
 >             word_count++;
 >             in_word = 1;
@@ -142,7 +142,7 @@ simplest to write. We look at each character and change state if it begins or en
 >     }
 >     if (c == '\n') line_count++;
 >     else if (c != ' ' && c != '\t') continue;
->     in_word = 0;  //// c is newline, space, or tab
+>     in_word = 0;  // c is newline, space, or tab
 > }
 
 Buffered I/O allows us to count the number of characters almost for free.
@@ -163,8 +163,8 @@ file we have processed or if it was just stdin.
 >>> Write statistics for file
 > if (!silent) {
 >     wc_print(which, char_count, word_count, line_count);
->     if (file_count) printf(" %s\n", *argv);  //// not stdin
->     else printf("\n");                       //// stdin
+>     if (file_count) printf(" %s\n", *argv);  // not stdin
+>     else printf("\n");                       // stdin
 > }
 
 >>> Update grand totals

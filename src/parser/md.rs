@@ -16,7 +16,7 @@
 //! *   A macro (named code block) separates the name from the language tag ` - `, such as
 //!     `\`\`\`c - Name of the macro`. Note that the hyphen is surrounded by a single space on
 //!     either side, even if there is no language tag.
-//! *   The comment symbol is `//`, but they are still just rendered into the code
+//! *   The comment symbol is `//`, but they are rendered inline
 //!     *   Enabling the `comments_as_aside` option will render comments in an `<aside>` after the
 //!         code block, which you may then style accordingly when the document is rendered.
 //! *   Interpolation of is done such as `@{a meta variable}`.
@@ -29,7 +29,6 @@
 //!
 //! Currently, the Markdown parser does not support code that is written to the compiled file, but
 //! not rendered in the documentation file.
-
 
 use std::iter::FromIterator;
 use serde_derive::Deserialize;

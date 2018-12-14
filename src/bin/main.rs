@@ -3,12 +3,13 @@ use std::io::Write;
 use std::path::PathBuf;
 use clap::{Arg, App};
 use serde_derive::Deserialize;
-use outline::parser::{Parser, Printer, BirdParser, MdParser};
+use outline::parser::{Parser, Printer, BirdParser, MdParser, TexParser};
 
 #[derive(Deserialize, Default)]
 struct AnyConfig {
     bird: Option<BirdParser>,
     md: Option<MdParser>,
+    tex: Option<TexParser>,
 }
 
 fn main() {
@@ -111,6 +112,20 @@ fn main() {
                         MdParser::default()
                     };
                     let parser = any_config.md
+                        .as_ref()
+                        .unwrap_or(&default);
+                    if let Err(error) = compile(parser, &contents, &doc_dir, &code_dir, &file_name) {
+                        eprintln!("{}", error);
+                        return;
+                    }
+                }
+                "tex" => {
+                    let default = if let Some(language) = code_type {
+                        TexParser::for_language(language.to_owned())
+                    } else {
+                        TexParser::default()
+                    };
+                    let parser = any_config.tex
                         .as_ref()
                         .unwrap_or(&default);
                     if let Err(error) = compile(parser, &contents, &doc_dir, &code_dir, &file_name) {

@@ -10,6 +10,7 @@ pub mod html;
 
 pub use self::bird::BirdParser;
 pub use self::md::MdParser;
+pub use self::tex::TexParser;
 
 use crate::document::Document;
 use crate::document::code::{Line, CodeBlock, Source, Segment};
@@ -45,13 +46,14 @@ pub trait Parser: ParserConfig{
     fn parse_name<'a>(&self, mut input: &'a str) -> Result<(String, Vec<&'a str>), ParseError> {
         let mut name = String::new();
         let mut vars = vec![];
-        let config = self;
         let start = self.interpolation_start();
         let end = self.interpolation_end();
         loop {
             if let Some(start_index) = input.find(start) {
                 if let Some(end_index) = input[start_index + start.len()..].find(end) {
                     name.push_str(&input[..start_index]);
+                    name.push_str(&start);
+                    name.push_str(&end);
                     vars.push(&input[start_index + start.len()..start_index + start.len() + end_index]);
                     input = &input[start_index + start.len() + end_index + end.len()..];
                 }
