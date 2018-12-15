@@ -2,7 +2,7 @@
 
 [![](https://img.shields.io/crates/v/outline.svg)](https://crates.io/crates/outline)
 ![](https://img.shields.io/crates/l/outline.svg)
-![](https://docs.rs/outline/badge.svg)
+[![](https://docs.rs/outline/badge.svg)](https:///docs.rs/outline)
 
 Generic literate programming transpiler. This project aims to provide a modern, developer friendly
 literate programming tool. After a brief search online, other options claiming to be "modern" are
