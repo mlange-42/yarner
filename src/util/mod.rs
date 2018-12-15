@@ -1,1 +1,1 @@
-pub mod try_collect;
+pub(crate) mod try_collect;

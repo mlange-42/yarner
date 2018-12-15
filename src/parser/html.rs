@@ -42,19 +42,61 @@ use crate::document::code::CodeBlock;
 use crate::document::text::TextBlock;
 use crate::util::try_collect::TryCollectExt;
 
+/// The config for parsing an HTML document
 #[derive(Clone, Deserialize, Debug)]
 pub struct HtmlParser {
+    /// The tag that code is written in when parsing. When printing, the code is always rendered in
+    /// `<pre><code></code></pre>`, as is recommended by W3C.
+    ///
+    /// Default: `code`
     pub code_tag: String,
+    /// The attribute to put the language name when rendering the documentation.
+    ///
+    /// Default: `data-language`
+    ///
+    /// When parsing, the language is always read from the `language` attribute (this value is
+    /// ignored).
     pub language_attribute: String,
+    /// The attribute to add to the `code_tag` with the code block's name .
+    ///
+    /// Default: `data-name`
+    ///
+    /// When parsing, the name is always read from the `name` attribute (this value is ignored)
     pub name_attribute: String,
+    /// A class to add to the `<pre>` container for any parsed blocks of code when rendering.
     pub block_class: String,
+    /// The class to add to the `<code>` block when rendering. The string `{}` is replaced with the
+    /// language that this block is in.
+    ///
+    /// Default: `language-{}`
     pub language_class: String,
+    /// Parsed comments are stripped from the code and written to an `<aside></aside>` block after
+    /// the code when printing. If false, the comments are just written back into the code.
+    ///
+    /// Default: `false`
     pub comments_as_aside: bool,
+    /// The language to set if there was no automatically detected language. Optional
     pub default_language: Option<String>,
+    /// The sequence to identify a comment which should be omitted from the compiled code, and may
+    /// be rendered as an `<aside>` if `comments_as_aside` is set.
+    ///
+    /// Default: `//`
     pub comment_start: String,
+    /// The sequence to identify the start of a meta variable interpolation.
+    ///
+    /// Default: `@{`
     pub interpolation_start: String,
+    /// The sequence to identify the end of a meta variable interpolation.
+    ///
+    /// Default: `}`
     pub interpolation_end: String,
+    /// The sequence to identify the start of a macro invocation.
+    ///
+    /// Default: `==>`
     pub macro_start: String,
+    /// The sequence to identify the end of a macro invocation.
+    ///
+    /// Default: `.`
     pub macro_end: String,
 }
 
@@ -78,6 +120,7 @@ impl Default for HtmlParser {
 }
 
 impl HtmlParser {
+    /// Creates a default parser with a fallback language
     pub fn for_language(language: String) -> Self {
         Self {
             default_language: Some(language),
@@ -85,6 +128,7 @@ impl HtmlParser {
         }
     }
 
+    /// Sets the default language of this parser (or does nothing if `None` is passed)
     pub fn default_language(&self, language: Option<String>) -> Self {
         if let Some(language) = language {
             Self {
@@ -269,12 +313,7 @@ impl Printer for HtmlParser {
 
     fn print_code_block<'a>(&self, block: &CodeBlock<'a>) -> String {
         let mut output = String::new();
-        let language_class = if let Some(language) = &block.language {
-            format!(" {}", self.language_class.replace("{}", language))
-        } else {
-            String::new()
-        };
-        output.push_str(&format!("<pre class=\"{}\"><{}", self.block_class, self.code_tag));
+        output.push_str(&format!("<pre class=\"{}\"><code", self.block_class));
         if let Some(language) = &block.language {
             let class = self.language_class.replace("{}", language);
             output.push_str(&format!(" class=\"{}\" {}=\"{}\"", class, self.language_attribute, language));
@@ -299,7 +338,7 @@ impl Printer for HtmlParser {
             }
             output.push('\n');
         }
-        output.push_str(&format!("</{}></pre>\n", self.code_tag));
+        output.push_str("</code></pre>\n");
 
         for (line, comment) in comments {
             output.push_str(&format!("<aside class=\"comment\" data-line=\"{}\">{}</aside>\n", line, comment.trim()));
@@ -309,23 +348,30 @@ impl Printer for HtmlParser {
     }
 }
 
+/// Kinds of errors that can be encountered while parsing and restructuring the HTML
 #[derive(Debug)]
 pub enum HtmlErrorKind {
+    /// A line was un-indented too far, usually indicating an error
     IncorrectIndentation,
-    UnknownLanguage,
-    MissingValueForArgument,
+    /// The quotation marks around an attribute value are mismatched
     UnmatchedQuoteInArgumentList,
+    #[doc(hidden)]
     ExtraCharactersInCodeBlock,
+    /// There is a syntax error in the code tag
     InvalidArgumentList,
+    /// Generic parse error
     Parse(ParseError),
 }
 
+/// Errors that were encountered while parsing the HTML
 #[derive(Debug)]
 pub enum HtmlError {
+    #[doc(hidden)]
     Single {
         line_number: usize,
         kind: HtmlErrorKind,
     },
+    #[doc(hidden)]
     Multi(Vec<HtmlError>),
 }
 

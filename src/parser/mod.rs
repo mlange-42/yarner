@@ -37,6 +37,7 @@ pub trait ParserConfig {
 /// A [`Parser`] determines which lines are code and which are text, and may use its `Config` to
 /// actually handle reading the lines of code
 pub trait Parser: ParserConfig{
+    /// The type of error for this parser
     type Error: std::error::Error;
 
     /// Parses the text part of the document. Should delegate the code section on a line-by-line
@@ -119,6 +120,7 @@ pub trait Parser: ParserConfig{
     }
 }
 
+/// A generic parse error
 #[derive(Debug)]
 pub enum ParseError {} // is there even such a thing as a parse error? who knows.
 

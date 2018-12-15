@@ -34,17 +34,46 @@ use crate::document::code::CodeBlock;
 use crate::document::text::TextBlock;
 use crate::util::try_collect::TryCollectExt;
 
+/// The config for parsing a Markdown document
 #[derive(Clone, Deserialize, Debug)]
 pub struct MdParser {
+    /// The sequence that identifies the start and end of a fenced code block
+    ///
+    /// Default: `\`\`\``
     pub fence_sequence: String,
+    /// The sequence that separates the language from the name of the code block after the fence
+    ///
+    /// Default: ` - `
     pub block_name_start: String,
+    /// The sequence that indicates the end of the code block name. Optional
     pub block_name_end: Option<String>,
-    pub default_language: Option<String>,
+    /// Parsed comments are stripped from the code and written to an `<aside></aside>` block after
+    /// the code when printing. If false, the comments are just written back into the code.
+    ///
+    /// Default: `false`
     pub comments_as_aside: bool,
+    /// The language to set if there was no automatically detected language. Optional
+    pub default_language: Option<String>,
+    /// The sequence to identify a comment which should be omitted from the compiled code, and may
+    /// be rendered as an `<aside>` if `comments_as_aside` is set.
+    ///
+    /// Default: `//`
     pub comment_start: String,
+    /// The sequence to identify the start of a meta variable interpolation.
+    ///
+    /// Default: `@{`
     pub interpolation_start: String,
+    /// The sequence to identify the end of a meta variable interpolation.
+    ///
+    /// Default: `}`
     pub interpolation_end: String,
+    /// The sequence to identify the start of a macro invocation.
+    ///
+    /// Default: `==>`
     pub macro_start: String,
+    /// The sequence to identify the end of a macro invocation.
+    ///
+    /// Default: `.`
     pub macro_end: String,
 }
 
@@ -66,6 +95,7 @@ impl Default for MdParser {
 }
 
 impl MdParser {
+    /// Creates a default parser with a fallback language
     pub fn for_language(language: String) -> Self {
         Self {
             default_language: Some(language),
@@ -73,6 +103,7 @@ impl MdParser {
         }
     }
 
+    /// Sets the default language of this parser (or does nothing if `None` is passed)
     pub fn default_language(&self, language: Option<String>) -> Self {
         if let Some(language) = language {
             Self {
@@ -258,19 +289,24 @@ impl Printer for MdParser {
     }
 }
 
+/// Kinds of errors that can be encountered while parsing and restructuring the Markdown
 #[derive(Debug)]
 pub enum MdErrorKind {
+    /// A line was un-indented too far, usually indicating an error
     IncorrectIndentation,
-    UnknownLanguage,
+    /// Generic parse error
     Parse(ParseError),
 }
 
+/// Errors that were encountered while parsing the HTML
 #[derive(Debug)]
 pub enum MdError {
+    #[doc(hidden)]
     Single {
         line_number: usize,
         kind: MdErrorKind,
     },
+    #[doc(hidden)]
     Multi(Vec<MdError>),
 }
 

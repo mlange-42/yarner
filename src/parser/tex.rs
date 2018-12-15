@@ -38,14 +38,34 @@ use crate::document::code::CodeBlock;
 use crate::document::text::TextBlock;
 use crate::util::try_collect::TryCollectExt;
 
+/// The config for parsing a TeX document
 #[derive(Clone, Deserialize, Debug)]
 pub struct TexParser {
+    /// The environment used to indicate code.
+    ///
+    /// Default: `code`
     pub code_environment: String,
+    /// The language to set if there was no automatically detected language. Optional
     pub default_language: Option<String>,
+    /// The sequence to identify a comment which should be omitted from the compiled code.
+    ///
+    /// Default: `//`
     pub comment_start: String,
+    /// The sequence to identify the start of a meta variable interpolation.
+    ///
+    /// Default: `@{`
     pub interpolation_start: String,
+    /// The sequence to identify the end of a meta variable interpolation.
+    ///
+    /// Default: `}`
     pub interpolation_end: String,
+    /// The sequence to identify the start of a macro invocation.
+    ///
+    /// Default: `==>`
     pub macro_start: String,
+    /// The sequence to identify the end of a macro invocation.
+    ///
+    /// Default: `.`
     pub macro_end: String,
 }
 
@@ -64,6 +84,7 @@ impl Default for TexParser {
 }
 
 impl TexParser {
+    /// Creates a default parser with a fallback language
     pub fn for_language(language: String) -> Self {
         Self {
             default_language: Some(language),
@@ -71,6 +92,7 @@ impl TexParser {
         }
     }
 
+    /// Sets the default language of this parser (or does nothing if `None` is passed)
     pub fn default_language(&self, language: Option<String>) -> Self {
         if let Some(language) = language {
             Self {
@@ -283,22 +305,30 @@ impl Printer for TexParser {
     }
 }
 
+/// Kinds of errors that can be encountered while parsing and restructuring the TeX document
 #[derive(Debug)]
 pub enum TexErrorKind {
+    /// A line was un-indented too far, usually indicating an error
     IncorrectIndentation,
-    UnknownLanguage,
+    /// An argument was passed with no value
     MissingValueForArgument,
+    /// The closing `]` is missing from the argument lisst
     UnclosedArgumentList,
+    /// There is a syntax error in the argument list
     InvalidArgumentList,
+    /// Generic parse error
     Parse(ParseError),
 }
 
+/// Errors that were encountered while parsing the TeX document
 #[derive(Debug)]
 pub enum TexError {
+    #[doc(hidden)]
     Single {
         line_number: usize,
         kind: TexErrorKind,
     },
+    #[doc(hidden)]
     Multi(Vec<TexError>),
 }
 

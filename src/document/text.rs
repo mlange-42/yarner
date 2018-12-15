@@ -1,3 +1,5 @@
+//! Representation of the text parts of the AST
+
 /// A [`TextBlock`] is just text that will be copied verbatim into the output documentation file
 #[derive(Debug, Default)]
 pub struct TextBlock<'a> {

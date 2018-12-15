@@ -1,6 +1,6 @@
 use std::iter::FromIterator;
 
-pub trait TryCollectExt: Iterator + Sized {
+pub(crate) trait TryCollectExt: Iterator + Sized {
     fn try_collect<R, E, Cr, Ce>(self) -> Result<Cr, Ce>
     where
         Self: Iterator<Item = Result<R, E>>,

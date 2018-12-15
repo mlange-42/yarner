@@ -30,14 +30,36 @@ use crate::document::code::CodeBlock;
 use crate::document::text::TextBlock;
 use crate::util::try_collect::TryCollectExt;
 
+/// The config for parsing a Bird Style document
 #[derive(Deserialize, Debug)]
 pub struct BirdParser {
+    /// The line starter to identify code lines
+    ///
+    /// Default: `> `
     pub code_marker: String,
+    /// The line starter to identify the name of a code block
+    ///
+    /// Default: `>>> `
     pub code_name_marker: String,
+    /// The sequence to identify a comment which should be omitted from the compiled code.
+    ///
+    /// Default: `//`
     pub comment_start: String,
+    /// The sequence to identify the start of a meta variable interpolation.
+    ///
+    /// Default: `@{`
     pub interpolation_start: String,
+    /// The sequence to identify the end of a meta variable interpolation.
+    ///
+    /// Default: `}`
     pub interpolation_end: String,
+    /// The sequence to identify the start of a macro invocation.
+    ///
+    /// Default: `==>`
     pub macro_start: String,
+    /// The sequence to identify the end of a macro invocation.
+    ///
+    /// Default: `.`
     pub macro_end: String,
 }
 
@@ -170,18 +192,24 @@ impl Printer for BirdParser {
     }
 }
 
+/// Kinds of errors that can be encountered while parsing and restructuring the document
 #[derive(Debug)]
 pub enum BirdErrorKind {
+    /// The code block has ended, but there is no blank line
     UnterminatedCodeBlock,
+    /// Generic parse error
     Parse(ParseError),
 }
 
+/// Errors that were encountered while parsing the document
 #[derive(Debug)]
 pub enum BirdError {
+    #[doc(hidden)]
     Single {
         line_number: usize,
         kind: BirdErrorKind,
     },
+    #[doc(hidden)]
     Multi(Vec<BirdError>),
 }
 

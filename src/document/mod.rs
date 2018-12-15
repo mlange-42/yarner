@@ -16,7 +16,7 @@ pub struct Document<'a> {
 
 impl<'a> Document<'a> {
     /// Creates a new document with the tree
-    pub fn new(tree: Ast<'a>) -> Self {
+    pub(crate) fn new(tree: Ast<'a>) -> Self {
         Document { tree }
     }
 
@@ -45,16 +45,23 @@ where Ast<'a>: From<T> {
     }
 }
 
+/// Problems encountered while compiling the document
 #[derive(Debug)]
 pub enum CompileErrorKind {
+    /// An unknown meta variable was encountered
     UnknownMetaVariable(String),
+    /// An unknown macro name was encountered
     UnknownMacro(String),
+    /// There is no unnamed code block to use as the entrypoint
     MissingEntrypoint,
 }
 
+/// Errors that were encountered while compiling the document
 #[derive(Debug)]
 pub enum CompileError {
+    #[doc(hidden)]
     Multi(Vec<CompileError>),
+    #[doc(hidden)]
     Single {
         line_number: usize,
         kind: CompileErrorKind,

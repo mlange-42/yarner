@@ -1,3 +1,5 @@
+//! Internal AST representation
+
 use std::iter::FromIterator;
 use std::collections::HashMap;
 
@@ -8,7 +10,7 @@ use crate::parser::Printer;
 
 /// A [`Node`] in the [`Ast`]
 #[derive(Debug)]
-pub enum Node<'a> {
+pub(crate) enum Node<'a> {
     /// A text block
     Text(TextBlock<'a>),
     /// A code block
@@ -24,11 +26,13 @@ pub struct Ast<'a> {
 }
 
 impl<'a> Ast<'a> {
-    pub fn new(nodes: Vec<Node<'a>>) -> Self {
+    /// Create a new empty AST
+    pub(crate) fn new(nodes: Vec<Node<'a>>) -> Self {
         Ast { nodes }
     }
 
-    pub fn code_blocks(&self) -> HashMap<Option<&str>, CodeBlock> {
+    /// Gets all the code blocks of this AST, concatenating blocks of the same name
+    pub(crate) fn code_blocks(&self) -> HashMap<Option<&str>, CodeBlock> {
         let mut code_blocks = HashMap::new();
         for node in &self.nodes {
             if let Node::Code(block) = node {
@@ -41,7 +45,8 @@ impl<'a> Ast<'a> {
         code_blocks
     }
 
-    pub fn print_docs<P: Printer>(&self, printer: &P) -> String {
+    /// Renders the program this AST is representing in the documentation format
+    pub(crate) fn print_docs<P: Printer>(&self, printer: &P) -> String {
         let mut output = String::new();
         for node in &self.nodes {
             match node {
@@ -58,7 +63,8 @@ impl<'a> Ast<'a> {
         output
     }
 
-    pub fn print_code(&self) -> Result<String, CompileError> {
+    /// Renders the program this AST is representing in the code format
+    pub(crate) fn print_code(&self) -> Result<String, CompileError> {
         let code_blocks = self.code_blocks();
         code_blocks
             .get(&None)

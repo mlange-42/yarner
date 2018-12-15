@@ -1,3 +1,5 @@
+//! Representation of the code parts of the AST
+
 use std::collections::HashMap;
 use super::{CompileError, CompileErrorKind};
 use crate::util::try_collect::TryCollectExt;
@@ -15,7 +17,12 @@ pub enum Segment<'a> {
 #[derive(Clone, Debug)]
 pub enum Source<'a> {
     /// A macro invocation, resolved by the literate compiler
-    Macro { name: String, scope: Vec<&'a str> },
+    Macro {
+        /// The name of the macro
+        name: String,
+        /// The meta-variable values to interpolate
+        scope: Vec<&'a str>
+    },
     /// Source text, possibly including meta variable interpolations
     Source(Vec<Segment<'a>>)
 }
