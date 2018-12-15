@@ -1,5 +1,9 @@
 # Outline
 
+[![](https://img.shields.io/crates/v/outline.svg)](https://crates.io/crates/outline)
+![](https://img.shields.io/crates/l/outline.svg)
+![](https://docs.rs/outline/badge.svg)
+
 Generic literate programming transpiler. This project aims to provide a modern, developer friendly
 literate programming tool. After a brief search online, other options claiming to be "modern" are
 years old, and have some pretty ugly syntax (in my opinion). If I am wrong in this regard, please
@@ -13,6 +17,23 @@ exactly. It uses pluggable, configurable input formats, with out-of-the-box supp
 *   (some approximation of) Bird style
 
 See the examples directory for full working examples in each style.
+
+## Installation
+
+The provided binary (honestly a quick hack to get things working) can be installed via cargo:
+
+```bash
+cargo install outline --features bin
+```
+
+The `outline` crate is also available to allow you to write your own parser:
+
+```toml
+outline = "0.1.0"
+```
+
+If you write your own parser, feel free to continue hacking on the provided `src/bin/main.rs` to
+support your new parser.
 
 ## Features
 
