@@ -8,6 +8,7 @@
 //!     Any other attributes will be ignored, or may even fail to parse.
 //! *   When printing the documentation, the language and name are written in the `data-language`
 //!     and `data-name` attributes, to be consistent with valid HTML.
+//! *   The language will also be added as a class, such as `language-c`.
 //! *   When printing the documentation, the `block` class will be added to any detected code
 //!     blocks.
 //! *   The comment symbol is `//`, but they are rendered inline
@@ -47,6 +48,7 @@ pub struct HtmlParser {
     pub language_attribute: String,
     pub name_attribute: String,
     pub block_class: String,
+    pub language_class: String,
     pub comments_as_aside: bool,
     pub default_language: Option<String>,
     pub comment_start: String,
@@ -61,6 +63,7 @@ impl Default for HtmlParser {
         Self {
             default_language: None,
             code_tag: String::from("code"),
+            language_class: String::from("language-{}"),
             language_attribute: String::from("data-language"),
             name_attribute: String::from("data-name"),
             block_class: String::from("block"),
@@ -269,9 +272,15 @@ impl Printer for HtmlParser {
 
     fn print_code_block<'a>(&self, block: &CodeBlock<'a>) -> String {
         let mut output = String::new();
-        output.push_str(&format!("<{} class=\"{}\"", self.code_tag, self.block_class));
+        let language_class = if let Some(language) = &block.language {
+            format!(" {}", self.language_class.replace("{}", language))
+        } else {
+            String::new()
+        };
+        output.push_str(&format!("<pre class=\"{}\"><{}", self.block_class, self.code_tag));
         if let Some(language) = &block.language {
-            output.push_str(&format!(" {}=\"{}\"", self.language_attribute, language));
+            let class = self.language_class.replace("{}", language);
+            output.push_str(&format!(" class=\"{}\" {}=\"{}\"", class, self.language_attribute, language));
         }
         if let Some(name) = &block.name {
             output.push_str(&format!(" {}=\"{}\"", self.name_attribute, self.print_name(name.clone(), &block.vars)));
@@ -293,7 +302,7 @@ impl Printer for HtmlParser {
             }
             output.push('\n');
         }
-        output.push_str(&format!("</{}>\n", self.code_tag));
+        output.push_str(&format!("</{}></pre>\n", self.code_tag));
 
         for (line, comment) in comments {
             output.push_str(&format!("<aside class=\"comment\" data-line=\"{}\">{}</aside>\n", line, comment.trim()));

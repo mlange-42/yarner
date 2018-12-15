@@ -22,8 +22,9 @@ fn main() {
             .short("c")
             .long("config")
             .value_name("FILE")
-            .help("Sets a custom config file")
+            .help("Sets the config file name")
             .takes_value(true)
+            .default_value("Outline.toml")
         )
         .arg(Arg::with_name("style")
             .short("s")
@@ -48,7 +49,7 @@ fn main() {
             .takes_value(true)
         )
         .arg(Arg::with_name("input")
-            .short("The input source file")
+            .short("The input source file(s)")
             .value_name("INPUT")
             .multiple(true)
             .index(1)
@@ -57,17 +58,23 @@ fn main() {
 
     let any_config: AnyConfig = match matches.value_of("config") {
         None => AnyConfig::default(),
-        Some(file_name) => match fs::read_to_string(file_name) {
-            Ok(config) => match toml::from_str(&config) {
-                Ok(config) => config,
-                Err(error) => {
-                    eprintln!("{}", error);
-                    return;
+        Some(file_name) => {
+            if matches.occurrences_of("config") == 0 && !PathBuf::from(file_name).exists() {
+                AnyConfig::default()
+            } else {
+                match fs::read_to_string(file_name) {
+                    Ok(config) => match toml::from_str(&config) {
+                        Ok(config) => config,
+                        Err(error) => {
+                            eprintln!("Could not parse config file \"{}\": {}", file_name, error);
+                            return;
+                        }
+                    }
+                    Err(error) => {
+                        eprintln!("Could not read config file \"{}\": {}", file_name, error);
+                        return;
+                    }
                 }
-            }
-            Err(error) => {
-                eprintln!("{}", error);
-                return;
             }
         }
     };
@@ -82,7 +89,7 @@ fn main() {
             let contents = match fs::read_to_string(&file_name) {
                 Ok(contents) => contents,
                 Err(error) => {
-                    eprintln!("{}", error);
+                    eprintln!("Could not read source file \"{}\": {}", file_name.to_str().unwrap(), error);
                     return;
                 }
             };
@@ -102,7 +109,7 @@ fn main() {
                     let default = BirdParser::default();
                     let parser = any_config.bird.as_ref().unwrap_or(&default);
                     if let Err(error) = compile(parser, &contents, &doc_dir, &code_dir, &file_name) {
-                        eprintln!("{}", error);
+                        eprintln!("Failed to compile source file \"{}\": {}", file_name.to_str().unwrap(), error);
                         return;
                     }
                 }
@@ -113,7 +120,7 @@ fn main() {
                         .unwrap_or(&default)
                         .default_language(code_type);
                     if let Err(error) = compile(&parser, &contents, &doc_dir, &code_dir, &file_name) {
-                        eprintln!("{}", error);
+                        eprintln!("Failed to compile source file \"{}\": {}", file_name.to_str().unwrap(), error);
                         return;
                     }
                 }
@@ -124,7 +131,7 @@ fn main() {
                         .unwrap_or(&default)
                         .default_language(code_type);
                     if let Err(error) = compile(&parser, &contents, &doc_dir, &code_dir, &file_name) {
-                        eprintln!("{}", error);
+                        eprintln!("Failed to compile source file \"{}\": {}", file_name.to_str().unwrap(), error);
                         return;
                     }
                 }
@@ -135,7 +142,7 @@ fn main() {
                         .unwrap_or(&default)
                         .default_language(code_type);
                     if let Err(error) = compile(&parser, &contents, &doc_dir, &code_dir, &file_name) {
-                        eprintln!("{}", error);
+                        eprintln!("Failed to compile source file \"{}\": {}", file_name.to_str().unwrap(), error);
                         return;
                     }
                 }
@@ -169,7 +176,7 @@ where
         fs::create_dir_all(file_path.parent().unwrap()).unwrap();
         let mut code_file = File::create(file_path).unwrap();
         let code = document.print_code()?;
-        writeln!(code_file, "{}", code).unwrap();
+        write!(code_file, "{}", code).unwrap();
     }
 
     if let Some(doc_dir) = doc_dir {
@@ -177,7 +184,7 @@ where
         file_path.push(file_name);
         fs::create_dir_all(file_path.parent().unwrap()).unwrap();
         let mut doc_file = File::create(file_path).unwrap();
-        writeln!(doc_file, "{}", document.print_docs(parser)).unwrap();
+        write!(doc_file, "{}", document.print_docs(parser)).unwrap();
     }
 
     Ok(())

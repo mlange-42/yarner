@@ -3,6 +3,7 @@ code_tag = "code"
 language_attribute = "data-language"
 name_attribute = "data-name"
 block_class = "block"
+language_class = "language-{}"
 comments_as_aside = true
 comment_start = "//"
 interpolation_start = "@{"

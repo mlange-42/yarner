@@ -8,9 +8,18 @@
       --font--body: 14pt 'Alegreya', serif;
       --font--code: normal 12pt 'Fira Code', monospace;
 
-      --background-color--code-block: #efefef;
+      --color--code-background: #efefef;
       --color--code-text: #202020;
       --color--comment: #888888;
+
+      --color--code-comment: var(--color--comment);
+      --color--code-interpolation: rgb(189, 60, 60);
+      --color--code-macro: rgb(138, 51, 185);
+      --color--code-string: rgb(79, 154, 104);
+      --color--code-constant: rgb(221, 136, 66);
+      --color--code-type: rgb(221, 182, 66);
+      --color--code-keyword: rgb(166, 65, 207);
+      --color--code-function: rgb(21, 86, 194);
     }
 
     body {
@@ -36,62 +45,74 @@
       font: var(--font--code);
     }
 
-    code:not(.block) {
-      color: var(--color--code-text);
-    }
-
-    code.block {
-      position: relative;
-      display: block;
-      white-space: pre-wrap;
+    pre.block {
       padding: 8px;
-      background-color: var(--background-color--code-block);
+      position: relative;
+      white-space: pre-wrap;
+      background-color: var(--color--code-background);
+      display: block;
     }
 
-    code.block[data-name] {
-      margin-top: 2em;
-    }
-
-    code.block[data-name]::before {
+    code[data-name]::before {
       position: absolute;
-      bottom: 100%;
-      content: attr(data-name) '';
+      right: 100%;
+      margin-right: 8px;
+      display: block;
+      content: attr(data-name);
       font: var(--font--body);
       font-size: 12pt;
       color: var(--color--comment);
+      white-space: nowrap;
     }
 
     aside.comment {
       position: absolute;
       left: 100%;
-      font-size: 12pt;
       display: flex;
       align-items: center;
+      font-size: 12pt;
       color: var(--color--comment);
       white-space: nowrap;
     }
-    </style>
-    <script>
-    window.onload = (() => {
-      for (const block of document.querySelectorAll('code.block')) {
-        const text = block.textContent.split('\n');
-        while (!text[0].trim()) { text.shift(); }
-        while (!text[text.length - 1].trim()) { text.pop(); }
-        const min_indent = Math.min(...text.filter(str => !!str).map(str => str.match(/^\s*/)[0].length));
-        block.textContent = text.map(line => line.slice(min_indent)).join('\n');
 
-        let comment = block.nextElementSibling;
-        while (comment && comment.tagName === 'ASIDE' && comment.classList.contains('comment')) {
-          const lineNumber = +comment.getAttribute('data-line');
-          const { offsetHeight: height, offsetTop: top } = block;
-          const lineHeight = (height - 16) / text.length;
-          comment.style.top = `${8 + top + lineHeight * lineNumber}px`;
-          comment.style.height = `${lineHeight}px`;
-          comment = comment.nextElementSibling;
-        }
-      }
-    })
-    </script>
+    pre code span { overflow: visible; }
+
+    pre code .outline.interpolation {
+      color: var(--color--code-interpolation);
+    }
+
+    pre code .outline.macro {
+      color: var(--color--code-macro);
+    }
+
+    pre code .comment {
+        color: var(--color--code-comment);
+    }
+
+    pre code .constant.numeric, pre code .entity.name {
+        color: var(--color--code-constant);
+    }
+
+    pre code .keyword, pre code .storage, pre code .preprocessor {
+      color: var(--color--code-keyword);
+    }
+
+    pre code .keyword.operator {
+      color: var(--color--code-text);
+    }
+
+    pre code .class {
+        color: var(--color--code-type);
+    }
+
+    pre code .function, pre code .entity.name.function {
+      color: var(--color--code-function);
+    }
+
+    pre .string  {
+        color: var(--color--code-string);
+    }
+    </style>
   </head>
   <body>
     <main>
@@ -357,5 +378,52 @@
       }
       </code>
     </main>
+
+    <!-- Syntax highlighting -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/rainbow/1.2.0/js/rainbow.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/rainbow/1.2.0/js/language/generic.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/rainbow/1.2.0/js/language/c.js"></script>
+    <script>
+    const interpolation = {
+      pattern: /@\{.*\}/g,
+      name: 'outline.interpolation',
+    };
+
+    Rainbow.extend([
+      interpolation,
+      {
+        pattern: /\=\=(>|&gt;) [^.]*\./g,
+        name: 'outline.macro',
+        matches: {
+          0: interpolation
+        }
+      },
+    ]);
+
+    Rainbow.extend('c', [
+      {
+        pattern: /(&amp;|[<>!|*.=*-+]){2}/g,
+        name: 'keyword.operator',
+      }
+    ]);
+    for (const pre of document.querySelectorAll('pre.block')) {
+      const code = pre.querySelector('code');
+      const text = code.textContent.split('\n');
+      while (!text[0].trim()) { text.shift(); }
+      while (!text[text.length - 1].trim()) { text.pop(); }
+      const min_indent = Math.min(...text.filter(str => !!str).map(str => str.match(/^\s*/)[0].length));
+      code.textContent = text.map(line => line.slice(min_indent)).join('\n');
+
+      let comment = pre.nextElementSibling;
+      while (comment && comment.tagName === 'ASIDE' && comment.classList.contains('comment')) {
+        const lineNumber = +comment.getAttribute('data-line');
+        const { offsetHeight: height, offsetTop: top } = pre;
+        const lineHeight = (height - 16) / text.length;
+        comment.style.top = `${8 + top + lineHeight * lineNumber}px`;
+        comment.style.height = `${lineHeight}px`;
+        comment = comment.nextElementSibling;
+      }
+    }
+    </script>
   </body>
 </html>
