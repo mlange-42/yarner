@@ -1,7 +1,10 @@
 //! The built in parsers
 //!
-//! Additional parsers should implement the [`Parser`] trait, as well as define a corresponding
-//! [`ParserConfig`] type to allow configuring that parser
+//! Additional parsers should implement the `Parser` trait, as well as define a corresponding
+//! `ParserConfig` type to allow configuring that parser.
+//!
+//! Additionally, for each parser, a `Printer` is needed to be able to write the code back
+//! out correctly.
 
 pub mod bird;
 pub mod tex;
@@ -17,7 +20,7 @@ use crate::document::Document;
 use crate::document::code::{Line, CodeBlock, Source, Segment};
 use crate::document::text::TextBlock;
 
-/// A [`ParserConfig`] can be used to customize the built in parsing methods
+/// A `ParserConfig` can be used to customize the built in parsing methods
 pub trait ParserConfig {
     /// The token to denote the start of a comment that should be rendered in the documentation.
     /// This may be specified as the actual line comment symbol used by the source language to
@@ -34,7 +37,7 @@ pub trait ParserConfig {
     fn macro_end(&self) -> &str;
 }
 
-/// A [`Parser`] determines which lines are code and which are text, and may use its `Config` to
+/// A `Parser` determines which lines are code and which are text, and may use its `Config` to
 /// actually handle reading the lines of code
 pub trait Parser: ParserConfig{
     /// The type of error for this parser
@@ -67,7 +70,7 @@ pub trait Parser: ParserConfig{
         return Ok((name, vars));
     }
 
-    /// Parses a line as code, returning the parsed [`Line`] object
+    /// Parses a line as code, returning the parsed `Line` object
     fn parse_line<'a>(&self, line_number: usize, input: &'a str) -> Result<Line<'a>, ParseError> {
         let indent_len = input.chars()
             .take_while(|ch| ch.is_whitespace())
@@ -124,7 +127,7 @@ pub trait Parser: ParserConfig{
 #[derive(Debug)]
 pub enum ParseError {} // is there even such a thing as a parse error? who knows.
 
-/// A [`Printer`] can invert the parsing process, printing the code blocks how they should be
+/// A `Printer` can invert the parsing process, printing the code blocks how they should be
 /// rendered in the documentation text.
 pub trait Printer: ParserConfig {
     /// Prints a code block

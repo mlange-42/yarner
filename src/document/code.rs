@@ -4,7 +4,7 @@ use std::collections::HashMap;
 use super::{CompileError, CompileErrorKind};
 use crate::util::try_collect::TryCollectExt;
 
-/// A [`Segment`] is some of the raw source text.
+/// A `Segment` is some of the raw source text.
 #[derive(Clone, Debug)]
 pub enum Segment<'a> {
     /// Raw source text
@@ -13,7 +13,7 @@ pub enum Segment<'a> {
     MetaVar(&'a str),
 }
 
-/// A [`Source`] represents the source code on a line.
+/// A `Source` represents the source code on a line.
 #[derive(Clone, Debug)]
 pub enum Source<'a> {
     /// A macro invocation, resolved by the literate compiler
@@ -94,7 +94,7 @@ pub struct CodeBlock<'a> {
 }
 
 impl<'a> CodeBlock<'a> {
-    /// Creates a new empty [`CodeBlock`]
+    /// Creates a new empty `CodeBlock`
     pub fn new() -> Self { Self::default() }
 
     /// Indents this code block

@@ -8,7 +8,7 @@ use super::code::CodeBlock;
 use super::{CompileError, CompileErrorKind};
 use crate::parser::Printer;
 
-/// A [`Node`] in the [`Ast`]
+/// A `Node` in the `Ast`
 #[derive(Debug)]
 pub(crate) enum Node<'a> {
     /// A text block

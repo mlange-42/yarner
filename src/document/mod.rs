@@ -20,12 +20,12 @@ impl<'a> Document<'a> {
         Document { tree }
     }
 
-    /// Formats this [`Document`] as a string containing the documentation file contents
+    /// Formats this `Document` as a string containing the documentation file contents
     pub fn print_docs<P: Printer>(&self, printer: &P) -> String {
         self.tree.print_docs(printer)
     }
 
-    /// Formats this [`Document`] as a string containing the compiled code
+    /// Formats this `Document` as a string containing the compiled code
     pub fn print_code(&self, entrypoint: Option<&str>, language: Option<&str>) -> Result<String, CompileError> {
         self.tree.print_code(entrypoint, language)
     }
