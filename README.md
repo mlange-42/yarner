@@ -242,3 +242,25 @@ interpolation_end = "}"
 macro_start = "==> "
 macro_end = "."
 ```
+
+### Extending
+
+It is possible to write your own Outline parsers for more formats, or to extend the existing
+formats.
+
+To do this, you need to implement three traits - `Parser`, `Printer`, and `ParserConfig`.
+
+The `Parser` trait is responsible for deciding where a code block starts and ends, and creating
+a `Document` based on that.
+
+The `Printer` is responsible for taking parsed code blocks and writing them back out, potentially in
+a more "valid" form than they were parsed in.
+
+The `ParserConfig` exposes the most common configuration options in order to implement the core
+functionality, such as macro invocation, meta variables, and comment extraction.
+
+For now, if you wish to write your own parser, I recommend looking to the existing parsers as your
+starting point, and then looking to `src/bin/main.rs` for an example of how to use your completed
+parser.
+
+Additionally, the API documentation is another good place to look.
