@@ -241,10 +241,7 @@ impl Parser for HtmlParser {
                                 Some(language) => code_block.in_language(language.to_string()),
                                 None => match &self.default_language {
                                     Some(language) => code_block.in_language(language.to_string()),
-                                    None => return Some(Parse::Error(HtmlError::Single {
-                                        line_number,
-                                        kind: HtmlErrorKind::UnknownLanguage,
-                                    })),
+                                    None => code_block,
                                 }
                             };
                             let node = std::mem::replace(&mut state.node, Node::Code(code_block));

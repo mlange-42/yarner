@@ -141,22 +141,23 @@ impl Parser for MdParser {
                                     let name = &rest[name_start..name_end];
                                     self.parse_name(name)
                                 });
+
+                            let mut code_block = CodeBlock::new()
+                                .indented(indent);
+
                             let language = rest[..name_start.unwrap_or(rest.len())].trim();
                             let language = if language.is_empty() {
                                 match &self.default_language {
-                                    Some(language) => language.to_owned(),
-                                    None => return Some(Parse::Error(MdError::Single {
-                                        line_number,
-                                        kind: MdErrorKind::UnknownLanguage,
-                                    })),
+                                    Some(language) => Some(language.to_owned()),
+                                    None => None
                                 }
                             } else {
-                                language.to_owned()
+                                Some(language.to_owned())
                             };
-                            let code_block = CodeBlock::new()
-                                .indented(indent)
-                                .in_language(language);
-                            let code_block = match name {
+                            if let Some(language) = language {
+                                code_block = code_block.in_language(language);
+                            }
+                            code_block = match name {
                                 None => code_block,
                                 Some(Ok((name, vars))) => code_block.named(name, vars),
                                 Some(Err(error)) => return Some(Parse::Error(MdError::Single {

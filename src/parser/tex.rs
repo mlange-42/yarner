@@ -226,12 +226,9 @@ impl Parser for TexParser {
                                     Some(language) => code_block.in_language(language.to_string()),
                                     None => match &self.default_language {
                                         Some(language) => code_block.in_language(language.to_string()),
-                                        None => return Some(Parse::Error(TexError::Single {
-                                            line_number,
-                                            kind: TexErrorKind::UnknownLanguage,
-                                        })),
+                                        None => code_block,
                                     }
-                                }
+                                };
                             }
                             let node = std::mem::replace(&mut state.node, Node::Code(code_block));
                             Some(Parse::Complete(node))

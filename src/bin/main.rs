@@ -1,5 +1,5 @@
 use std::fs::{self, File};
-use std::io::Write;
+use std::io::{Read, Write, stdin};
 use std::path::PathBuf;
 use clap::{Arg, App};
 use serde_derive::Deserialize;
@@ -82,78 +82,112 @@ fn main() {
     let doc_dir = matches.value_of("doc_dir").map(PathBuf::from);
     let code_dir = matches.value_of("code_dir").map(PathBuf::from);
 
-    if let Some(values) = matches.values_of("input") {
-        for file_name in values {
-            let file_name = PathBuf::from(file_name);
+    enum Input<'a> { File(&'a str), Stdin }
+    let inputs = matches.values_of("input")
+        .map(|files| files.into_iter().map(|file| Input::File(file)).collect())
+        .unwrap_or(vec![Input::Stdin]);
 
-            let contents = match fs::read_to_string(&file_name) {
-                Ok(contents) => contents,
-                Err(error) => {
-                    eprintln!("Could not read source file \"{}\": {}", file_name.to_str().unwrap(), error);
-                    return;
-                }
-            };
+    for input in inputs {
+        let (file_name, contents, style_type, code_type) = match input {
+            Input::File(file_name) => {
+                let file_name = PathBuf::from(file_name);
 
-            let style_type = file_name.extension()
-                .and_then(|osstr| osstr.to_str());
+                let contents = match fs::read_to_string(&file_name) {
+                    Ok(contents) => contents,
+                    Err(error) => {
+                        eprintln!("Could not read source file \"{}\": {}", file_name.to_str().unwrap(), error);
+                        return;
+                    }
+                };
 
-            let code_type = file_name.file_stem()
-                .and_then(|stem| PathBuf::from(stem)
-                    .extension()
+                let style_type = file_name.extension()
                     .and_then(|osstr| osstr.to_str())
-                    .map(|s| s.to_owned())
-                );
+                    .map(|s| s.to_owned());
 
-            match matches.value_of("style").or(style_type).unwrap_or("md") {
-                "bird" => {
-                    let default = BirdParser::default();
-                    let parser = any_config.bird.as_ref().unwrap_or(&default);
-                    if let Err(error) = compile(parser, &contents, &doc_dir, &code_dir, &file_name) {
-                        eprintln!("Failed to compile source file \"{}\": {}", file_name.to_str().unwrap(), error);
+                let code_type = file_name.file_stem()
+                    .and_then(|stem| PathBuf::from(stem)
+                        .extension()
+                        .and_then(|osstr| osstr.to_str())
+                        .map(|s| s.to_owned())
+                    );
+                (Some(file_name), contents, style_type, code_type)
+            }
+            Input::Stdin => {
+                let mut input = String::new();
+                match stdin().read_to_string(&mut input) {
+                    Ok(..) => (),
+                    Err(error) => {
+                        eprintln!("Could not read STDIN as string: {}", error);
                         return;
                     }
                 }
-                "md" => {
-                    let default = MdParser::default();
-                    let parser = any_config.md
-                        .as_ref()
-                        .unwrap_or(&default)
-                        .default_language(code_type);
-                    if let Err(error) = compile(&parser, &contents, &doc_dir, &code_dir, &file_name) {
+                (None, input, None, None)
+            }
+        };
+
+        match matches.value_of("style").map(|s| s.to_string()).or(style_type).unwrap_or("md".to_string()).as_str() {
+            "bird" => {
+                let default = BirdParser::default();
+                let parser = any_config.bird.as_ref().unwrap_or(&default);
+                if let Err(error) = compile(parser, &contents, &doc_dir, &code_dir, &file_name) {
+                    if let Some(file_name) = file_name {
                         eprintln!("Failed to compile source file \"{}\": {}", file_name.to_str().unwrap(), error);
-                        return;
+                    } else {
+                        eprintln!("Failed to compile from STDIN: {}", error);
                     }
+                    continue;
                 }
-                "tex" => {
-                    let default = TexParser::default();
-                    let parser = any_config.tex
-                        .as_ref()
-                        .unwrap_or(&default)
-                        .default_language(code_type);
-                    if let Err(error) = compile(&parser, &contents, &doc_dir, &code_dir, &file_name) {
+            }
+            "md" => {
+                let default = MdParser::default();
+                let parser = any_config.md
+                    .as_ref()
+                    .unwrap_or(&default)
+                    .default_language(code_type);
+                if let Err(error) = compile(&parser, &contents, &doc_dir, &code_dir, &file_name) {
+                    if let Some(file_name) = file_name {
                         eprintln!("Failed to compile source file \"{}\": {}", file_name.to_str().unwrap(), error);
-                        return;
+                    } else {
+                        eprintln!("Failed to compile from STDIN: {}", error);
                     }
+                    continue;
                 }
-                "html" => {
-                    let default = HtmlParser::default();
-                    let parser = any_config.html
-                        .as_ref()
-                        .unwrap_or(&default)
-                        .default_language(code_type);
-                    if let Err(error) = compile(&parser, &contents, &doc_dir, &code_dir, &file_name) {
+            }
+            "tex" => {
+                let default = TexParser::default();
+                let parser = any_config.tex
+                    .as_ref()
+                    .unwrap_or(&default)
+                    .default_language(code_type);
+                if let Err(error) = compile(&parser, &contents, &doc_dir, &code_dir, &file_name) {
+                    if let Some(file_name) = file_name {
                         eprintln!("Failed to compile source file \"{}\": {}", file_name.to_str().unwrap(), error);
-                        return;
+                    } else {
+                        eprintln!("Failed to compile from STDIN: {}", error);
                     }
+                    continue;
                 }
-                other => {
-                    eprintln!("Unknown style {}", other);
-                    return;
+            }
+            "html" => {
+                let default = HtmlParser::default();
+                let parser = any_config.html
+                    .as_ref()
+                    .unwrap_or(&default)
+                    .default_language(code_type);
+                if let Err(error) = compile(&parser, &contents, &doc_dir, &code_dir, &file_name) {
+                    if let Some(file_name) = file_name {
+                        eprintln!("Failed to compile source file \"{}\": {}", file_name.to_str().unwrap(), error);
+                    } else {
+                        eprintln!("Failed to compile from STDIN: {}", error);
+                    }
+                    continue;
                 }
-            };
-        }
-    } else {
-        eprintln!("Not yet supported");
+            }
+            other => {
+                eprintln!("Unknown style {}", other);
+                continue;
+            }
+        };
     }
 }
 
@@ -162,29 +196,39 @@ fn compile<P>(
     source: &str,
     doc_dir: &Option<PathBuf>,
     code_dir: &Option<PathBuf>,
-    file_name: &PathBuf
+    file_name: &Option<PathBuf>
 ) -> Result<(), Box<dyn std::error::Error>>
 where
     P: Parser + Printer,
-    P::Error: 'static
+    P::Error: 'static,
 {
     let document = parser.parse(source)?;
 
-    if let Some(code_dir) = code_dir {
-        let mut file_path = code_dir.clone();
-        file_path.push(file_name.file_stem().unwrap());
-        fs::create_dir_all(file_path.parent().unwrap()).unwrap();
-        let mut code_file = File::create(file_path).unwrap();
+    if file_name.is_none() {
         let code = document.print_code()?;
-        write!(code_file, "{}", code).unwrap();
+        print!("{}", code);
+    }
+
+    if let Some(code_dir) = code_dir {
+        if let Some(file_name) = file_name {
+            let mut file_path = code_dir.clone();
+            file_path.push(file_name.file_stem().unwrap());
+            fs::create_dir_all(file_path.parent().unwrap()).unwrap();
+            let mut code_file = File::create(file_path).unwrap();
+            let code = document.print_code()?;
+            write!(code_file, "{}", code).unwrap();
+        }
     }
 
     if let Some(doc_dir) = doc_dir {
-        let mut file_path = doc_dir.clone();
-        file_path.push(file_name);
-        fs::create_dir_all(file_path.parent().unwrap()).unwrap();
-        let mut doc_file = File::create(file_path).unwrap();
-        write!(doc_file, "{}", document.print_docs(parser)).unwrap();
+        let documentation = document.print_docs(parser);
+        if let Some(file_name) = file_name {
+            let mut file_path = doc_dir.clone();
+            file_path.push(file_name);
+            fs::create_dir_all(file_path.parent().unwrap()).unwrap();
+            let mut doc_file = File::create(file_path).unwrap();
+            write!(doc_file, "{}", documentation).unwrap();
+        }
     }
 
     Ok(())
