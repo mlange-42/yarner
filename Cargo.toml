@@ -3,6 +3,10 @@ name = "outline"
 version = "0.1.0"
 authors = ["Cameron Eldridge <cameldridge@gmail.com>"]
 edition = "2018"
+description = "\"Good enough\" literate programming tool"
+homepage = "https://github.com/oinkiguana/outline"
+repository = "https://github.com/oinkiguana/outline"
+license = "MIT"
 exclude = [
     "examples/*",
 ]
