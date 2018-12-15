@@ -3,6 +3,9 @@ name = "outline"
 version = "0.1.0"
 authors = ["Cameron Eldridge <cameldridge@gmail.com>"]
 edition = "2018"
+exclude = [
+    "examples/*",
+]
 
 [lib]
 name = "outline"
