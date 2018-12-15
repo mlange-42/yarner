@@ -19,9 +19,17 @@ See the examples directory for full working examples in each style.
 In all styles, the code sections are handled the same way, supporting:
 *   macros;
 *   meta variable interpolation;
-*   comment extraction; and
-*   named entrypoints;
+*   comment extraction;
+*   named entrypoints; and
 *   multiple languages in one file
+
+The text sections are also handled the same way in all styles - just copied in and written out with
+no processing. This allows you to write your documentation however you like. Currently the only
+difference between the parsers is the way they detect the start and end of a code block. Because of
+this the weaved documentation file will look very similar to the original literate source, with only
+slight changes to the code block syntax to ensure that they are valid in the true documentation
+language. Given this, note that any post-processing or format changes you wish to apply to the
+documentation should be performed on the generated document.
 
 ### Macros
 
@@ -150,3 +158,87 @@ fn main() {
 Compiling this with no language supplied with just ignore language information, so a single output
 will be generated containing both languages. However, supplying the `--language rb` flag to Outline
 will cause only the code blocks tagged with `rb` will be used to generate code.
+
+## Usage
+
+```
+Outline 1.0
+Cameron Eldridge <cameldridge@gmail.com>
+Literate programming compiler
+
+USAGE:
+    outline [OPTIONS] [input]...
+
+FLAGS:
+    -h, --help       Prints help information
+    -V, --version    Prints version information
+
+OPTIONS:
+    -o, --output <code_dir>          Output tangled code files to this directory. No code files will be printed by
+                                     default.
+    -c, --config <config_file>       Sets the config file name [default: Outline.toml]
+    -d, --docs <doc_dir>             Directory to output weaved documentation files to. No documentation will be printed
+                                     by default.
+    -e, --entrypoint <entrypoint>    The named entrypoint to use when tangling code. Defaults to the unnamed code block.
+    -l, --language <language>        The language to output the tangled code in. Only code blocks in this language will
+                                     be used.
+    -s, --style <style>              Sets the style to use. If not specified, it is inferred from the file extension.
+                                     When reading from STDIN, defaults to 'md'. [possible values: bird, md, tex, html]
+
+ARGS:
+    <input>..
+```
+
+### Configuration
+
+Each style supports some additional configuration, which is provided via a toml configuration file
+(default: Outline.toml). Multiple styles can be configured at once in the configuration file. Note
+that if a style appears in the configuration file, its full set of options is required (all defaults
+will be discarded).
+
+For more information on these options, see the API documentation.
+
+```toml
+[tex]
+code_environment = "code"
+default_language = "rs" # optional
+comment_start = "//"
+interpolation_start = "@{"
+interpolation_end = "}"
+macro_start = "==> "
+macro_end = "."
+
+[md]
+fence_sequence = "```"
+block_name_start = " - "
+comments_as_aside = false
+default_language = "rs" # optional
+comment_start = "//"
+interpolation_start = "@{"
+interpolation_end = "}"
+macro_start = "==> "
+macro_end = "."
+
+[html]
+code_tag = "code"
+language_attribute = "data-language"
+name_attribute = "data-name"
+block_class = "block"
+language_class = "language-{}"
+comments_as_aside = true
+default_language = "rs" # optional
+comment_start = "//"
+interpolation_start = "@{"
+interpolation_end = "}"
+macro_start = "==> "
+macro_end = "."
+
+[bird]
+code_marker = "> "
+code_name_marker = ">>> "
+comment_start = "//"
+interpolation_start = "@{"
+interpolation_end = "}"
+macro_start = "==> "
+macro_end = "."
+```
