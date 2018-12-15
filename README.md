@@ -217,7 +217,7 @@ Each style supports some additional configuration, which is provided via a toml 
 that if a style appears in the configuration file, its full set of options is required (all defaults
 will be discarded).
 
-For more information on these options, see the API documentation.
+For more information on these options, see the [API documentation](https://docs.rs/outline).
 
 ```toml
 [tex]
