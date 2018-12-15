@@ -26,8 +26,8 @@ impl<'a> Document<'a> {
     }
 
     /// Formats this [`Document`] as a string containing the compiled code
-    pub fn print_code(&self) -> Result<String, CompileError> {
-        self.tree.print_code()
+    pub fn print_code(&self, entrypoint: Option<&str>, language: Option<&str>) -> Result<String, CompileError> {
+        self.tree.print_code(entrypoint, language)
     }
 }
 

@@ -32,10 +32,19 @@ impl<'a> Ast<'a> {
     }
 
     /// Gets all the code blocks of this AST, concatenating blocks of the same name
-    pub(crate) fn code_blocks(&self) -> HashMap<Option<&str>, CodeBlock> {
+    pub(crate) fn code_blocks(&self, language: Option<&str>) -> HashMap<Option<&str>, CodeBlock> {
         let mut code_blocks = HashMap::new();
         for node in &self.nodes {
             if let Node::Code(block) = node {
+                // skip blocks in the wrong language. If either language is None, then assume it is
+                // ok
+                if let Some(language) = language {
+                    if let Some(block_language) = &block.language {
+                        if language != block_language {
+                            continue;
+                        }
+                    }
+                }
                 code_blocks
                     .entry(block.name.as_ref().map(|x| &x[..])) // TODO: any nicer way to write this
                     .and_modify(|existing: &mut CodeBlock<'a>| existing.append(block))
@@ -64,10 +73,10 @@ impl<'a> Ast<'a> {
     }
 
     /// Renders the program this AST is representing in the code format
-    pub(crate) fn print_code(&self) -> Result<String, CompileError> {
-        let code_blocks = self.code_blocks();
+    pub(crate) fn print_code(&self, entrypoint: Option<&str>, language: Option<&str>) -> Result<String, CompileError> {
+        let code_blocks = self.code_blocks(language);
         code_blocks
-            .get(&None)
+            .get(&entrypoint)
             .map(|entrypoint| entrypoint.compile(&code_blocks))
             .unwrap_or(Err(CompileError::Single { line_number: 0, kind: CompileErrorKind::MissingEntrypoint }))
     }

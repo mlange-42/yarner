@@ -48,6 +48,20 @@ fn main() {
             .help("Output code files to this directory")
             .takes_value(true)
         )
+        .arg(Arg::with_name("entrypoint")
+            .short("e")
+            .long("entrypoint")
+            .value_name("ENTRYPOINT")
+            .help("The named entrypoint to use when tangling code")
+            .takes_value(true)
+        )
+        .arg(Arg::with_name("language")
+            .short("l")
+            .long("language")
+            .value_name("LANGUAGE")
+            .help("The language to output the tangled code in. Only code blocks in this language will be used.")
+            .takes_value(true)
+        )
         .arg(Arg::with_name("input")
             .short("The input source file(s)")
             .value_name("INPUT")
@@ -125,11 +139,14 @@ fn main() {
             }
         };
 
+        let language = matches.value_of("language");
+        let entrypoint = matches.value_of("entrypoint");
+
         match matches.value_of("style").map(|s| s.to_string()).or(style_type).unwrap_or("md".to_string()).as_str() {
             "bird" => {
                 let default = BirdParser::default();
                 let parser = any_config.bird.as_ref().unwrap_or(&default);
-                if let Err(error) = compile(parser, &contents, &doc_dir, &code_dir, &file_name) {
+                if let Err(error) = compile(parser, &contents, &doc_dir, &code_dir, &file_name, entrypoint, language) {
                     if let Some(file_name) = file_name {
                         eprintln!("Failed to compile source file \"{}\": {}", file_name.to_str().unwrap(), error);
                     } else {
@@ -144,7 +161,7 @@ fn main() {
                     .as_ref()
                     .unwrap_or(&default)
                     .default_language(code_type);
-                if let Err(error) = compile(&parser, &contents, &doc_dir, &code_dir, &file_name) {
+                if let Err(error) = compile(&parser, &contents, &doc_dir, &code_dir, &file_name, entrypoint, language) {
                     if let Some(file_name) = file_name {
                         eprintln!("Failed to compile source file \"{}\": {}", file_name.to_str().unwrap(), error);
                     } else {
@@ -159,7 +176,7 @@ fn main() {
                     .as_ref()
                     .unwrap_or(&default)
                     .default_language(code_type);
-                if let Err(error) = compile(&parser, &contents, &doc_dir, &code_dir, &file_name) {
+                if let Err(error) = compile(&parser, &contents, &doc_dir, &code_dir, &file_name, entrypoint, language) {
                     if let Some(file_name) = file_name {
                         eprintln!("Failed to compile source file \"{}\": {}", file_name.to_str().unwrap(), error);
                     } else {
@@ -174,7 +191,7 @@ fn main() {
                     .as_ref()
                     .unwrap_or(&default)
                     .default_language(code_type);
-                if let Err(error) = compile(&parser, &contents, &doc_dir, &code_dir, &file_name) {
+                if let Err(error) = compile(&parser, &contents, &doc_dir, &code_dir, &file_name, entrypoint, language) {
                     if let Some(file_name) = file_name {
                         eprintln!("Failed to compile source file \"{}\": {}", file_name.to_str().unwrap(), error);
                     } else {
@@ -196,7 +213,9 @@ fn compile<P>(
     source: &str,
     doc_dir: &Option<PathBuf>,
     code_dir: &Option<PathBuf>,
-    file_name: &Option<PathBuf>
+    file_name: &Option<PathBuf>,
+    entrypoint: Option<&str>,
+    language: Option<&str>,
 ) -> Result<(), Box<dyn std::error::Error>>
 where
     P: Parser + Printer,
@@ -205,7 +224,7 @@ where
     let document = parser.parse(source)?;
 
     if file_name.is_none() {
-        let code = document.print_code()?;
+        let code = document.print_code(entrypoint, language)?;
         print!("{}", code);
     }
 
@@ -213,9 +232,12 @@ where
         if let Some(file_name) = file_name {
             let mut file_path = code_dir.clone();
             file_path.push(file_name.file_stem().unwrap());
+            if let Some(language) = language {
+                file_path.set_extension(language);
+            }
             fs::create_dir_all(file_path.parent().unwrap()).unwrap();
             let mut code_file = File::create(file_path).unwrap();
-            let code = document.print_code()?;
+            let code = document.print_code(entrypoint, language)?;
             write!(code_file, "{}", code).unwrap();
         }
     }
