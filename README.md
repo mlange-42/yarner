@@ -70,7 +70,8 @@ fn main() {
 }
 ```
 
-But this would not actually invoke any macros:
+But this would not invoke the macro named within the `if()` as the macro sequences do not start and
+end the line:
 
 ```rs
 fn main() {
