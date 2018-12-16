@@ -151,6 +151,7 @@ fn main() {
                         eprintln!("Failed to compile source file \"{}\": {}", file_name.to_str().unwrap(), error);
                     } else {
                         eprintln!("Failed to compile from STDIN: {}", error);
+                        std::process::exit(1);
                     }
                     continue;
                 }
@@ -166,6 +167,7 @@ fn main() {
                         eprintln!("Failed to compile source file \"{}\": {}", file_name.to_str().unwrap(), error);
                     } else {
                         eprintln!("Failed to compile from STDIN: {}", error);
+                        std::process::exit(1);
                     }
                     continue;
                 }
@@ -181,6 +183,7 @@ fn main() {
                         eprintln!("Failed to compile source file \"{}\": {}", file_name.to_str().unwrap(), error);
                     } else {
                         eprintln!("Failed to compile from STDIN: {}", error);
+                        std::process::exit(1);
                     }
                     continue;
                 }
@@ -196,12 +199,16 @@ fn main() {
                         eprintln!("Failed to compile source file \"{}\": {}", file_name.to_str().unwrap(), error);
                     } else {
                         eprintln!("Failed to compile from STDIN: {}", error);
+                        std::process::exit(1);
                     }
                     continue;
                 }
             }
             other => {
                 eprintln!("Unknown style {}", other);
+                if file_name.is_none() {
+                    std::process::exit(1);
+                }
                 continue;
             }
         };

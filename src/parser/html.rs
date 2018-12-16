@@ -218,7 +218,7 @@ impl Parser for HtmlParser {
             Error(HtmlError),
         }
 
-        let tag_open = format!("<{} ", self.code_tag);
+        let tag_open = format!("<{}", self.code_tag);
         let tag_close = format!("</{}>", self.code_tag);
 
         let mut state = State {
