@@ -20,7 +20,8 @@ See the examples directory for full working examples in each style.
 
 ## Installation
 
-The provided binary (honestly a quick hack to get things working) can be installed via cargo:
+The provided binary (honestly a quick hack to get things working) can be installed via Cargo. If you
+do not have Cargo (and Rust) installed, you can use [rustup](https://rustup.rs) to get started.
 
 ```bash
 cargo install outline --features bin
@@ -34,6 +35,10 @@ outline = "0.1.0"
 
 If you write your own parser, feel free to continue hacking on the provided `src/bin/main.rs` to
 support your new parser.
+
+## Integrations
+
+Currently Outline supports a Webpack loader: [`outline-loader`](https://github.com/oinkiguana/outline-loader).
 
 ## Features
 

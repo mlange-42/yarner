@@ -7,9 +7,7 @@ description = "\"Good enough\" literate programming tool"
 homepage = "https://github.com/oinkiguana/outline"
 repository = "https://github.com/oinkiguana/outline"
 license = "MIT"
-exclude = [
-    "examples/*",
-]
+exclude = ["examples/*"]
 
 [lib]
 name = "outline"
