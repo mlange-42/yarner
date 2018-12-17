@@ -166,7 +166,7 @@ impl Parser for MdParser {
                                 .map(|name_start| {
                                     let name_end = self.block_name_end
                                         .as_ref()
-                                        .and_then(|end| rest[name_start..].find(end))
+                                        .and_then(|end| rest[name_start + self.block_name_start.len()..].find(end))
                                         .map(|name_end| self.block_name_start.len() + name_end + name_start)
                                         .unwrap_or(rest.len());
                                     let name = &rest[name_start..name_end];

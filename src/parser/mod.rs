@@ -39,7 +39,7 @@ pub trait ParserConfig {
 
 /// A `Parser` determines which lines are code and which are text, and may use its `Config` to
 /// actually handle reading the lines of code
-pub trait Parser: ParserConfig{
+pub trait Parser: ParserConfig {
     /// The type of error for this parser
     type Error: std::error::Error;
 

@@ -1,13 +1,13 @@
 [package]
 name = "outline"
-version = "0.1.1"
+version = "0.1.2"
 authors = ["Cameron Eldridge <cameldridge@gmail.com>"]
-edition = "2018"
 description = "\"Good enough\" literate programming tool"
 homepage = "https://github.com/oinkiguana/outline"
 repository = "https://github.com/oinkiguana/outline"
 license = "MIT"
 exclude = ["examples/*"]
+edition = "2018"
 
 [lib]
 name = "outline"
@@ -26,5 +26,10 @@ edition = "2018"
 serde = "1.0"
 serde_derive = "1.0"
 
-toml = { version = "0.4", optional = true }
-clap = { version = "2.32", optional = true }
+[dependencies.toml]
+version = "0.4"
+optional = true
+
+[dependencies.clap]
+version = "2.32"
+optional = true
