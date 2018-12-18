@@ -40,8 +40,8 @@ support your new parser.
 
 ## Integrations
 
-*   Webpack: [`outline-loader`][]
-*   XCode - You can write Build Rules that pass matching files through Outline, similar to this:
+*   JavaScript (Webpack): [`outline-loader`][]
+*   Swift (XCode): You can write Build Rules that pass matching files through the Outline binary:
 
     Process Source files with names matching: `*.swift.md`
 
@@ -53,6 +53,8 @@ support your new parser.
     ```
 
     Output files: `$(DERIVED_FILE_DIR)/$(INPUT_FILE_BASE).swift`
+*   Rust (Cargo): You can write a build script that uses the Outline crate to compile files. See
+    `examples/hello-world/` for a very contrived but working example.
 
 ## Features
 

@@ -1,0 +1,12 @@
+[package]
+name = "hello-world"
+version = "0.1.0"
+authors = ["Cameron Eldridge <cameldridge+git@gmail.com>"]
+edition = "2018"
+build = "build.rs"
+
+[dependencies]
+
+[build-dependencies]
+outline = "0.1"
+glob = "0.2"
