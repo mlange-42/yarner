@@ -1,3 +1,5 @@
+[`outline-loader`]: https://github.com/oinkiguana/outline-loader
+
 # Outline
 
 [![](https://img.shields.io/crates/v/outline.svg)](https://crates.io/crates/outline)
@@ -38,7 +40,19 @@ support your new parser.
 
 ## Integrations
 
-Currently Outline supports a Webpack loader: [`outline-loader`](https://github.com/oinkiguana/outline-loader).
+*   Webpack: [`outline-loader`][]
+*   XCode - You can write Build Rules that pass matching files through Outline, similar to this:
+
+    Process Source files with names matching: `*.swift.md`
+
+    Using custom script:
+    ```bash
+    INFILE="$INPUT_FILE_DIR/$INPUT_FILE_NAME"
+    OUTFILE="$DERIVED_FILE_DIR/$INPUT_FILE_BASE.swift"
+    /Users/<username>/.cargo/bin/outline -l swift -s md < $INFILE > $OUTFILE
+    ```
+
+    Output files: `$(DERIVED_FILE_DIR)/$(INPUT_FILE_BASE).swift`
 
 ## Features
 
