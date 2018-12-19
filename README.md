@@ -32,7 +32,7 @@ cargo install outline --features bin
 The `outline` crate is also available to allow you to write your own parser:
 
 ```toml
-outline = "0.1.0"
+outline = "0.1.2"
 ```
 
 If you write your own parser, feel free to continue hacking on the provided `src/bin/main.rs` to
