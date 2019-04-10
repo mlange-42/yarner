@@ -257,14 +257,13 @@ impl Printer for MdParser {
         if let Some(language) = &block.language {
             output.push_str(language);
         }
-        if let Some(name) = &block.name {
-            output.push_str(&self.block_name_start);
-            output.push_str(&self.print_name(name.clone(), &block.vars));
-            if let Some(end) = &self.block_name_end {
-                output.push_str(end);
-            }
-        }
         output.push('\n');
+        if let Some(name) = &block.name {
+            output.push_str(&self.comment_start);
+            output.push(' ');
+            output.push_str(&self.print_name(name.clone(), &block.vars));
+            output.push('\n');
+        }
 
         let mut comments = vec![];
         let line_offset = block.line_number().unwrap_or(0);
