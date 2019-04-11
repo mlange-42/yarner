@@ -14,7 +14,7 @@ name = "outline"
 path = "src/lib.rs"
 
 [features]
-bin = ["clap", "toml"]
+bin = ["clap", "toml", "either"]
 
 [[bin]]
 name = "outline"
@@ -32,4 +32,8 @@ optional = true
 
 [dependencies.clap]
 version = "2.32"
+optional = true
+
+[dependencies.either]
+version = "1.5"
 optional = true

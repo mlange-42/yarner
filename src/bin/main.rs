@@ -1,8 +1,9 @@
 use std::fs::{self, File};
 use std::io::{Read, Write, stdin};
 use std::path::PathBuf;
-use clap::{Arg, App};
+use clap::{Arg, App, SubCommand};
 use serde_derive::Deserialize;
+use either::Either::{self, *};
 use outline::parser::{Parser, Printer, BirdParser, MdParser, TexParser, HtmlParser};
 
 #[derive(Deserialize, Default)]
@@ -24,50 +25,57 @@ fn main() {
             .value_name("config_file")
             .help("Sets the config file name")
             .takes_value(true)
-            .default_value("Outline.toml")
-        )
+            .default_value("Outline.toml"))
         .arg(Arg::with_name("style")
             .short("s")
             .long("style")
             .value_name("style")
             .help("Sets the style to use. If not specified, it is inferred from the file extension. When reading from STDIN, defaults to 'md'.")
             .takes_value(true)
-            .possible_values(&["bird", "md", "tex", "html"])
-        )
+            .possible_values(&["bird", "md", "tex", "html"]))
         .arg(Arg::with_name("doc_dir")
             .short("d")
             .long("docs")
             .value_name("doc_dir")
             .help("Directory to output weaved documentation files to. No documentation will be printed by default.")
-            .takes_value(true)
-        )
+            .takes_value(true))
         .arg(Arg::with_name("code_dir")
             .short("o")
             .long("output")
             .value_name("code_dir")
             .help("Output tangled code files to this directory. No code files will be printed by default.")
-            .takes_value(true)
-        )
+            .takes_value(true))
         .arg(Arg::with_name("entrypoint")
             .short("e")
             .long("entrypoint")
             .value_name("entrypoint")
             .help("The named entrypoint to use when tangling code. Defaults to the unnamed code block.")
-            .takes_value(true)
-        )
+            .takes_value(true))
         .arg(Arg::with_name("language")
             .short("l")
             .long("language")
             .value_name("language")
             .help("The language to output the tangled code in. Only code blocks in this language will be used.")
-            .takes_value(true)
-        )
+            .takes_value(true))
         .arg(Arg::with_name("input")
-            .short("The input source file(s). If none are specified, read from STDIN, and print generated code to STDOUT.")
+            .help("The input source file(s). If none are specified, read from STDIN, and print generated code to STDOUT.")
             .value_name("input")
             .multiple(true)
-            .index(1)
-        )
+            .index(1))
+        .subcommand(SubCommand::with_name("tangle")
+            .about("Tangle input and print to STDOUT")
+            .arg(Arg::with_name("input")
+                .help("The input source file(s). If none are specified, read from STDIN")
+                .value_name("input")
+                .multiple(true)
+                .index(1)))
+        .subcommand(SubCommand::with_name("weave")
+            .about("Weave input and print to STDOUT")
+            .arg(Arg::with_name("input")
+                .help("The input source file(s). If none are specified, read from STDIN")
+                .value_name("input")
+                .multiple(true)
+                .index(1)))
         .get_matches();
 
     let any_config: AnyConfig = match matches.value_of("config") {
@@ -93,11 +101,20 @@ fn main() {
         }
     };
 
-    let doc_dir = matches.value_of("doc_dir").map(PathBuf::from);
-    let code_dir = matches.value_of("code_dir").map(PathBuf::from);
+    let doc_dir = match matches.subcommand_matches("weave") {
+        Some(..) => Left(()),
+        None => Right(matches.value_of("doc_dir").map(PathBuf::from)),
+    };
+    let code_dir = match matches.subcommand_matches("tangle") {
+        Some(..) => Left(()),
+        None => Right(matches.value_of("code_dir").map(PathBuf::from)),
+    };
 
     enum Input<'a> { File(&'a str), Stdin }
-    let inputs = matches.values_of("input")
+    let inputs = matches.subcommand_matches("weave")
+        .or(matches.subcommand_matches("tangle"))
+        .unwrap_or(&matches)
+        .values_of("input")
         .map(|files| files.into_iter().map(|file| Input::File(file)).collect())
         .unwrap_or(vec![Input::Stdin]);
 
@@ -218,8 +235,8 @@ fn main() {
 fn compile<P>(
     parser: &P,
     source: &str,
-    doc_dir: &Option<PathBuf>,
-    code_dir: &Option<PathBuf>,
+    doc_dir: &Either<(), Option<PathBuf>>,
+    code_dir: &Either<(), Option<PathBuf>>,
     file_name: &Option<PathBuf>,
     entrypoint: Option<&str>,
     language: Option<&str>,
@@ -231,33 +248,55 @@ where
     let document = parser.parse(source)?;
 
     if file_name.is_none() {
-        let code = document.print_code(entrypoint, language)?;
-        print!("{}", code);
-    }
-
-    if let Some(code_dir) = code_dir {
-        if let Some(file_name) = file_name {
-            let mut file_path = code_dir.clone();
-            file_path.push(file_name.file_stem().unwrap());
-            if let Some(language) = language {
-                file_path.set_extension(language);
+        match doc_dir {
+            Left(..) => {
+                let docs = document.print_docs(parser);
+                print!("{}", docs);
             }
-            fs::create_dir_all(file_path.parent().unwrap()).unwrap();
-            let mut code_file = File::create(file_path).unwrap();
-            let code = document.print_code(entrypoint, language)?;
-            write!(code_file, "{}", code).unwrap();
+            Right(..) => {
+                let code = document.print_code(entrypoint, language)?;
+                println!("{}", code);
+            }
         }
     }
 
-    if let Some(doc_dir) = doc_dir {
-        let documentation = document.print_docs(parser);
-        if let Some(file_name) = file_name {
-            let mut file_path = doc_dir.clone();
-            file_path.push(file_name);
-            fs::create_dir_all(file_path.parent().unwrap()).unwrap();
-            let mut doc_file = File::create(file_path).unwrap();
-            write!(doc_file, "{}", documentation).unwrap();
+    match code_dir {
+        Left(..) => {
+            let code = document.print_code(entrypoint, language)?;
+            println!("{}", code);
         }
+        Right(Some(code_dir)) => {
+            if let Some(file_name) = file_name {
+                let mut file_path = code_dir.clone();
+                file_path.push(file_name.file_stem().unwrap());
+                if let Some(language) = language {
+                    file_path.set_extension(language);
+                }
+                fs::create_dir_all(file_path.parent().unwrap()).unwrap();
+                let mut code_file = File::create(file_path).unwrap();
+                let code = document.print_code(entrypoint, language)?;
+                write!(code_file, "{}", code).unwrap();
+            }
+        }
+        _ => {}
+    }
+
+    match doc_dir {
+        Left(..) => {
+            let documentation = document.print_docs(parser);
+            print!("{}", documentation);
+        }
+        Right(Some(doc_dir)) => {
+            if let Some(file_name) = file_name {
+                let documentation = document.print_docs(parser);
+                let mut file_path = doc_dir.clone();
+                file_path.push(file_name);
+                fs::create_dir_all(file_path.parent().unwrap()).unwrap();
+                let mut doc_file = File::create(file_path).unwrap();
+                write!(doc_file, "{}", documentation).unwrap();
+            }
+        }
+        _ => {}
     }
 
     Ok(())
