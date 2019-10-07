@@ -1,10 +1,10 @@
 [package]
 name = "outline"
-version = "0.2.0"
+version = "0.2.1"
 authors = ["Cameron Eldridge <cameldridge@gmail.com>"]
 description = "\"Good enough\" literate programming tool"
-homepage = "https://github.com/oinkiguana/outline"
-repository = "https://github.com/oinkiguana/outline"
+homepage = "https://github.com/foxfriends/outline"
+repository = "https://github.com/foxfriends/outline"
 license = "MIT"
 exclude = ["examples/*"]
 edition = "2018"
