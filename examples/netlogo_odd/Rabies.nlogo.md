@@ -1,8 +1,10 @@
 # From ODD to NetLogo
 
 
-This document explores the creation of a NetLogo model from an ODD.
-Processed with `outline`, the document produces a runnable file of the described model.
+This document explores the creation of a [NetLogo](https://ccl.northwestern.edu/netlogo/) model
+from it's own ODD model description (Grimm et al. 2006, 2010).
+Processed with `outline`, the document produces a runnable file of the described model
+for the famous NetLogo modelling environment.
 
 All (!) code of the model is in this document, including some NetLogo-specific boilerplate code,
 which can be found in the [Appendix](#appendix).
@@ -11,6 +13,7 @@ which can be found in the [Appendix](#appendix).
 
 ### Purpose
 
+The model simulates rabies in a spatially structured fox population.
 The original purpose of **the model** is to teach veterinarians in
 epidemiological modelling, in a hands-on course where they build this model.
 
@@ -33,7 +36,7 @@ patches-own [
 
 ```
 
-The `state` represents the presence of a fax familiy, and its epidemiological status: 
+The `state` represents the presence of a fox family, and its epidemiological status: 
 
 ``` - Globals
 ; define global variables
@@ -63,7 +66,7 @@ The model proceeds in discrete monthly steps (ticks).
 
 ### Process overview and scheduling
 
-Processes in the model are dispersal (abstracting reproduction),
+Processes in the model are dispersal (abstracting away reproduction),
 infection, and aging of infection (to death).
 The processes are executed on each tick sequentially, in the following order:
 
@@ -84,12 +87,18 @@ end
 
 ## Design concepts
 
+Fox population dynamics emerge from reproduction (abstracted into stochastic dispersal),
+rabies-induces mortality and limited space to occupy.
+
+Rabies dynamics emerge from stochastic disease transmission between neighbors,
+and the death of foxes after a certain time span of infection.
+
 ## Details
 
 ### Initialization
 
 The model is initialized by setting all patches to susceptible (S).
-One randomly selected patch is infected.
+Then, one randomly selected patch is infected.
 
 ``` - Setup
 ; clears and sets up the model
@@ -154,7 +163,7 @@ end
 ```
 
 In every model step, all fox families are checked if it is currently their `dispersal-tick`,
-and disperse if tis is the case (i.e. once per year).
+and disperse if this is the case (i.e. once per year).
 
 For each dispersing fox family, all empty patches in radius `dispersal-radius` are collected.
 If their number exceeds parameter `num-offspring`,
@@ -183,11 +192,11 @@ end
 
 #### Disease transmission
 
-Rabies can be transmitted between neighboring fox families (8 neighbors).
+Rabies is transmitted stochastically between neighboring fox families (8 neighbors).
 
 First, the number of infected neighbors is calculated for each patch
 and stored in patch variable `infected-neighbours`.
-Then, each susceptible fox family is infected with probability according
+Then, each susceptible fox family is infected with a probability according
 function `infection-prob` (see below).
 
 ``` - Disease transmission
@@ -212,7 +221,8 @@ end
 ==> Infection probability...
 ```
 
-The infection probability is calculated according the Reed-Frost model from the number of infected neighbors:
+The infection probability is calculated according the Reed-Frost model
+from the number of infected neighbors:
 
 ``` - Infection probability
 ; calculates the infection probability for a patch / fox family
@@ -297,7 +307,7 @@ Analysis is also left to the user
 
 ### Code structure
 
-The code is structured in the NetLogo Code tab as follows:
+In the NetLogo Code tab, the code is structured as follows:
 
 ``` - Code tab
 ==> Globals...
@@ -311,8 +321,8 @@ The code is structured in the NetLogo Code tab as follows:
 ### File structure
 
 A NetLogo file is composed of sections, delimited by mysterious `@#$#@#$#@`.
-Each section can be found somewhere in this document.
-Forther details about the `.nlogo` file atructure can be found in [NetLogo's Hithub repository](https://github.com/NetLogo/NetLogo/wiki/File-(.nlogo)-and-Widget-Format).
+The content of each section can be found somewhere in this document.
+Further details about the `.nlogo` file atructure can be found in [NetLogo's Hithub repository](https://github.com/NetLogo/NetLogo/wiki/File-(.nlogo)-and-Widget-Format).
 
 ```
 ==> Code tab...
@@ -338,7 +348,7 @@ Forther details about the `.nlogo` file atructure can be found in [NetLogo's Hit
 
 ### Info tab
 
-Here, we just insert a short description, in NetLogo's Markdown syntax:
+Here, we just insert a short description in NetLogo's Markdown syntax:
 
 ``` - Info tab
 ## WHAT IS IT?
@@ -359,9 +369,10 @@ Just play with the model. But also read the documentation which is the base of t
 
 ### Interface tab
 
-Setting up the user interface in NetLogo is a bit inconvenient.
+Setting up the user interface in NetLogo programmatically is a bit inconvenient.
 
-We add two buttons, some sliders, and set up the world and graphics window:
+We add two buttons, some sliders, and set up the world and graphics window,
+using `outline`'s "meta variables" feature:
 
 ``` - Interface tab
 ==> Button @{setup} @{10} @{10} @{80} @{50} @{NIL}...
@@ -466,7 +477,7 @@ Polygon -7500403 true true 150 5 40 250 150 205 260 250
 
 ### Link shapes
 
-And finally, the default link shape:
+And the default link shape:
 
 ``` - Link shapes
 default
@@ -482,6 +493,8 @@ Line -7500403 true 150 150 210 180
 ```
 
 ### NetLogo version
+
+Last but not least, the file's NetLogo version is required.
 
 ``` - NetLogo version
 NetLogo 6.1.0
