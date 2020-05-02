@@ -60,9 +60,9 @@ NIL
 
 BUTTON
 85
-14
+13
 148
-47
+46
 NIL
 go
 T
