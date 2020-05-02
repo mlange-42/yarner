@@ -6,13 +6,16 @@ globals [
   I      ; Infected foxes
   R      ; Recovered / vaccinated foxes
 ]
+
 ; define patch variables
 patches-own [
-  state               ; disease state of patch (see globals, default = 0)
+  state               ; disease state of patch (see globals, default = EMPTY)
   infected-neighbours ; number of infected neighbours of patch
   ticks-to-death      ; ticks remaining until death of infected
   dispersal-tick      ; tick-of year (month) of dispersal
 ]
+
+; clears and sets up the model
 to setup
   clear-all
 
@@ -20,20 +23,21 @@ to setup
   set S 1
   set I 2
   set R 3
-
+  
   ; set al patches to susceptible
   ask patches [
     set state S
   ]
-
+  
   ; infect one patch
   ask one-of patches [
     infect
   ]
-
-  update-patches   ; update patch color
-  reset-ticks      ; reset model ticks (and tell NetLogo that the simulation can start!)
+  
+  update-patch-color
+  reset-ticks         ; reset model ticks (and tell NetLogo that the simulation can start!)
 end
+
 ; one model step (called by button)
 to go
   if ticks mod 12 = 0 [
@@ -43,15 +47,18 @@ to go
 
   infect-patches
   age-infection
-  update-patches
+
+  update-patch-color
   tick
 end
+
 ; assign step of year for dispersal
 to assign-dispersal
   ask patches with [ state != EMPTY ] [
     set dispersal-tick (ticks + start-dispersal + random length-dispersal)
   ]
 end
+
 ; dispersal of offspring
 to disperse
   ask patches with [ state != EMPTY and dispersal-tick = ticks ] [
@@ -63,12 +70,14 @@ to disperse
       set num-candidates  count candidates
     ]
     ask n-of num-candidates candidates [
-      set state S ; no dispersal of infectedf
+      set state S ; no dispersal of infected!
     ]
   ]
 end
+
+; calculates infections for all patches / fox families
 to infect-patches
-  ask patches [     ; reset number of infected neighbours
+  ask patches [                    ; reset number of infected neighbours
     set infected-neighbours 0
   ]
   ask patches with [ state = I ] [ ; iterate over infected patches
@@ -77,19 +86,24 @@ to infect-patches
     ]
   ]
   ask patches with [ state = S ] [
-    if random-float 1 < calc-infection-prob [
+    if random-float 1 < infection-prob [
       infect
     ]
   ]
 end
 
+; infects a patch / fox family
 to infect
   set state I
   set ticks-to-death ticks-infected
 end
-to-report calc-infection-prob
+
+; calculates the infection probability for a patch / fox family
+to-report infection-prob
   report 1 - (1 - beta) ^ infected-neighbours
 end
+
+; ages the infection and removes dead foxes
 to age-infection
   ask patches with [ state = I ] [
     if ticks-to-death = 0 [
@@ -98,8 +112,9 @@ to age-infection
     set ticks-to-death ticks-to-death - 1
   ]
 end
+
 ; updates the color of all patches
-to update-patches
+to update-patch-color
   ask patches [
     ifelse state = EMPTY [ set pcolor white ]
     [ ifelse state = S [ set pcolor blue ]
@@ -107,34 +122,8 @@ to update-patches
     [ set pcolor green ] ] ]
   ]
 end
-@#$#@#$#@
-GRAPHICS-WINDOW
-220
-10
-733
-524
--1
--1
-5.0
-1
-10
-1
-1
-1
-0
-1
-1
-1
-0
-100
-0
-100
-1
-1
-1
-ticks
-30.0
 
+@#$#@#$#@
 BUTTON
 10
 10
@@ -169,16 +158,17 @@ NIL
 NIL
 1
 
+
 SLIDER
 10
 120
 200
-153
+140
 start-dispersal
 start-dispersal
 0
 11
-7.0
+7
 1
 1
 NIL
@@ -188,12 +178,12 @@ SLIDER
 10
 160
 200
-193
+170
 length-dispersal
 length-dispersal
 1
 12
-2.0
+2
 1
 1
 NIL
@@ -203,7 +193,7 @@ SLIDER
 10
 200
 200
-233
+210
 dispersal-radius
 dispersal-radius
 1
@@ -214,26 +204,28 @@ dispersal-radius
 NIL
 HORIZONTAL
 
+
 SLIDER
 10
 260
 200
-293
+270
 num-offspring
 num-offspring
 0
 10
-4.0
+4
 1
 1
 NIL
 HORIZONTAL
 
+
 SLIDER
 10
 320
 200
-353
+330
 beta
 beta
 0
@@ -248,29 +240,60 @@ SLIDER
 10
 360
 200
-393
+370
 ticks-infected
 ticks-infected
 1
 10
-2.0
+2
 1
 1
 NIL
 HORIZONTAL
 
+
+GRAPHICS-WINDOW
+220
+10
+-1
+-1
+-1
+-1
+5.0
+1
+10
+1
+1
+1
+0
+1
+1
+1
+0
+100
+0
+100
+1
+1
+1
+ticks
+30.0
+
 @#$#@#$#@
 ## WHAT IS IT?
 
-(a general understanding of what the model is trying to show or explain)
+A simple individual-based model of rabies in fox populations.
+
+The speciality of this model is that it was created from it's own ODD model description,
+using Literate Programming and the tool `outline`.
 
 ## HOW IT WORKS
 
-(what rules the agents use to create the overall behavior of the model)
+This is described in the documentation this model was created from.
 
 ## HOW TO USE IT
 
-(how to use the model, including a description of each of the items in the Interface tab)
+Just play with the model. But also read the documentation which is the base of the model.
 @#$#@#$#@
 default
 true
