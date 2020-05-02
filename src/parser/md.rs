@@ -23,15 +23,15 @@
 //! Currently, the Markdown parser does not support code that is written to the compiled file, but
 //! not rendered in the documentation file.
 
-use std::iter::FromIterator;
 use serde_derive::Deserialize;
+use std::iter::FromIterator;
 
-use super::{Printer, Parser, ParserConfig, ParseError};
+use super::{ParseError, Parser, ParserConfig, Printer};
 
-use crate::document::Document;
 use crate::document::ast::Node;
 use crate::document::code::CodeBlock;
 use crate::document::text::TextBlock;
+use crate::document::Document;
 use crate::util::try_collect::TryCollectExt;
 
 /// The config for parsing a Markdown document
@@ -117,11 +117,21 @@ impl MdParser {
 }
 
 impl ParserConfig for MdParser {
-    fn comment_start(&self) -> &str { &self.comment_start }
-    fn interpolation_start(&self) -> &str { &self.interpolation_start }
-    fn interpolation_end(&self) -> &str { &self.interpolation_end }
-    fn macro_start(&self) -> &str { &self.macro_start }
-    fn macro_end(&self) -> &str { &self.macro_end }
+    fn comment_start(&self) -> &str {
+        &self.comment_start
+    }
+    fn interpolation_start(&self) -> &str {
+        &self.interpolation_start
+    }
+    fn interpolation_end(&self) -> &str {
+        &self.interpolation_end
+    }
+    fn macro_start(&self) -> &str {
+        &self.macro_start
+    }
+    fn macro_end(&self) -> &str {
+        &self.macro_end
+    }
 }
 
 impl Parser for MdParser {
@@ -140,7 +150,8 @@ impl Parser for MdParser {
         }
 
         let mut state = State::default();
-        let mut document = input.lines()
+        let mut document = input
+            .lines()
             .enumerate()
             .scan(&mut state, |state, (line_number, line)| {
                 if line.trim_start().starts_with(&self.fence_sequence) {
@@ -164,23 +175,28 @@ impl Parser for MdParser {
                             let name = name_start
                                 .map(|start| start + self.block_name_start.len())
                                 .map(|name_start| {
-                                    let name_end = self.block_name_end
+                                    let name_end = self
+                                        .block_name_end
                                         .as_ref()
-                                        .and_then(|end| rest[name_start + self.block_name_start.len()..].find(end))
-                                        .map(|name_end| self.block_name_start.len() + name_end + name_start)
+                                        .and_then(|end| {
+                                            rest[name_start + self.block_name_start.len()..]
+                                                .find(end)
+                                        })
+                                        .map(|name_end| {
+                                            self.block_name_start.len() + name_end + name_start
+                                        })
                                         .unwrap_or(rest.len());
                                     let name = &rest[name_start..name_end];
                                     self.parse_name(name)
                                 });
 
-                            let mut code_block = CodeBlock::new()
-                                .indented(indent);
+                            let mut code_block = CodeBlock::new().indented(indent);
 
                             let language = rest[..name_start.unwrap_or(rest.len())].trim();
                             let language = if language.is_empty() {
                                 match &self.default_language {
                                     Some(language) => Some(language.to_owned()),
-                                    None => None
+                                    None => None,
                                 }
                             } else {
                                 Some(language.to_owned())
@@ -191,10 +207,12 @@ impl Parser for MdParser {
                             code_block = match name {
                                 None => code_block,
                                 Some(Ok((name, vars))) => code_block.named(name, vars),
-                                Some(Err(error)) => return Some(Parse::Error(MdError::Single {
-                                    line_number,
-                                    kind: error.into()
-                                })),
+                                Some(Err(error)) => {
+                                    return Some(Parse::Error(MdError::Single {
+                                        line_number,
+                                        kind: error.into(),
+                                    }))
+                                }
                             };
                             state.node = Some(Node::Code(code_block));
                             match previous {
@@ -217,12 +235,16 @@ impl Parser for MdParser {
                         }
                         Some(Node::Code(block)) => {
                             if line.starts_with(block.indent) {
-                                let line = match self.parse_line(line_number, &line[block.indent.len()..]) {
+                                let line = match self
+                                    .parse_line(line_number, &line[block.indent.len()..])
+                                {
                                     Ok(line) => line,
-                                    Err(error) => return Some(Parse::Error(MdError::Single {
-                                        line_number,
-                                        kind: error.into()
-                                    })),
+                                    Err(error) => {
+                                        return Some(Parse::Error(MdError::Single {
+                                            line_number,
+                                            kind: error.into(),
+                                        }))
+                                    }
                                 };
                                 block.add_line(line);
                                 Some(Parse::Incomplete)
@@ -250,7 +272,9 @@ impl Parser for MdParser {
 }
 
 impl Printer for MdParser {
-    fn print_text_block<'a>(&self, block: &TextBlock<'a>) -> String { format!("{}\n", block.to_string()) }
+    fn print_text_block<'a>(&self, block: &TextBlock<'a>) -> String {
+        format!("{}\n", block.to_string())
+    }
 
     fn print_code_block<'a>(&self, block: &CodeBlock<'a>) -> String {
         let mut output = self.fence_sequence.clone();
@@ -281,7 +305,11 @@ impl Printer for MdParser {
         output.push('\n');
 
         for (line, comment) in comments {
-            output.push_str(&format!("<aside class=\"comment\" data-line=\"{}\">{}</aside>\n", line, comment.trim()));
+            output.push_str(&format!(
+                "<aside class=\"comment\" data-line=\"{}\">{}</aside>\n",
+                line,
+                comment.trim()
+            ));
         }
 
         output
@@ -318,7 +346,9 @@ impl std::fmt::Display for MdError {
                 }
                 Ok(())
             }
-            MdError::Single { line_number, kind } => writeln!(f, "{:?} (line {})", kind, line_number),
+            MdError::Single { line_number, kind } => {
+                writeln!(f, "{:?} (line {})", kind, line_number)
+            }
         }
     }
 }

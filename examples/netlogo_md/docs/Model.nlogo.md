@@ -3,11 +3,11 @@
 This document explains the setup of a minimal NetLogo model file,
 and, processed with `outline`, produces the described file from the documentation.
 
-First, we will explain the actual NetLogo code. 
-Then, we see the [file structure](#file-structure) of a `.nlogo` file. 
-Then the remaining, not so important parts of the NetLogo file,
-particularly the [Info tab](#info-tab), [Interface tab](#interface-tab)
-and some other code required.
+First, we explain the actual [NetLogo code](#code). 
+Next, we see the [file structure](#file-structure) of a `.nlogo` file. 
+Then the remaining code, not so important parts of the NetLogo file, is presented.
+Particularly the [Info tab](#info-tab), [Interface tab](#interface-tab)
+and some other required code.
 
 ## Code
 
@@ -51,6 +51,7 @@ right (random 90) - 45
 
 A NetLogo file is composed of sections, delimited by mysterious `@#$#@#$#@`.
 Each section is explained and shown as code below.
+Details for `.nlogo` files can be found in [NetLogo's Hithub repository](https://github.com/NetLogo/NetLogo/wiki/File-(.nlogo)-and-Widget-Format).
 
 ```nlogo
 ==> Code tab.
@@ -133,41 +134,11 @@ Then, we add two buttons:
 
 ```nlogo
 // Interface tab
-BUTTON
-16
-13
-79
-46
-NIL
-setup
-NIL
-1
-T
-OBSERVER
-NIL
-NIL
-NIL
-NIL
-1
-
-BUTTON
-85
-14
-148
-47
-NIL
-go
-T
-1
-T
-OBSERVER
-NIL
-NIL
-NIL
-NIL
-1
-
+==> Button @{setup} @{16} @{13} @{79} @{46} @{NIL}.
+==> Button @{go} @{85} @{13} @{148} @{46} @{T}.
 ```
+
+The actual button code is presented in the [Appendix](#appendix)
 
 ## Turtle shapes
 
@@ -183,7 +154,7 @@ Polygon -7500403 true true 150 5 40 250 150 205 260 250
 
 # Link shapes
 
-And, finally, the default link shape:
+And finally, the default link shape:
 
 ```nlogo
 // Link shapes
@@ -206,4 +177,27 @@ Line -7500403 true 150 150 210 180
 NetLogo 6.1.0
 ```
 
+# Appendix
 
+Code for a Button in NetLogo:
+
+```nlogo
+// Button @{name} @{left} @{top} @{right} @{bottom} @{forever}
+BUTTON
+@{left}
+@{top}
+@{right}
+@{bottom}
+NIL
+@{name}
+@{forever}
+1
+T
+OBSERVER
+NIL
+NIL
+NIL
+NIL
+1
+
+```
