@@ -1,0 +1,50 @@
+language: rust
+env:
+  global:
+    - REPO=outline
+
+os:
+  - linux
+  - windows
+  - osx
+
+rust:
+  - stable
+
+branches:
+  only:
+    - master
+    - dev
+    - "/^\\d+\\.\\d+\\.\\d+/"
+
+script:
+  - cargo test --verbose
+  - cargo build --release
+
+# Need to cache the whole `.cargo` directory to keep .crates.toml for
+# cargo-update to work
+cache:
+  directories:
+    - /home/travis/.cargo
+
+# But don't cache the cargo registry
+before_cache:
+  - rm -rf /home/travis/.cargo/registry
+
+before_deploy:
+  - rm -rf ${REPO} || exit 0
+  - mkdir ${REPO}
+  - if [[ "$TRAVIS_OS_NAME" == "osx" ]]; then cp -f target/release/outline ${REPO} > /dev/null; fi
+  - if [[ "$TRAVIS_OS_NAME" == "linux" ]]; then cp -f target/release/outline ${REPO} > /dev/null; fi
+  - if [[ "$TRAVIS_OS_NAME" == "windows" ]]; then cp -f target/release/outline.exe ${REPO} > /dev/null; fi
+  - tar -czf ${REPO}-${TRAVIS_TAG}-${TRAVIS_OS_NAME}.tar.gz ${REPO}
+
+deploy:
+  provider: releases
+  skip_cleanup: true
+  token:
+    secure: ARu+m2rhBaVP9En0pylX4koz/AGwYBjaOMMLjUarIONgQlMX9hrQhtbjHw/xoxtndsuYnFys09biTbigBlNPugQs/alS6bZOEULGtuaR19URO9tUE6Ol9OQQ7k2K4Dx3vETlIyg3pTfyNGZstEmCiJpoGx8aOnQVJsfCBGAjPQtzedpvIzc5KuJmRZ89r15X2eOrY7+lGMTQNzqX4vP/hnr7N1uoFAojRV/H2gGM/ky7H9JTdJcoij7fj3pN0GyJ5qJ89C1A4byXeFD2s0+gBV5/651nxc4NGVcao0Febe4MSLSu0WpkY4pczM8ylJRua5UVaAIpupPgP7gyu4nE07S2hW7WjRgwhkUU6Ty7Wdt3FU3yhujxgXn6j3Wj63kV8QyuqIhi9r7lS8bC4UfqQ56vpcQzJFjmk1xmYPjd9NoqoTWF79fjGnZ38Bo5t+7Z9msSlNMlU3Xo1NJjkzt9dxUU8gEqeLGpra8lMWU2GLW9dQ2bLDQt2DJNpB7Lj7CdCGyb0/O/wU4j4ZLeepGtahEnr/bHcisrPUKbEDg7zpNkrxrTP03fWWGX3zRxdO4uGM+/ER1zCFoXmhYloIH8tA7qsKTN4hXi0aIEFeWkCWDNaOaDQuwWTatulf/V/164Vl9J4Ubc8LAt8mHI2aHDFULUwSzOlcs2fSy0s5uSsmQ=
+  file: ${REPO}-${TRAVIS_TAG}-${TRAVIS_OS_NAME}.tar.gz
+  on:
+    tags: true
+    all_branches: true
