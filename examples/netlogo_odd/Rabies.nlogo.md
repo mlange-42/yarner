@@ -9,6 +9,14 @@ for the famous NetLogo modelling environment.
 All (!) code of the model is in this document, including some NetLogo-specific boilerplate code,
 which can be found in the [Appendix](#appendix).
 
+**Content**
+
+* [Overview](#overview)
+* [Design concepts](#design-concepts)
+* [Details](#details)
+* [Simulation experiments, parameters and analysis](#simulation-experiments-parameters-and-analysis)
+* [Appendix](#appendix)
+
 ## Overview
 
 ### Purpose
@@ -266,7 +274,7 @@ end
 
 ## Simulation experiments, parameters and analysis
 
-### Simulation experiments, analysis
+### Simulation experiments
 
 Simulation experiments are left to the user.
 
@@ -287,6 +295,10 @@ end
 
 ```
 
+### Analysis
+
+Analysis is also left to the user
+
 ### Parameters
 
 Parameters can be adjusted freely by the user using the sliders on the [Interface tab](#interface-tab).
@@ -298,10 +310,6 @@ Recommended parameters are:
 * `num-offspring = 4`
 * `beta = 0.2`
 * `ticks-infected = 2` (2 months)
-
-### Analysis
-
-Analysis is also left to the user
 
 ## Appendix
 
