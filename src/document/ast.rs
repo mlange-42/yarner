@@ -1,10 +1,10 @@
 //! Internal AST representation
 
-use std::iter::FromIterator;
 use std::collections::HashMap;
+use std::iter::FromIterator;
 
-use super::text::TextBlock;
 use super::code::CodeBlock;
+use super::text::TextBlock;
 use super::{CompileError, CompileErrorKind};
 use crate::parser::Printer;
 
@@ -60,29 +60,47 @@ impl<'a> Ast<'a> {
         for node in &self.nodes {
             match node {
                 Node::Text(text_block) => output.push_str(&printer.print_text_block(text_block)),
-                Node::Code(code_block) => output.push_str(&printer
-                    .print_code_block(code_block)
-                    .split("\n")
-                    .map(|line| if line.is_empty() { line.to_string() } else { format!("{}{}", code_block.indent, line) })
-                    .collect::<Vec<_>>()
-                    .join("\n")
-                ),
+                Node::Code(code_block) => {
+                    if !code_block.hidden {
+                        output.push_str(
+                            &printer
+                                .print_code_block(code_block)
+                                .split("\n")
+                                .map(|line| {
+                                    if line.is_empty() {
+                                        line.to_string()
+                                    } else {
+                                        format!("{}{}", code_block.indent, line)
+                                    }
+                                })
+                                .collect::<Vec<_>>()
+                                .join("\n"),
+                        )
+                    }
+                }
             }
         }
         output
     }
 
     /// Renders the program this AST is representing in the code format
-    pub(crate) fn print_code(&self, entrypoint: Option<&str>, language: Option<&str>) -> Result<String, CompileError> {
+    pub(crate) fn print_code(
+        &self,
+        entrypoint: Option<&str>,
+        language: Option<&str>,
+    ) -> Result<String, CompileError> {
         let code_blocks = self.code_blocks(language);
         code_blocks
             .get(&entrypoint)
             .map(|entrypoint| entrypoint.compile(&code_blocks))
-            .unwrap_or(Err(CompileError::Single { line_number: 0, kind: CompileErrorKind::MissingEntrypoint }))
+            .unwrap_or(Err(CompileError::Single {
+                line_number: 0,
+                kind: CompileErrorKind::MissingEntrypoint,
+            }))
     }
 }
 
-impl<'a> FromIterator<Node<'a>> for Ast<'a>  {
+impl<'a> FromIterator<Node<'a>> for Ast<'a> {
     fn from_iter<I: IntoIterator<Item = Node<'a>>>(iter: I) -> Self {
         Self::new(iter.into_iter().collect())
     }
