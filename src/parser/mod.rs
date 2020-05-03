@@ -79,6 +79,7 @@ pub trait Parser: ParserConfig {
 
     /// Parses a line as code, returning the parsed `Line` object
     fn parse_line<'a>(&self, line_number: usize, input: &'a str) -> Result<Line<'a>, ParseError> {
+        let orig = input.to_string();
         let indent_len = input
             .chars()
             .take_while(|ch| ch.is_whitespace())
@@ -115,6 +116,8 @@ pub trait Parser: ParserConfig {
                         &rest[start_index + start.len()..start_index + start.len() + end_index],
                     ));
                     rest = &rest[start_index + start.len() + end_index + end.len()..];
+                } else {
+                    return Err(ParseError::UnclosedVariableError(orig));
                 }
             } else {
                 if !rest.is_empty() {
