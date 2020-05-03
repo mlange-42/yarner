@@ -412,7 +412,7 @@ using `outline`'s "meta variables" feature:
 ==> Slider @{beta} @{10} @{320} @{200} @{330} @{0} @{1} @{0.01} @{0.2}...
 ==> Slider @{ticks-infected} @{10} @{360} @{200} @{370} @{1} @{10} @{1} @{2}...
 
-==> GraphicsWindow @{100} @{100} @{1} @{1} @{220} @{10} @{5.0} @{30.0} @{1}...
+==> GraphicsWindow at @{220} @{10} size @{100} @{100} wrap @{} @{} ps @{} fps @{} tick @{}...
 ```
 
 The actual code for a Button in NetLogo looks like this:
@@ -462,7 +462,7 @@ HORIZONTAL
 The actual code for the Graphics window looks like this:
 
 ```nlogo
-// GraphicsWindow @{width} @{height} @{wrap_x} @{wrap_y} @{left} @{top} @{patch_size} @{fps} @{on_tick}
+// GraphicsWindow at @{left} @{top} size @{width} @{height} wrap @{wrap_x} @{wrap_y} ps @{patch_size} fps @{fps} tick @{on_tick}
 GRAPHICS-WINDOW
 @{left}
 @{top}

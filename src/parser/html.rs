@@ -303,7 +303,7 @@ impl Parser for HtmlParser {
                             let mut code_block = CodeBlock::new().indented(indent);
 
                             if let Some(name) = args.get("name") {
-                                let (name, vars) = match self.parse_name(name) {
+                                let (name, vars, defaults) = match self.parse_name(name, false) {
                                     Ok(name) => name,
                                     Err(error) => {
                                         return Some(Parse::Error(HtmlError::Single {
@@ -312,7 +312,7 @@ impl Parser for HtmlParser {
                                         }))
                                     }
                                 };
-                                code_block = code_block.named(name, vars);
+                                code_block = code_block.named(name, vars, defaults);
                             }
                             code_block = match args.get("language") {
                                 Some(language) => code_block.in_language(language.to_string()),

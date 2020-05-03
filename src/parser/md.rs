@@ -195,7 +195,7 @@ impl Parser for MdParser {
                                         })
                                         .unwrap_or(rest.len());
                                     let name = &rest[name_start..name_end];
-                                    self.parse_name(name)
+                                    self.parse_name(name, false)
                                 });
 
                             let mut code_block = CodeBlock::new().indented(indent);
@@ -214,7 +214,9 @@ impl Parser for MdParser {
                             }
                             code_block = match name {
                                 None => code_block,
-                                Some(Ok((name, vars))) => code_block.named(name, vars),
+                                Some(Ok((name, vars, defaults))) => {
+                                    code_block.named(name, vars, defaults)
+                                }
                                 Some(Err(error)) => {
                                     return Some(Parse::Error(MdError::Single {
                                         line_number,

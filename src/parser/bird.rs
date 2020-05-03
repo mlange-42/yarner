@@ -144,16 +144,17 @@ impl Parser for BirdParser {
                 State {
                     blank_line: true, ..
                 } if line.starts_with(&self.code_name_marker) => {
-                    let (name, vars) = match self.parse_name(&line[self.code_name_marker.len()..]) {
-                        Ok((name, vars)) => (name, vars),
-                        Err(error) => {
-                            return Some(Parse::Error(BirdError::Single {
-                                line_number,
-                                kind: error.into(),
-                            }))
-                        }
-                    };
-                    let code_block = CodeBlock::new().named(name, vars);
+                    let (name, vars, defaults) =
+                        match self.parse_name(&line[self.code_name_marker.len()..], false) {
+                            Ok((name, vars, defaults)) => (name, vars, defaults),
+                            Err(error) => {
+                                return Some(Parse::Error(BirdError::Single {
+                                    line_number,
+                                    kind: error.into(),
+                                }))
+                            }
+                        };
+                    let code_block = CodeBlock::new().named(name, vars, defaults);
                     state.blank_line = false;
                     let node = std::mem::replace(&mut state.node, Node::Code(code_block));
                     Some(Parse::Complete(node))
