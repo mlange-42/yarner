@@ -30,16 +30,16 @@
 //! Currently, the HTML parser does not support code that is written to the compiled file, but
 //! not rendered in the documentation file.
 
+use serde_derive::Deserialize;
 use std::collections::HashMap;
 use std::iter::FromIterator;
-use serde_derive::Deserialize;
 
-use super::{Printer, Parser, ParserConfig, ParseError};
+use super::{ParseError, Parser, ParserConfig, Printer};
 
-use crate::document::Document;
 use crate::document::ast::Node;
 use crate::document::code::CodeBlock;
 use crate::document::text::TextBlock;
+use crate::document::Document;
 use crate::util::try_collect::TryCollectExt;
 
 /// The config for parsing an HTML document
@@ -98,6 +98,10 @@ pub struct HtmlParser {
     ///
     /// Default: `.`
     pub macro_end: String,
+    /// The sequence to split variables into name and value.
+    ///
+    /// Default: `:`
+    pub variable_sep: String,
 }
 
 impl Default for HtmlParser {
@@ -115,6 +119,7 @@ impl Default for HtmlParser {
             interpolation_end: String::from("}"),
             macro_start: String::from("==> "),
             macro_end: String::from("."),
+            variable_sep: String::from(":"),
         }
     }
 }
@@ -142,22 +147,42 @@ impl HtmlParser {
 }
 
 impl ParserConfig for HtmlParser {
-    fn comment_start(&self) -> &str { &self.comment_start }
-    fn interpolation_start(&self) -> &str { &self.interpolation_start }
-    fn interpolation_end(&self) -> &str { &self.interpolation_end }
-    fn macro_start(&self) -> &str { &self.macro_start }
-    fn macro_end(&self) -> &str { &self.macro_end }
+    fn comment_start(&self) -> &str {
+        &self.comment_start
+    }
+    fn interpolation_start(&self) -> &str {
+        &self.interpolation_start
+    }
+    fn interpolation_end(&self) -> &str {
+        &self.interpolation_end
+    }
+    fn macro_start(&self) -> &str {
+        &self.macro_start
+    }
+    fn macro_end(&self) -> &str {
+        &self.macro_end
+    }
+    fn variable_sep(&self) -> &str {
+        &self.variable_sep
+    }
 }
 
 impl HtmlParser {
-    fn parse_arguments<'a>(&self, arg_string: &'a str) -> Result<HashMap<&'a str, &'a str>, HtmlErrorKind> {
+    fn parse_arguments<'a>(
+        &self,
+        arg_string: &'a str,
+    ) -> Result<HashMap<&'a str, &'a str>, HtmlErrorKind> {
         let mut args = HashMap::new();
         let mut arg_string = arg_string.trim();
         while arg_string != ">" {
             if arg_string.is_empty() {
-                return Err(HtmlErrorKind::InvalidArgumentList)
+                return Err(HtmlErrorKind::InvalidArgumentList);
             }
-            let name_len = arg_string.chars().take_while(|ch| ch.is_alphabetic()).collect::<String>().len();
+            let name_len = arg_string
+                .chars()
+                .take_while(|ch| ch.is_alphabetic())
+                .collect::<String>()
+                .len();
             if name_len == 0 {
                 return Err(HtmlErrorKind::ExtraCharactersInCodeBlock);
             }
@@ -167,7 +192,8 @@ impl HtmlParser {
                 let rest = rest[equals + 1..].trim_start();
                 let (value, rest) = if rest.starts_with('"') {
                     let rest = &rest[1..];
-                    let value_len = rest.chars()
+                    let value_len = rest
+                        .chars()
                         .scan('"', |state, ch| {
                             let previous = std::mem::replace(state, ch);
                             if previous == '\\' {
@@ -225,7 +251,8 @@ impl Parser for HtmlParser {
             node: Node::Text(TextBlock::new()),
         };
 
-        let mut document = input.lines()
+        let mut document = input
+            .lines()
             .enumerate()
             .scan(&mut state, |state, (line_number, line)| {
                 match &mut state.node {
@@ -238,20 +265,23 @@ impl Parser for HtmlParser {
                         }
                         let line = &line[code_block.indent.len()..];
                         if line.starts_with(&tag_close) {
-                            let node = std::mem::replace(&mut state.node, Node::Text(TextBlock::new()));
+                            let node =
+                                std::mem::replace(&mut state.node, Node::Text(TextBlock::new()));
                             Some(Parse::Complete(node))
                         } else {
                             let line = match self.parse_line(line_number, line) {
                                 Ok(line) => line,
-                                Err(error) => return Some(Parse::Error(HtmlError::Single {
-                                    line_number,
-                                    kind: error.into(),
-                                })),
+                                Err(error) => {
+                                    return Some(Parse::Error(HtmlError::Single {
+                                        line_number,
+                                        kind: error.into(),
+                                    }))
+                                }
                             };
                             code_block.add_line(line);
                             Some(Parse::Incomplete)
                         }
-                    },
+                    }
                     Node::Text(text_block) => {
                         if line.trim_start().starts_with(&tag_open) {
                             let start = line.find(&tag_open).unwrap();
@@ -262,31 +292,34 @@ impl Parser for HtmlParser {
                                 Err(HtmlErrorKind::ExtraCharactersInCodeBlock) => {
                                     text_block.add_line(line);
                                     return Some(Parse::Incomplete);
-                                },
-                                Err(kind) => return Some(Parse::Error(HtmlError::Single {
-                                    line_number,
-                                    kind,
-                                })),
+                                }
+                                Err(kind) => {
+                                    return Some(Parse::Error(HtmlError::Single {
+                                        line_number,
+                                        kind,
+                                    }))
+                                }
                             };
-                            let mut code_block = CodeBlock::new()
-                                .indented(indent);
+                            let mut code_block = CodeBlock::new().indented(indent);
 
                             if let Some(name) = args.get("name") {
-                                let (name, vars) = match self.parse_name(name) {
+                                let (name, vars, defaults) = match self.parse_name(name, false) {
                                     Ok(name) => name,
-                                    Err(error) => return Some(Parse::Error(HtmlError::Single {
-                                        line_number,
-                                        kind: error.into(),
-                                    })),
+                                    Err(error) => {
+                                        return Some(Parse::Error(HtmlError::Single {
+                                            line_number,
+                                            kind: error.into(),
+                                        }))
+                                    }
                                 };
-                                code_block = code_block.named(name, vars);
+                                code_block = code_block.named(name, vars, defaults);
                             }
                             code_block = match args.get("language") {
                                 Some(language) => code_block.in_language(language.to_string()),
                                 None => match &self.default_language {
                                     Some(language) => code_block.in_language(language.to_string()),
                                     None => code_block,
-                                }
+                                },
                             };
                             let node = std::mem::replace(&mut state.node, Node::Code(code_block));
                             Some(Parse::Complete(node))
@@ -309,27 +342,38 @@ impl Parser for HtmlParser {
 }
 
 impl Printer for HtmlParser {
-    fn print_text_block<'a>(&self, block: &TextBlock<'a>) -> String { format!("{}\n", block.to_string()) }
+    fn print_text_block<'a>(&self, block: &TextBlock<'a>) -> String {
+        format!("{}\n", block.to_string())
+    }
 
     fn print_code_block<'a>(&self, block: &CodeBlock<'a>) -> String {
         let mut output = String::new();
         output.push_str(&format!("<pre class=\"{}\"><code", self.block_class));
         if let Some(language) = &block.language {
             let class = self.language_class.replace("{}", language);
-            output.push_str(&format!(" class=\"{}\" {}=\"{}\"", class, self.language_attribute, language));
+            output.push_str(&format!(
+                " class=\"{}\" {}=\"{}\"",
+                class, self.language_attribute, language
+            ));
         }
         if let Some(name) = &block.name {
-            output.push_str(&format!(" {}=\"{}\"", self.name_attribute, self.print_name(name.clone(), &block.vars)));
+            output.push_str(&format!(
+                " {}=\"{}\"",
+                self.name_attribute,
+                self.print_name(name.clone(), &block.vars)
+            ));
         }
         output.push_str(">\n");
 
         let mut comments = vec![];
         let line_offset = block.line_number().unwrap_or(0);
         for line in &block.source {
-            output.push_str(&self.print_line(&line, !self.comments_as_aside)
-                .replace("&", "&amp;")
-                .replace("<", "&lt;")
-                .replace(">", "&gt;")
+            output.push_str(
+                &self
+                    .print_line(&line, !self.comments_as_aside)
+                    .replace("&", "&amp;")
+                    .replace("<", "&lt;")
+                    .replace(">", "&gt;"),
             );
             if self.comments_as_aside {
                 if let Some(comment) = &line.comment {
@@ -341,7 +385,11 @@ impl Printer for HtmlParser {
         output.push_str("</code></pre>\n");
 
         for (line, comment) in comments {
-            output.push_str(&format!("<aside class=\"comment\" data-line=\"{}\">{}</aside>\n", line, comment.trim()));
+            output.push_str(&format!(
+                "<aside class=\"comment\" data-line=\"{}\">{}</aside>\n",
+                line,
+                comment.trim()
+            ));
         }
 
         output
@@ -384,7 +432,9 @@ impl std::fmt::Display for HtmlError {
                 }
                 Ok(())
             }
-            HtmlError::Single { line_number, kind } => writeln!(f, "{:?} (line {})", kind, line_number),
+            HtmlError::Single { line_number, kind } => {
+                writeln!(f, "{:?} (line {})", kind, line_number)
+            }
         }
     }
 }

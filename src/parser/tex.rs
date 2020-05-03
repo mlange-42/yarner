@@ -26,16 +26,16 @@
 //! Currently, the TeX parser does not support code that is written to the compiled file, but
 //! not rendered in the documentation file.
 
+use serde_derive::Deserialize;
 use std::collections::HashMap;
 use std::iter::FromIterator;
-use serde_derive::Deserialize;
 
-use super::{Printer, Parser, ParserConfig, ParseError};
+use super::{ParseError, Parser, ParserConfig, Printer};
 
-use crate::document::Document;
 use crate::document::ast::Node;
 use crate::document::code::CodeBlock;
 use crate::document::text::TextBlock;
+use crate::document::Document;
 use crate::util::try_collect::TryCollectExt;
 
 /// The config for parsing a TeX document
@@ -67,6 +67,10 @@ pub struct TexParser {
     ///
     /// Default: `.`
     pub macro_end: String,
+    /// The sequence to split variables into name and value.
+    ///
+    /// Default: `:`
+    pub variable_sep: String,
 }
 
 impl Default for TexParser {
@@ -79,6 +83,7 @@ impl Default for TexParser {
             interpolation_end: String::from("}"),
             macro_start: String::from("==> "),
             macro_end: String::from("."),
+            variable_sep: String::from(":"),
         }
     }
 }
@@ -106,15 +111,31 @@ impl TexParser {
 }
 
 impl ParserConfig for TexParser {
-    fn comment_start(&self) -> &str { &self.comment_start }
-    fn interpolation_start(&self) -> &str { &self.interpolation_start }
-    fn interpolation_end(&self) -> &str { &self.interpolation_end }
-    fn macro_start(&self) -> &str { &self.macro_start }
-    fn macro_end(&self) -> &str { &self.macro_end }
+    fn comment_start(&self) -> &str {
+        &self.comment_start
+    }
+    fn interpolation_start(&self) -> &str {
+        &self.interpolation_start
+    }
+    fn interpolation_end(&self) -> &str {
+        &self.interpolation_end
+    }
+    fn macro_start(&self) -> &str {
+        &self.macro_start
+    }
+    fn macro_end(&self) -> &str {
+        &self.macro_end
+    }
+    fn variable_sep(&self) -> &str {
+        &self.variable_sep
+    }
 }
 
 impl TexParser {
-    fn parse_arguments<'a>(&self, arg_string: &'a str) -> Result<Option<HashMap<&'a str, &'a str>>, TexErrorKind> {
+    fn parse_arguments<'a>(
+        &self,
+        arg_string: &'a str,
+    ) -> Result<Option<HashMap<&'a str, &'a str>>, TexErrorKind> {
         if arg_string.starts_with('[') {
             if !arg_string.ends_with(']') {
                 return Err(TexErrorKind::UnclosedArgumentList);
@@ -130,7 +151,8 @@ impl TexParser {
                 let rest = &rest[1..];
                 let (value, rest) = if rest.starts_with('{') {
                     let rest = &rest[1..];
-                    let value_len = rest.chars()
+                    let value_len = rest
+                        .chars()
                         .scan((1, '{'), |state, ch| {
                             let previous = std::mem::replace(&mut state.1, ch);
                             if previous == '\\' {
@@ -192,7 +214,8 @@ impl Parser for TexParser {
             node: Node::Text(TextBlock::new()),
         };
 
-        let mut document = input.lines()
+        let mut document = input
+            .lines()
             .enumerate()
             .scan(&mut state, |state, (line_number, line)| {
                 match &mut state.node {
@@ -205,20 +228,23 @@ impl Parser for TexParser {
                         }
                         let line = &line[code_block.indent.len()..];
                         if line.starts_with(&env_end) {
-                            let node = std::mem::replace(&mut state.node, Node::Text(TextBlock::new()));
+                            let node =
+                                std::mem::replace(&mut state.node, Node::Text(TextBlock::new()));
                             Some(Parse::Complete(node))
                         } else {
                             let line = match self.parse_line(line_number, line) {
                                 Ok(line) => line,
-                                Err(error) => return Some(Parse::Error(TexError::Single {
-                                    line_number,
-                                    kind: error.into(),
-                                })),
+                                Err(error) => {
+                                    return Some(Parse::Error(TexError::Single {
+                                        line_number,
+                                        kind: error.into(),
+                                    }))
+                                }
                             };
                             code_block.add_line(line);
                             Some(Parse::Incomplete)
                         }
-                    },
+                    }
                     Node::Text(text_block) => {
                         if line.trim_start().starts_with(&env_start) {
                             let indent_length = line.find(&env_start).unwrap();
@@ -226,30 +252,36 @@ impl Parser for TexParser {
                             let rest = &rest[env_start.len()..].trim();
                             let args = match self.parse_arguments(rest) {
                                 Ok(args) => args,
-                                Err(kind) => return Some(Parse::Error(TexError::Single {
-                                    line_number,
-                                    kind,
-                                })),
+                                Err(kind) => {
+                                    return Some(Parse::Error(TexError::Single {
+                                        line_number,
+                                        kind,
+                                    }))
+                                }
                             };
-                            let mut code_block = CodeBlock::new()
-                                .indented(indent);
+                            let mut code_block = CodeBlock::new().indented(indent);
                             if let Some(args) = args {
                                 if let Some(name) = args.get("name") {
-                                    let (name, vars) = match self.parse_name(name) {
+                                    let (name, vars, defaults) = match self.parse_name(name, false)
+                                    {
                                         Ok(name) => name,
-                                        Err(error) => return Some(Parse::Error(TexError::Single {
-                                            line_number,
-                                            kind: error.into(),
-                                        })),
+                                        Err(error) => {
+                                            return Some(Parse::Error(TexError::Single {
+                                                line_number,
+                                                kind: error.into(),
+                                            }))
+                                        }
                                     };
-                                    code_block = code_block.named(name, vars);
+                                    code_block = code_block.named(name, vars, defaults);
                                 }
                                 code_block = match args.get("language") {
                                     Some(language) => code_block.in_language(language.to_string()),
                                     None => match &self.default_language {
-                                        Some(language) => code_block.in_language(language.to_string()),
+                                        Some(language) => {
+                                            code_block.in_language(language.to_string())
+                                        }
                                         None => code_block,
-                                    }
+                                    },
                                 };
                             }
                             let node = std::mem::replace(&mut state.node, Node::Code(code_block));
@@ -273,7 +305,9 @@ impl Parser for TexParser {
 }
 
 impl Printer for TexParser {
-    fn print_text_block<'a>(&self, block: &TextBlock<'a>) -> String { format!("{}\n", block.to_string()) }
+    fn print_text_block<'a>(&self, block: &TextBlock<'a>) -> String {
+        format!("{}\n", block.to_string())
+    }
 
     fn print_code_block<'a>(&self, block: &CodeBlock<'a>) -> String {
         let mut output = format!("\\begin{{{}}}", self.code_environment);
@@ -287,7 +321,12 @@ impl Printer for TexParser {
         }
         if let Some(name) = &block.name {
             output.push_str("name={");
-            output.push_str(&name.replace("{", "\\{").replace("}", "\\}").replace("_", "\\_"));
+            output.push_str(
+                &name
+                    .replace("{", "\\{")
+                    .replace("}", "\\}")
+                    .replace("_", "\\_"),
+            );
             output.push('}');
         }
         if block.language.is_some() || block.name.is_some() {
@@ -341,7 +380,9 @@ impl std::fmt::Display for TexError {
                 }
                 Ok(())
             }
-            TexError::Single { line_number, kind } => writeln!(f, "{:?} (line {})", kind, line_number),
+            TexError::Single { line_number, kind } => {
+                writeln!(f, "{:?} (line {})", kind, line_number)
+            }
         }
     }
 }

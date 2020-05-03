@@ -2,9 +2,9 @@
 fence_sequence = "```"
 block_name_start = " - "
 comments_as_aside = false
-comment_start = "//"
+comment_start = "///"
 interpolation_start = "@{"
 interpolation_end = "}"
-macro_start = "==> "
+macro_start = "// ==> "
 macro_end = "."
 variable_sep = ":"
