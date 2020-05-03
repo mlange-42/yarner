@@ -1,10 +1,6 @@
-[`outline-loader`]: https://github.com/foxfriends/outline-loader
-
 # Outline
 
-[![](https://img.shields.io/crates/v/outline.svg)](https://crates.io/crates/outline)
-![](https://img.shields.io/crates/l/outline.svg)
-[![](https://docs.rs/outline/badge.svg)](https:///docs.rs/outline)
+[![Build Status](https://travis-ci.com/mlange-42/outline.svg?branch=master)](https://travis-ci.com/mlange-42/outline)
 
 Generic literate programming transpiler. This project aims to provide a modern, developer friendly
 literate programming tool. After a brief search online, other options claiming to be "modern" are
@@ -19,6 +15,9 @@ exactly. It uses pluggable, configurable input formats, with out-of-the-box supp
 *   (some approximation of) Bird style
 
 See the examples directory for full working examples in each style.
+
+This is a fork of the original [outline](https://github.com/foxfriends/outline)
+by foxfriends with some additional features.
 
 ## Installation
 
