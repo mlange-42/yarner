@@ -289,41 +289,22 @@ where
 {
     let document = parser.parse(source)?;
 
+    let mut entries = vec![(entrypoint, file_name.clone())];
+    entries.extend(parser.get_entry_points(&document).iter().map(|(e, p)| {
+        (
+            Some(*e),
+            Some(PathBuf::from(p.to_owned().to_owned() + ".temp")),
+        )
+    }));
+
     if file_name.is_none() {
         match doc_dir {
             Left(..) => {
                 let docs = document.print_docs(parser);
                 print!("{}", docs);
             }
-            Right(..) => {
-                let code = document.print_code(entrypoint, language)?;
-                println!("{}", code);
-            }
+            Right(..) => {}
         }
-    }
-
-    match code_dir {
-        Left(..) => {
-            let code = document.print_code(entrypoint, language)?;
-            println!("{}", code);
-        }
-        Right(Some(code_dir)) => {
-            if let Some(file_name) = file_name {
-                let mut file_path = code_dir.clone();
-                if let Some(par) = file_name.parent() {
-                    file_path.push(par)
-                }
-                file_path.push(file_name.file_stem().unwrap());
-                if let Some(language) = language {
-                    file_path.set_extension(language);
-                }
-                fs::create_dir_all(file_path.parent().unwrap()).unwrap();
-                let mut code_file = File::create(file_path).unwrap();
-                let code = document.print_code(entrypoint, language)?;
-                write!(code_file, "{}", code).unwrap();
-            }
-        }
-        _ => {}
     }
 
     match doc_dir {
@@ -332,7 +313,7 @@ where
             print!("{}", documentation);
         }
         Right(Some(doc_dir)) => {
-            if let Some(file_name) = file_name {
+            if let Some(file_name) = &file_name {
                 let documentation = document.print_docs(parser);
                 let mut file_path = doc_dir.clone();
                 file_path.push(file_name);
@@ -342,6 +323,42 @@ where
             }
         }
         _ => {}
+    }
+
+    for (entrypoint, file_name) in entries {
+        if file_name.is_none() {
+            match doc_dir {
+                Left(..) => {}
+                Right(..) => {
+                    let code = document.print_code(entrypoint, language)?;
+                    println!("{}", code);
+                }
+            }
+        }
+
+        match code_dir {
+            Left(..) => {
+                let code = document.print_code(entrypoint, language)?;
+                println!("{}", code);
+            }
+            Right(Some(code_dir)) => {
+                if let Some(file_name) = &file_name {
+                    let mut file_path = code_dir.clone();
+                    if let Some(par) = file_name.parent() {
+                        file_path.push(par)
+                    }
+                    file_path.push(file_name.file_stem().unwrap());
+                    if let Some(language) = language {
+                        file_path.set_extension(language);
+                    }
+                    fs::create_dir_all(file_path.parent().unwrap()).unwrap();
+                    let mut code_file = File::create(file_path).unwrap();
+                    let code = document.print_code(entrypoint, language)?;
+                    write!(code_file, "{}", code).unwrap();
+                }
+            }
+            _ => {}
+        }
     }
 
     Ok(())

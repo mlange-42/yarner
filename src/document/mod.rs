@@ -33,6 +33,11 @@ impl<'a> Document<'a> {
     ) -> Result<String, CompileError> {
         self.tree.print_code(entrypoint, language)
     }
+
+    /// Return the document's AST
+    pub fn tree(&self) -> &Ast<'a> {
+        &self.tree
+    }
 }
 
 impl<'a, T> FromIterator<T> for Document<'a>
