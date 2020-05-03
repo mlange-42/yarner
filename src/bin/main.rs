@@ -310,6 +310,9 @@ where
         Right(Some(code_dir)) => {
             if let Some(file_name) = file_name {
                 let mut file_path = code_dir.clone();
+                if let Some(par) = file_name.parent() {
+                    file_path.push(par)
+                }
                 file_path.push(file_name.file_stem().unwrap());
                 if let Some(language) = language {
                     file_path.set_extension(language);
