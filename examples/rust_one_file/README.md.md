@@ -7,6 +7,8 @@
 * [Project setup](#project-setup)
 * [Git ignore file](#git-ignore-file)
 * [Main function](#main-function)
+* [Dead code](#dead-code)
+* [Hidden code](#hidden-code)
 
 ## Readme
 
@@ -49,15 +51,18 @@ However, the last line of this file should always be blank.
 Everything starts in the `main` function:
 
 ```rust - file:src/main.rs
+use rust_md;
+
 fn main() {
     start();
     for _i in 0..10 {
         step();
     }
     stop();
+    rust_md::secret();
 }
 
-// ==> Code of the functions.
+==> Code of the functions.
 ```
 
 The code for the `start()` function looks like this:
@@ -82,4 +87,32 @@ And finally, the code for the `stop()` function looks like this:
 fn stop() {
     println!("stop");
 }
+```
+
+## Dead code
+
+Code blocks that should not appear in code output can be achieved
+by giving them a name that is never used as a macro:
+
+```rust - Example
+fn dead_code() {
+    println!("I will not appear in the code.");
+}
+```
+
+## Hidden code
+
+Code blocks cen be hidden from the documentation by prefixing their name with 'hidden:'.
+Here, we include a code block that will not apprear in the documentation
+
+```rust - file:src/lib.rs
+pub fn secret() {
+    ==> hidden:Secret code.
+}
+```
+
+The hidden code is here (but not visible):
+
+```rust - hidden:Secret code
+println!("I'm produced by hidden code!");
 ```

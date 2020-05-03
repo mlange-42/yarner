@@ -39,6 +39,8 @@ pub trait ParserConfig {
     fn variable_sep(&self) -> &str;
     /// Prefix for file-specific entry points.
     fn file_prefix(&self) -> &str;
+    /// Name prefix for code blocks not shown in the docs.
+    fn hidden_prefix(&self) -> &str;
 }
 
 /// A `Parser` determines which lines are code and which are text, and may use its `Config` to

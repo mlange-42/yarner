@@ -69,6 +69,10 @@ pub struct BirdParser {
     ///
     /// Default: `file:`
     pub file_prefix: String,
+    /// Name prefix for code blocks not shown in the docs.
+    ///
+    /// Default: `hidden:`
+    pub hidden_prefix: String,
 }
 
 impl Default for BirdParser {
@@ -83,6 +87,7 @@ impl Default for BirdParser {
             macro_end: String::from("."),
             variable_sep: String::from(":"),
             file_prefix: String::from("file:"),
+            hidden_prefix: String::from("hidden:"),
         }
     }
 }
@@ -108,6 +113,9 @@ impl ParserConfig for BirdParser {
     }
     fn file_prefix(&self) -> &str {
         &self.file_prefix
+    }
+    fn hidden_prefix(&self) -> &str {
+        &self.hidden_prefix
     }
 }
 
@@ -162,7 +170,8 @@ impl Parser for BirdParser {
                                 }))
                             }
                         };
-                    let code_block = CodeBlock::new().named(name, vars, defaults);
+                    let hidden = name.starts_with(self.hidden_prefix());
+                    let code_block = CodeBlock::new().named(name, vars, defaults).hidden(hidden);
                     state.blank_line = false;
                     let node = std::mem::replace(&mut state.node, Node::Code(code_block));
                     Some(Parse::Complete(node))

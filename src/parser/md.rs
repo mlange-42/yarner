@@ -83,6 +83,10 @@ pub struct MdParser {
     ///
     /// Default: `file:`
     pub file_prefix: String,
+    /// Name prefix for code blocks not shown in the docs.
+    ///
+    /// Default: `hidden:`
+    pub hidden_prefix: String,
 }
 
 impl Default for MdParser {
@@ -100,6 +104,7 @@ impl Default for MdParser {
             macro_end: String::from("."),
             variable_sep: String::from(":"),
             file_prefix: String::from("file:"),
+            hidden_prefix: String::from("hidden:"),
         }
     }
 }
@@ -147,6 +152,9 @@ impl ParserConfig for MdParser {
     }
     fn file_prefix(&self) -> &str {
         &self.file_prefix
+    }
+    fn hidden_prefix(&self) -> &str {
+        &self.hidden_prefix
     }
 }
 
@@ -223,7 +231,8 @@ impl Parser for MdParser {
                             code_block = match name {
                                 None => code_block,
                                 Some(Ok((name, vars, defaults))) => {
-                                    code_block.named(name, vars, defaults)
+                                    let hidden = name.starts_with(self.hidden_prefix());
+                                    code_block.named(name, vars, defaults).hidden(hidden)
                                 }
                                 Some(Err(error)) => {
                                     return Some(Parse::Error(MdError::Single {
