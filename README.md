@@ -137,7 +137,27 @@ Now, to say things to many people:
 \end{code}
 ```
 
-This feature allows for more flexibility when writing macros, as well as possibly making the intent
+**Modification:**
+
+Meta variables can have default values:
+
+```tex
+Here is our macro with default meta variables:
+
+\begin{code}[language=rs,name={Say @{something:Hello} to @{someone}}]
+println!("Hey, @{someone}! I was told to tell you \"@{something}\"");
+\end{code}
+
+Now, to say the default "Hello" to many people:
+
+\begin{code}[language=rs]
+==> Say @{} to @{Jim}.
+==> Say @{} to @{Tom}.
+==> Say @{} to @{Angela}.
+\end{code}
+```
+
+These features allows for more flexibility when writing macros, as well as possibly making the intent
 clearer.
 
 ### Extracted comments

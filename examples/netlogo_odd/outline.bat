@@ -2,5 +2,5 @@
     --output code/ ^
     --docs docs/ ^
     Rabies.nlogo.md
-code\Rabies.nlogo
+REM code\Rabies.nlogo
 pause

@@ -35,6 +35,8 @@ pub trait ParserConfig {
     fn macro_start(&self) -> &str;
     /// The token to denote the end of a macro invocation
     fn macro_end(&self) -> &str;
+    /// The sequence to split variables into name and value.
+    fn variable_sep(&self) -> &str;
 }
 
 /// A `Parser` determines which lines are code and which are text, and may use its `Config` to
@@ -48,21 +50,39 @@ pub trait Parser: ParserConfig {
     fn parse<'a>(&self, input: &'a str) -> Result<Document<'a>, Self::Error>;
 
     /// Parses a macro name, returning the name and the extracted variables
-    fn parse_name<'a>(&self, mut input: &'a str) -> Result<(String, Vec<&'a str>), ParseError> {
+    fn parse_name<'a>(
+        &self,
+        mut input: &'a str,
+        is_call: bool,
+    ) -> Result<(String, Vec<&'a str>, Vec<Option<&'a str>>), ParseError> {
         let orig = input.to_string();
         let mut name = String::new();
         let mut vars = vec![];
+        let mut optionals = vec![];
         let start = self.interpolation_start();
         let end = self.interpolation_end();
+        let sep = self.variable_sep();
+        let sep_len = sep.len();
         loop {
             if let Some(start_index) = input.find(start) {
                 if let Some(end_index) = input[start_index + start.len()..].find(end) {
                     name.push_str(&input[..start_index]);
                     name.push_str(&start);
                     name.push_str(&end);
-                    vars.push(
-                        &input[start_index + start.len()..start_index + start.len() + end_index],
-                    );
+                    let var =
+                        &input[start_index + start.len()..start_index + start.len() + end_index];
+                    if is_call {
+                        vars.push(var);
+                        optionals.push(None);
+                    } else {
+                        if let Some(sep_index) = var.find(sep) {
+                            vars.push(&var[..sep_index]);
+                            optionals.push(Some(&var[sep_index + sep_len..]));
+                        } else {
+                            vars.push(&var);
+                            optionals.push(None);
+                        }
+                    }
                     input = &input[start_index + start.len() + end_index + end.len()..];
                 } else {
                     return Err(ParseError::UnclosedVariableError(orig));
@@ -72,11 +92,12 @@ pub trait Parser: ParserConfig {
                 break;
             }
         }
-        return Ok((name, vars));
+        return Ok((name, vars, optionals));
     }
 
     /// Parses a line as code, returning the parsed `Line` object
     fn parse_line<'a>(&self, line_number: usize, input: &'a str) -> Result<Line<'a>, ParseError> {
+        let orig = input.to_string();
         let indent_len = input
             .chars()
             .take_while(|ch| ch.is_whitespace())
@@ -92,7 +113,8 @@ pub trait Parser: ParserConfig {
 
         if rest.starts_with(self.macro_start()) {
             if let Some(end_index) = rest.find(self.macro_end()) {
-                let (name, scope) = self.parse_name(&rest[self.macro_start().len()..end_index])?;
+                let (name, scope, _names) =
+                    self.parse_name(&rest[self.macro_start().len()..end_index], true)?;
                 return Ok(Line {
                     line_number,
                     indent,
@@ -113,6 +135,8 @@ pub trait Parser: ParserConfig {
                         &rest[start_index + start.len()..start_index + start.len() + end_index],
                     ));
                     rest = &rest[start_index + start.len() + end_index + end.len()..];
+                } else {
+                    return Err(ParseError::UnclosedVariableError(orig));
                 }
             } else {
                 if !rest.is_empty() {
