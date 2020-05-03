@@ -79,6 +79,10 @@ pub struct MdParser {
     ///
     /// Default: `:`
     pub variable_sep: String,
+    /// Prefix for file-specific entry points.
+    ///
+    /// Default: `file:`
+    pub file_prefix: String,
 }
 
 impl Default for MdParser {
@@ -95,6 +99,7 @@ impl Default for MdParser {
             macro_start: String::from("==> "),
             macro_end: String::from("."),
             variable_sep: String::from(":"),
+            file_prefix: String::from("file:"),
         }
     }
 }
@@ -139,6 +144,9 @@ impl ParserConfig for MdParser {
     }
     fn variable_sep(&self) -> &str {
         &self.variable_sep
+    }
+    fn file_prefix(&self) -> &str {
+        &self.file_prefix
     }
 }
 

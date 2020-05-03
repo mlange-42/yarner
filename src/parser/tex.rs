@@ -71,6 +71,10 @@ pub struct TexParser {
     ///
     /// Default: `:`
     pub variable_sep: String,
+    /// Prefix for file-specific entry points.
+    ///
+    /// Default: `file:`
+    pub file_prefix: String,
 }
 
 impl Default for TexParser {
@@ -84,6 +88,7 @@ impl Default for TexParser {
             macro_start: String::from("==> "),
             macro_end: String::from("."),
             variable_sep: String::from(":"),
+            file_prefix: String::from("file:"),
         }
     }
 }
@@ -128,6 +133,9 @@ impl ParserConfig for TexParser {
     }
     fn variable_sep(&self) -> &str {
         &self.variable_sep
+    }
+    fn file_prefix(&self) -> &str {
+        &self.file_prefix
     }
 }
 

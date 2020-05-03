@@ -37,6 +37,8 @@ pub trait ParserConfig {
     fn macro_end(&self) -> &str;
     /// The sequence to split variables into name and value.
     fn variable_sep(&self) -> &str;
+    /// Prefix for file-specific entry points.
+    fn file_prefix(&self) -> &str;
 }
 
 /// A `Parser` determines which lines are code and which are text, and may use its `Config` to
@@ -152,6 +154,20 @@ pub trait Parser: ParserConfig {
             source: Source::Source(source),
             comment,
         })
+    }
+
+    /// Finds all file-specific entry points
+    fn get_entry_points<'a>(&self, doc: &'a Document<'a>) -> Vec<(&'a str, &'a str)> {
+        let mut entries = vec![];
+        let pref = self.file_prefix();
+        for (name, _block) in doc.tree().code_blocks(None) {
+            if let Some(name) = name {
+                if name.starts_with(pref) {
+                    entries.push((name, &name[pref.len()..]))
+                }
+            }
+        }
+        entries
     }
 }
 
