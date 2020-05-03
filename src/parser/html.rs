@@ -102,6 +102,14 @@ pub struct HtmlParser {
     ///
     /// Default: `:`
     pub variable_sep: String,
+    /// Prefix for file-specific entry points.
+    ///
+    /// Default: `file:`
+    pub file_prefix: String,
+    /// Name prefix for code blocks not shown in the docs.
+    ///
+    /// Default: `hidden:`
+    pub hidden_prefix: String,
 }
 
 impl Default for HtmlParser {
@@ -120,6 +128,8 @@ impl Default for HtmlParser {
             macro_start: String::from("==> "),
             macro_end: String::from("."),
             variable_sep: String::from(":"),
+            file_prefix: String::from("file:"),
+            hidden_prefix: String::from("hidden:"),
         }
     }
 }
@@ -164,6 +174,12 @@ impl ParserConfig for HtmlParser {
     }
     fn variable_sep(&self) -> &str {
         &self.variable_sep
+    }
+    fn file_prefix(&self) -> &str {
+        &self.file_prefix
+    }
+    fn hidden_prefix(&self) -> &str {
+        &self.hidden_prefix
     }
 }
 
@@ -312,7 +328,8 @@ impl Parser for HtmlParser {
                                         }))
                                     }
                                 };
-                                code_block = code_block.named(name, vars, defaults);
+                                let hidden = name.starts_with(self.hidden_prefix());
+                                code_block = code_block.named(name, vars, defaults).hidden(hidden);
                             }
                             code_block = match args.get("language") {
                                 Some(language) => code_block.in_language(language.to_string()),

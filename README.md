@@ -190,6 +190,11 @@ Note that if you use a named entrypoint, there is no way to reference the unname
 macros. You can, however, use the unnamed code blocks to provide examples, for example, to the
 readers of the documentation, so they are still useful.
 
+### Multiple Files, Multiple Entrypoints
+
+By naming code blocks with prefix 'file:' followed by a relative path, multiple code files can be created
+from one source file. Each bode block with the 'file:' prefix is treated as a separate entry point.
+
 ### Multiple languages
 
 Some documentation formats allow you to indicate the language that a code block is written in. In
