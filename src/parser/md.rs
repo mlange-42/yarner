@@ -75,6 +75,10 @@ pub struct MdParser {
     ///
     /// Default: `.`
     pub macro_end: String,
+    /// The sequence to split variables into name and value.
+    ///
+    /// Default: `:`
+    pub variable_sep: String,
 }
 
 impl Default for MdParser {
@@ -90,6 +94,7 @@ impl Default for MdParser {
             interpolation_end: String::from("}"),
             macro_start: String::from("==> "),
             macro_end: String::from("."),
+            variable_sep: String::from(":"),
         }
     }
 }
@@ -131,6 +136,9 @@ impl ParserConfig for MdParser {
     }
     fn macro_end(&self) -> &str {
         &self.macro_end
+    }
+    fn variable_sep(&self) -> &str {
+        &self.variable_sep
     }
 }
 

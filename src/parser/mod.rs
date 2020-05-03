@@ -35,6 +35,8 @@ pub trait ParserConfig {
     fn macro_start(&self) -> &str;
     /// The token to denote the end of a macro invocation
     fn macro_end(&self) -> &str;
+    /// The sequence to split variables into name and value.
+    fn variable_sep(&self) -> &str;
 }
 
 /// A `Parser` determines which lines are code and which are text, and may use its `Config` to

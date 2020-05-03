@@ -19,15 +19,15 @@
 //! Currently, the Bird Style does not support code that is written to the compiled file, but not
 //! rendered in the documentation file.
 
-use std::iter::FromIterator;
 use serde_derive::Deserialize;
+use std::iter::FromIterator;
 
-use super::{Printer, Parser, ParserConfig, ParseError};
+use super::{ParseError, Parser, ParserConfig, Printer};
 
-use crate::document::Document;
 use crate::document::ast::Node;
 use crate::document::code::CodeBlock;
 use crate::document::text::TextBlock;
+use crate::document::Document;
 use crate::util::try_collect::TryCollectExt;
 
 /// The config for parsing a Bird Style document
@@ -61,6 +61,10 @@ pub struct BirdParser {
     ///
     /// Default: `.`
     pub macro_end: String,
+    /// The sequence to split variables into name and value.
+    ///
+    /// Default: `:`
+    pub variable_sep: String,
 }
 
 impl Default for BirdParser {
@@ -73,16 +77,30 @@ impl Default for BirdParser {
             interpolation_end: String::from("}"),
             macro_start: String::from("==> "),
             macro_end: String::from("."),
+            variable_sep: String::from(":"),
         }
     }
 }
 
 impl ParserConfig for BirdParser {
-    fn comment_start(&self) -> &str { &self.comment_start }
-    fn interpolation_start(&self) -> &str { &self.interpolation_start }
-    fn interpolation_end(&self) -> &str { &self.interpolation_end }
-    fn macro_start(&self) -> &str { &self.macro_start }
-    fn macro_end(&self) -> &str { &self.macro_end }
+    fn comment_start(&self) -> &str {
+        &self.comment_start
+    }
+    fn interpolation_start(&self) -> &str {
+        &self.interpolation_start
+    }
+    fn interpolation_end(&self) -> &str {
+        &self.interpolation_end
+    }
+    fn macro_start(&self) -> &str {
+        &self.macro_start
+    }
+    fn macro_end(&self) -> &str {
+        &self.macro_end
+    }
+    fn variable_sep(&self) -> &str {
+        &self.variable_sep
+    }
 }
 
 impl Parser for BirdParser {
@@ -104,7 +122,8 @@ impl Parser for BirdParser {
             node: Node::Text(TextBlock::new()),
             blank_line: true,
         };
-        let mut document = input.lines()
+        let mut document = input
+            .lines()
             .enumerate()
             .scan(&mut state, |state, (line_number, line)| match state {
                 State { .. } if line.is_empty() => {
@@ -115,27 +134,41 @@ impl Parser for BirdParser {
                             new_block.add_line(line);
                             let node = std::mem::replace(&mut state.node, Node::Text(new_block));
                             Some(Parse::Complete(node))
-                        },
+                        }
                         Node::Text(text_block) => {
                             text_block.add_line(line);
                             Some(Parse::Incomplete)
                         }
                     }
                 }
-                State { blank_line: true, .. } if line.starts_with(&self.code_name_marker) => {
+                State {
+                    blank_line: true, ..
+                } if line.starts_with(&self.code_name_marker) => {
                     let (name, vars) = match self.parse_name(&line[self.code_name_marker.len()..]) {
                         Ok((name, vars)) => (name, vars),
-                        Err(error) => return Some(Parse::Error(BirdError::Single { line_number, kind: error.into() })),
+                        Err(error) => {
+                            return Some(Parse::Error(BirdError::Single {
+                                line_number,
+                                kind: error.into(),
+                            }))
+                        }
                     };
                     let code_block = CodeBlock::new().named(name, vars);
                     state.blank_line = false;
                     let node = std::mem::replace(&mut state.node, Node::Code(code_block));
                     Some(Parse::Complete(node))
                 }
-                State { blank_line: true, .. } if line.starts_with(&self.code_marker) => {
+                State {
+                    blank_line: true, ..
+                } if line.starts_with(&self.code_marker) => {
                     let line = match self.parse_line(line_number, &line[self.code_marker.len()..]) {
                         Ok(line) => line,
-                        Err(error) => return Some(Parse::Error(BirdError::Single { line_number, kind: error.into() })),
+                        Err(error) => {
+                            return Some(Parse::Error(BirdError::Single {
+                                line_number,
+                                kind: error.into(),
+                            }))
+                        }
                     };
                     let mut code_block = CodeBlock::new();
                     code_block.add_line(line);
@@ -143,18 +176,33 @@ impl Parser for BirdParser {
                     state.blank_line = false;
                     Some(Parse::Complete(node))
                 }
-                State { node: Node::Code(code_block), .. } if line.starts_with(&self.code_marker) => {
+                State {
+                    node: Node::Code(code_block),
+                    ..
+                } if line.starts_with(&self.code_marker) => {
                     let line = match self.parse_line(line_number, &line[self.code_marker.len()..]) {
                         Ok(line) => line,
-                        Err(error) => return Some(Parse::Error(BirdError::Single { line_number, kind: error.into() })),
+                        Err(error) => {
+                            return Some(Parse::Error(BirdError::Single {
+                                line_number,
+                                kind: error.into(),
+                            }))
+                        }
                     };
                     code_block.add_line(line);
                     Some(Parse::Incomplete)
                 }
-                State { node: Node::Code(..), .. } => {
-                    Some(Parse::Error(BirdError::Single { line_number, kind: BirdErrorKind::UnterminatedCodeBlock }))
-                }
-                State { node: Node::Text(text_block), .. } => {
+                State {
+                    node: Node::Code(..),
+                    ..
+                } => Some(Parse::Error(BirdError::Single {
+                    line_number,
+                    kind: BirdErrorKind::UnterminatedCodeBlock,
+                })),
+                State {
+                    node: Node::Text(text_block),
+                    ..
+                } => {
                     state.blank_line = false;
                     text_block.add_line(&line);
                     Some(Parse::Incomplete)
@@ -222,7 +270,9 @@ impl std::fmt::Display for BirdError {
                 }
                 Ok(())
             }
-            BirdError::Single { line_number, kind } => writeln!(f, "{:?} (line {})", kind, line_number),
+            BirdError::Single { line_number, kind } => {
+                writeln!(f, "{:?} (line {})", kind, line_number)
+            }
         }
     }
 }
