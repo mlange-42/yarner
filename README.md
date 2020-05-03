@@ -274,6 +274,8 @@ interpolation_start = "@{"
 interpolation_end = "}"
 macro_start = "==> "
 macro_end = "."
+file_prefix = "file:"
+hidden_prefix = "hidden:"
 
 [md]
 fence_sequence = "```"
@@ -285,6 +287,8 @@ interpolation_start = "@{"
 interpolation_end = "}"
 macro_start = "==> "
 macro_end = "."
+file_prefix = "file:"
+hidden_prefix = "hidden:"
 
 [html]
 code_tag = "code"
@@ -299,6 +303,8 @@ interpolation_start = "@{"
 interpolation_end = "}"
 macro_start = "==> "
 macro_end = "."
+file_prefix = "file:"
+hidden_prefix = "hidden:"
 
 [bird]
 code_marker = "> "
@@ -308,6 +314,8 @@ interpolation_start = "@{"
 interpolation_end = "}"
 macro_start = "==> "
 macro_end = "."
+file_prefix = "file:"
+hidden_prefix = "hidden:"
 ```
 
 ### Extending
