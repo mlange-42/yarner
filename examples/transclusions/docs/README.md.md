@@ -4,7 +4,8 @@
 **Content**
 
 * [Readme](#readme)
-* [Project setup](#project-setup)
+* [Rust project setup](#rust-project-setup)
+* [License](#license)
 * [Git ignore file](#git-ignore-file)
 * [Main function](#main-function)
 * [Dead code](#dead-code)
@@ -24,11 +25,7 @@ You find the documentation from which the code and all other files were derived 
 here: [../README.md.md](../README.md.md).
 ```
 
-## License
-
-Find the license file [here](LICENSE.md) (see [MIT License](https://opensource.org/licenses/MIT)).
-
-## Project setup
+## Rust project setup
 
 First, we need a simple `Cargo.toml` file:
 
@@ -40,6 +37,11 @@ version = "0.1.0"
 authors = ["m-lange <martin_lange_@gmx.net>"]
 edition = "2018"
 ```
+
+## License
+
+Find the license file [here](LICENSE.md) (see [MIT License](https://opensource.org/licenses/MIT)).
+This relative link is detected by `outline` and the linked file is compiled to code and docs, too.
 
 ## Git ignore file
 
@@ -54,7 +56,7 @@ However, the last line of this file should always be blank.
 
 ## Main function
 
-Everything starts in the `main` function:
+Code-wise, everything starts in the `main` function:
 
 ```rust
 /// file:src/main.rs
