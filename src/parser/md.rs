@@ -33,6 +33,9 @@ use crate::document::code::CodeBlock;
 use crate::document::text::TextBlock;
 use crate::document::Document;
 use crate::util::try_collect::TryCollectExt;
+use regex::Regex;
+use std::fs::File;
+use std::path::PathBuf;
 
 /// The config for parsing a Markdown document
 #[derive(Clone, Deserialize, Serialize, Debug)]
@@ -295,6 +298,24 @@ impl Parser for MdParser {
             document.push(node);
         }
         Ok(Document::from_iter(document))
+    }
+
+    fn find_links(&self, input: &str) -> Result<Vec<PathBuf>, Self::Error> {
+        let regex = Regex::new(r"\[([^\[\]]*)\]\((.*?)\)").unwrap();
+        let paths = regex
+            .captures_iter(input)
+            .map(|m| m.get(2).unwrap().as_str())
+            .filter_map(|p| {
+                let path = PathBuf::from(p);
+                if path.is_relative() && File::open(&path).is_ok() {
+                    //Some(PathBuf::from(p.to_string() + ".md"))
+                    Some(path)
+                } else {
+                    None
+                }
+            })
+            .collect();
+        Ok(paths)
     }
 }
 
