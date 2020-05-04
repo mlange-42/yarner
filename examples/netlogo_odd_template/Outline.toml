@@ -10,3 +10,8 @@ macro_end = "..."
 variable_sep = ":"
 file_prefix = "file:"
 hidden_prefix = "hidden:"
+
+[paths]
+code = "code/"
+docs = "docs/"
+files = ["ODD_Template.nlogo.md"]

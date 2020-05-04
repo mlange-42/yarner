@@ -176,7 +176,7 @@ HORIZONTAL
 The actual code for the Graphics window looks like this:
 
 ```nlogo
-// GraphicsWindow at @{left} @{top} size @{width} @{height} wrap @{wrap_x} @{wrap_y} ps @{patch_size} fps @{fps} tick @{on_tick}
+// GraphicsWindow at @{left} @{top} size @{width} @{height} wrap @{wrap_x:1} @{wrap_y:1} ps @{patch_size:5.0} fps @{fps:30.0} tick @{on_tick:1}
 GRAPHICS-WINDOW
 @{left}
 @{top}
