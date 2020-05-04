@@ -1,0 +1,17 @@
+[md]
+fence_sequence = "```"
+block_name_start = " - "
+comments_as_aside = false
+comment_start = "///"
+interpolation_start = "@{"
+interpolation_end = "}"
+macro_start = "==> "
+macro_end = "."
+variable_sep = ":"
+file_prefix = "file:"
+hidden_prefix = "hidden:"
+
+[paths]
+code = "code/"
+docs = "docs/"
+files = ["README.md.md"]

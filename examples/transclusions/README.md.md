@@ -24,6 +24,10 @@ You find the documentation from which the code and all other files were derived 
 here: [../README.md.md](../README.md.md).
 ```
 
+## License
+
+Find the license file [here](LICENSE.md) (see [MIT License](https://opensource.org/licenses/MIT)).
+
 ## Project setup
 
 First, we need a simple `Cargo.toml` file:
