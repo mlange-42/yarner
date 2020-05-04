@@ -186,14 +186,4 @@ impl<'a> CodeBlock<'a> {
             })
             .collect()
     }
-    /*
-       fn assign_vars(&self, scope: &[&'a str]) -> HashMap<&str, &'a str> {
-           println!("{:?}  {:?}", self.vars, scope);
-           self.vars
-               .iter()
-               .zip(scope)
-               .map(|(name, value)| (*name, *value))
-               .collect()
-       }
-    */
 }

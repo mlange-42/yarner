@@ -377,7 +377,7 @@ impl Printer for HtmlParser {
             output.push_str(&format!(
                 " {}=\"{}\"",
                 self.name_attribute,
-                self.print_name(name.clone(), &block.vars)
+                self.print_name(name.clone(), &block.vars, &block.defaults)
             ));
         }
         output.push_str(">\n");

@@ -246,7 +246,7 @@ impl Printer for BirdParser {
         let mut output = String::new();
         if let Some(name) = &block.name {
             output.push_str(&self.code_name_marker);
-            output.push_str(&self.print_name(name.clone(), &block.vars));
+            output.push_str(&self.print_name(name.clone(), &block.vars, &block.defaults));
             output.push('\n');
         }
         for line in &block.source {
