@@ -19,6 +19,7 @@ pub use self::tex::TexParser;
 use crate::document::code::{CodeBlock, Line, Segment, Source};
 use crate::document::text::TextBlock;
 use crate::document::Document;
+use std::path::PathBuf;
 
 /// A `ParserConfig` can be used to customize the built in parsing methods
 pub trait ParserConfig {
@@ -52,6 +53,9 @@ pub trait Parser: ParserConfig {
     /// Parses the text part of the document. Should delegate the code section on a line-by-line
     /// basis to the built in code parser.
     fn parse<'a>(&self, input: &'a str) -> Result<Document<'a>, Self::Error>;
+    
+    /// Find all files linked into the document for later compilation and/or transclusion.
+    fn find_links(&self, input: &str) -> Result<Vec<PathBuf>, Self::Error>;
 
     /// Parses a macro name, returning the name and the extracted variables
     fn parse_name<'a>(

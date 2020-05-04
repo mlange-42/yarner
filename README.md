@@ -192,7 +192,15 @@ readers of the documentation, so they are still useful.
 ### Multiple Files, Multiple Entrypoints
 
 By naming code blocks with prefix 'file:' followed by a relative path, multiple code files can be created
-from one source file. Each bode block with the 'file:' prefix is treated as a separate entry point.
+from one source file. Each code block with the 'file:' prefix is treated as a separate entry point.
+
+```tex
+\begin{code}[language=rs,name={file:src/lib.rs}]
+fn say_hello() {
+    println!("Hello Literate Programmer!");
+}
+\end{code}
+```
 
 ### Multiple languages
 

@@ -37,6 +37,7 @@ use crate::document::code::CodeBlock;
 use crate::document::text::TextBlock;
 use crate::document::Document;
 use crate::util::try_collect::TryCollectExt;
+use std::path::PathBuf;
 
 /// The config for parsing a TeX document
 #[derive(Clone, Deserialize, Serialize, Debug)]
@@ -319,6 +320,10 @@ impl Parser for TexParser {
             .try_collect::<_, _, Vec<_>, TexError>()?;
         document.push(state.node);
         Ok(Document::from_iter(document))
+    }
+    
+    fn find_links(&self, _input: &str) -> Result<Vec<PathBuf>, Self::Error> {
+        Ok(vec![])
     }
 }
 

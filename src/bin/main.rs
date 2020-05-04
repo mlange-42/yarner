@@ -3,9 +3,10 @@ use either::Either::{self, *};
 use outline::config::{AnyConfig, Paths};
 use outline::parser::{BirdParser, HtmlParser, MdParser, Parser, Printer, TexParser};
 use outline::{templates, ProjectCreationError};
+use std::collections::HashSet;
 use std::error::Error;
 use std::fs::{self, File};
-use std::io::{stdin, Read, Write};
+use std::io::Write;
 use std::path::PathBuf;
 
 fn main() {
@@ -56,7 +57,7 @@ fn main() {
             .value_name("input")
             .multiple(true)
             .index(1))
-        .subcommand(SubCommand::with_name("tangle")
+        /*.subcommand(SubCommand::with_name("tangle")
             .about("Tangle input and print to STDOUT")
             .arg(Arg::with_name("input")
                 .help("The input source file(s). If none are specified, read from STDIN")
@@ -69,7 +70,7 @@ fn main() {
                 .help("The input source file(s). If none are specified, read from STDIN")
                 .value_name("input")
                 .multiple(true)
-                .index(1)))
+                .index(1)))*/
         .subcommand(SubCommand::with_name("create")
             .about("Creates an outline project in the current directory")
             .arg(Arg::with_name("file")
@@ -150,13 +151,13 @@ fn main() {
 
     enum Input {
         File(String),
-        Stdin,
+        //Stdin,
     }
 
     let inputs = matches
-        .subcommand_matches("weave")
+        /*.subcommand_matches("weave")
         .or(matches.subcommand_matches("tangle"))
-        .unwrap_or(&matches)
+        .unwrap_or(&matches)*/
         .values_of("input")
         .map(|files| {
             files
@@ -165,21 +166,26 @@ fn main() {
                 .collect()
         });
 
-    let inputs = inputs
-        .or_else(|| {
-            paths
-                .files
-                .as_ref()
-                .map(|files| files.iter().map(|file| Input::File(file.clone())).collect())
-        })
-        .unwrap_or_else(|| vec![Input::Stdin]);
+    let inputs: Vec<_> = match inputs.or_else(|| {
+        paths
+            .files
+            .as_ref()
+            .map(|files| files.iter().map(|file| Input::File(file.clone())).collect())
+    }) {
+        Some(inputs) => inputs,
+        None => {
+            eprintln!("No inputs provided via arguments or toml file.",);
+            return;
+        }
+    };
+    //.unwrap_or_else(|| vec![Input::Stdin]);
 
     for input in inputs {
-        let (file_name, contents, style_type, code_type) = match input {
+        let (file_name, style_type, code_type) = match input {
             Input::File(file_name) => {
                 let file_name = PathBuf::from(file_name);
 
-                let contents = match fs::read_to_string(&file_name) {
+                /*let contents = match fs::read_to_string(&file_name) {
                     Ok(contents) => contents,
                     Err(error) => {
                         eprintln!(
@@ -189,7 +195,7 @@ fn main() {
                         );
                         return;
                     }
-                };
+                };*/
 
                 let style_type = file_name
                     .extension()
@@ -202,19 +208,18 @@ fn main() {
                         .and_then(|osstr| osstr.to_str())
                         .map(|s| s.to_owned())
                 });
-                (Some(file_name), contents, style_type, code_type)
-            }
-            Input::Stdin => {
-                let mut input = String::new();
-                match stdin().read_to_string(&mut input) {
-                    Ok(..) => (),
-                    Err(error) => {
-                        eprintln!("Could not read STDIN as string: {}", error);
-                        return;
-                    }
-                }
-                (None, input, None, None)
-            }
+                (file_name, style_type, code_type)
+            } /*Input::Stdin => {
+                  let mut input = String::new();
+                  match stdin().read_to_string(&mut input) {
+                      Ok(..) => (),
+                      Err(error) => {
+                          eprintln!("Could not read STDIN as string: {}", error);
+                          return;
+                      }
+                  }
+                  (None, input, None, None)
+              }*/
         };
 
         let language = matches.value_of("language");
@@ -230,19 +235,20 @@ fn main() {
             "bird" => {
                 let default = BirdParser::default();
                 let parser = any_config.bird.as_ref().unwrap_or(&default);
-                if let Err(error) = compile(
-                    parser, &contents, &doc_dir, &code_dir, &file_name, entrypoint, language,
+                if let Err(error) = compile_all(
+                    parser,
+                    &doc_dir,
+                    &code_dir,
+                    &file_name,
+                    entrypoint,
+                    language,
+                    &mut HashSet::new(),
                 ) {
-                    if let Some(file_name) = file_name {
-                        eprintln!(
-                            "Failed to compile source file \"{}\": {}",
-                            file_name.to_str().unwrap(),
-                            error
-                        );
-                    } else {
-                        eprintln!("Failed to compile from STDIN: {}", error);
-                        std::process::exit(1);
-                    }
+                    eprintln!(
+                        "Failed to compile source file \"{}\": {}",
+                        file_name.to_str().unwrap(),
+                        error
+                    );
                     continue;
                 }
             }
@@ -253,19 +259,20 @@ fn main() {
                     .as_ref()
                     .unwrap_or(&default)
                     .default_language(code_type);
-                if let Err(error) = compile(
-                    &parser, &contents, &doc_dir, &code_dir, &file_name, entrypoint, language,
+                if let Err(error) = compile_all(
+                    &parser,
+                    &doc_dir,
+                    &code_dir,
+                    &file_name,
+                    entrypoint,
+                    language,
+                    &mut HashSet::new(),
                 ) {
-                    if let Some(file_name) = file_name {
-                        eprintln!(
-                            "Failed to compile source file \"{}\": {}",
-                            file_name.to_str().unwrap(),
-                            error
-                        );
-                    } else {
-                        eprintln!("Failed to compile from STDIN: {}", error);
-                        std::process::exit(1);
-                    }
+                    eprintln!(
+                        "Failed to compile source file \"{}\": {}",
+                        file_name.to_str().unwrap(),
+                        error
+                    );
                     continue;
                 }
             }
@@ -276,19 +283,20 @@ fn main() {
                     .as_ref()
                     .unwrap_or(&default)
                     .default_language(code_type);
-                if let Err(error) = compile(
-                    &parser, &contents, &doc_dir, &code_dir, &file_name, entrypoint, language,
+                if let Err(error) = compile_all(
+                    &parser,
+                    &doc_dir,
+                    &code_dir,
+                    &file_name,
+                    entrypoint,
+                    language,
+                    &mut HashSet::new(),
                 ) {
-                    if let Some(file_name) = file_name {
-                        eprintln!(
-                            "Failed to compile source file \"{}\": {}",
-                            file_name.to_str().unwrap(),
-                            error
-                        );
-                    } else {
-                        eprintln!("Failed to compile from STDIN: {}", error);
-                        std::process::exit(1);
-                    }
+                    eprintln!(
+                        "Failed to compile source file \"{}\": {}",
+                        file_name.to_str().unwrap(),
+                        error
+                    );
                     continue;
                 }
             }
@@ -299,27 +307,25 @@ fn main() {
                     .as_ref()
                     .unwrap_or(&default)
                     .default_language(code_type);
-                if let Err(error) = compile(
-                    &parser, &contents, &doc_dir, &code_dir, &file_name, entrypoint, language,
+                if let Err(error) = compile_all(
+                    &parser,
+                    &doc_dir,
+                    &code_dir,
+                    &file_name,
+                    entrypoint,
+                    language,
+                    &mut HashSet::new(),
                 ) {
-                    if let Some(file_name) = file_name {
-                        eprintln!(
-                            "Failed to compile source file \"{}\": {}",
-                            file_name.to_str().unwrap(),
-                            error
-                        );
-                    } else {
-                        eprintln!("Failed to compile from STDIN: {}", error);
-                        std::process::exit(1);
-                    }
+                    eprintln!(
+                        "Failed to compile source file \"{}\": {}",
+                        file_name.to_str().unwrap(),
+                        error
+                    );
                     continue;
                 }
             }
             other => {
                 eprintln!("Unknown style {}", other);
-                if file_name.is_none() {
-                    std::process::exit(1);
-                }
                 continue;
             }
         };
@@ -381,12 +387,53 @@ fn create_project(file: &str, style: &str) -> Result<(), Box<dyn Error>> {
     Ok(())
 }
 
+fn compile_all<P>(
+    parser: &P,
+    doc_dir: &Either<(), Option<PathBuf>>,
+    code_dir: &Either<(), Option<PathBuf>>,
+    file_name: &PathBuf,
+    entrypoint: Option<&str>,
+    language: Option<&str>,
+    all_files: &mut HashSet<PathBuf>,
+) -> Result<(), Box<dyn std::error::Error>>
+where
+    P: Parser + Printer,
+    P::Error: 'static,
+{
+    let source_main = fs::read_to_string(&file_name)?;
+    let links = parser.find_links(&source_main)?;
+
+    compile(
+        parser,
+        &source_main,
+        doc_dir,
+        code_dir,
+        &file_name,
+        entrypoint,
+        language,
+    )?;
+
+    let files: Vec<_> = links.into_iter().map(|l| l).collect();
+
+    all_files.insert(file_name.clone());
+
+    for file in files {
+        if !all_files.contains(&file) {
+            compile_all(
+                parser, doc_dir, code_dir, &file, entrypoint, language, all_files,
+            )?;
+        }
+    }
+
+    Ok(())
+}
+
 fn compile<P>(
     parser: &P,
     source: &str,
     doc_dir: &Either<(), Option<PathBuf>>,
     code_dir: &Either<(), Option<PathBuf>>,
-    file_name: &Option<PathBuf>,
+    file_name: &PathBuf,
     entrypoint: Option<&str>,
     language: Option<&str>,
 ) -> Result<(), Box<dyn std::error::Error>>
@@ -394,17 +441,18 @@ where
     P: Parser + Printer,
     P::Error: 'static,
 {
+    eprintln!("Compiling file {:?}", file_name);
     let document = parser.parse(source)?;
 
     let mut entries = vec![(entrypoint, file_name.clone())];
-    entries.extend(parser.get_entry_points(&document).iter().map(|(e, p)| {
-        (
-            Some(*e),
-            Some(PathBuf::from(p.to_owned().to_owned() + ".temp")),
-        )
-    }));
+    entries.extend(
+        parser
+            .get_entry_points(&document)
+            .iter()
+            .map(|(e, p)| (Some(*e), PathBuf::from(p.to_owned().to_owned() + ".temp"))),
+    );
 
-    if file_name.is_none() {
+    /*if file_name.is_none() {
         match doc_dir {
             Left(..) => {
                 let docs = document.print_docs(parser);
@@ -412,7 +460,7 @@ where
             }
             Right(..) => {}
         }
-    }
+    }*/
 
     match doc_dir {
         Left(..) => {
@@ -420,49 +468,35 @@ where
             print!("{}", documentation);
         }
         Right(Some(doc_dir)) => {
-            if let Some(file_name) = &file_name {
-                let documentation = document.print_docs(parser);
-                let mut file_path = doc_dir.clone();
-                file_path.push(file_name);
-                fs::create_dir_all(file_path.parent().unwrap()).unwrap();
-                let mut doc_file = File::create(file_path).unwrap();
-                write!(doc_file, "{}", documentation).unwrap();
-            }
+            let documentation = document.print_docs(parser);
+            let mut file_path = doc_dir.clone();
+            file_path.push(file_name);
+            fs::create_dir_all(file_path.parent().unwrap()).unwrap();
+            let mut doc_file = File::create(file_path).unwrap();
+            write!(doc_file, "{}", documentation).unwrap();
         }
         _ => {}
     }
 
     for (entrypoint, file_name) in entries {
-        if file_name.is_none() {
-            match doc_dir {
-                Left(..) => {}
-                Right(..) => {
-                    let code = document.print_code(entrypoint, language)?;
-                    println!("{}", code);
-                }
-            }
-        }
-
         match code_dir {
             Left(..) => {
                 let code = document.print_code(entrypoint, language)?;
                 println!("{}", code);
             }
             Right(Some(code_dir)) => {
-                if let Some(file_name) = &file_name {
-                    let mut file_path = code_dir.clone();
-                    if let Some(par) = file_name.parent() {
-                        file_path.push(par)
-                    }
-                    file_path.push(file_name.file_stem().unwrap());
-                    if let Some(language) = language {
-                        file_path.set_extension(language);
-                    }
-                    fs::create_dir_all(file_path.parent().unwrap()).unwrap();
-                    let mut code_file = File::create(file_path).unwrap();
-                    let code = document.print_code(entrypoint, language)?;
-                    write!(code_file, "{}", code).unwrap();
+                let mut file_path = code_dir.clone();
+                if let Some(par) = file_name.parent() {
+                    file_path.push(par)
                 }
+                file_path.push(file_name.file_stem().unwrap());
+                if let Some(language) = language {
+                    file_path.set_extension(language);
+                }
+                fs::create_dir_all(file_path.parent().unwrap()).unwrap();
+                let mut code_file = File::create(file_path).unwrap();
+                let code = document.print_code(entrypoint, language)?;
+                write!(code_file, "{}", code).unwrap();
             }
             _ => {}
         }
