@@ -377,14 +377,20 @@ where
     let source_main = fs::read_to_string(&file_name)?;
     let links = parser.find_links(&source_main)?;
 
-    let mut files = vec![file_name.clone()];
-    files.extend(links.into_iter().map(|l| l));
+    compile(
+        parser,
+        &source_main,
+        doc_dir,
+        code_dir,
+        &file_name,
+        entrypoint,
+        language,
+    )?;
+
+    let files: Vec<_> = links.into_iter().map(|l| l).collect();
 
     for file in files {
-        let source = fs::read_to_string(&file)?;
-        compile(
-            parser, &source, doc_dir, code_dir, &file, entrypoint, language,
-        )?;
+        compile_all(parser, doc_dir, code_dir, &file, entrypoint, language)?;
     }
 
     Ok(())
