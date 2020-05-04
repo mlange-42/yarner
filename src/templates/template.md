@@ -3,7 +3,7 @@
 The following code goes to the base file of code output:
 
 ```
-Hello Literal Programmer!
+Hello Literate Programmer!
 ==> More code.
 ```
 
@@ -18,7 +18,7 @@ Here, we create a file `main.rs` in subfolder `src`:
 
 ```rust - file:src/main.rs
 fn main() {
-    println!("Hello Literal Programmer!");
+    println!("Hello Literate Programmer!");
     ==> More code in main.
 }
 ```
