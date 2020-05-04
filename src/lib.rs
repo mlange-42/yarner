@@ -3,6 +3,7 @@
 
 #![warn(missing_docs)]
 
+pub mod config;
 pub mod document;
 pub mod parser;
 mod util;
