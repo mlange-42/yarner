@@ -197,7 +197,7 @@ from one source file. Each code block with the 'file:' prefix is treated as a se
 ```tex
 \begin{code}[language=rs,name={file:src/lib.rs}]
 fn say_hello() {
-    println!("Hello Literal Programmer!");
+    println!("Hello Literate Programmer!");
 }
 \end{code}
 ```
