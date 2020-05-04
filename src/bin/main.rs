@@ -1,18 +1,10 @@
 use clap::{App, Arg, SubCommand};
 use either::Either::{self, *};
+use outline::config::AnyConfig;
 use outline::parser::{BirdParser, HtmlParser, MdParser, Parser, Printer, TexParser};
-use serde_derive::Deserialize;
 use std::fs::{self, File};
 use std::io::{stdin, Read, Write};
 use std::path::PathBuf;
-
-#[derive(Deserialize, Default)]
-struct AnyConfig {
-    bird: Option<BirdParser>,
-    md: Option<MdParser>,
-    tex: Option<TexParser>,
-    html: Option<HtmlParser>,
-}
 
 fn main() {
     let matches = App::new("Outline")
@@ -101,26 +93,54 @@ fn main() {
         }
     };
 
+    let paths = any_config.paths.unwrap_or_default();
+
     let doc_dir = match matches.subcommand_matches("weave") {
         Some(..) => Left(()),
-        None => Right(matches.value_of("doc_dir").map(PathBuf::from)),
+        None => Right(
+            matches
+                .value_of("doc_dir")
+                .map(|s| s.to_string())
+                .or_else(|| paths.docs.as_ref().map(|s| s.to_string()))
+                .map(PathBuf::from),
+        ),
     };
     let code_dir = match matches.subcommand_matches("tangle") {
         Some(..) => Left(()),
-        None => Right(matches.value_of("code_dir").map(PathBuf::from)),
+        None => Right(
+            matches
+                .value_of("code_dir")
+                .map(|s| s.to_string())
+                .or_else(|| paths.code.as_ref().map(|s| s.to_string()))
+                .map(PathBuf::from),
+        ),
     };
 
-    enum Input<'a> {
-        File(&'a str),
+    enum Input {
+        File(String),
         Stdin,
     }
+
     let inputs = matches
         .subcommand_matches("weave")
         .or(matches.subcommand_matches("tangle"))
         .unwrap_or(&matches)
         .values_of("input")
-        .map(|files| files.into_iter().map(|file| Input::File(file)).collect())
-        .unwrap_or(vec![Input::Stdin]);
+        .map(|files| {
+            files
+                .into_iter()
+                .map(|file| Input::File(file.to_string()))
+                .collect()
+        });
+
+    let inputs = inputs
+        .or_else(|| {
+            paths
+                .files
+                .as_ref()
+                .map(|files| files.iter().map(|file| Input::File(file.clone())).collect())
+        })
+        .unwrap_or_else(|| vec![Input::Stdin]);
 
     for input in inputs {
         let (file_name, contents, style_type, code_type) = match input {
