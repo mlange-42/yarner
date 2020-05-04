@@ -1,0 +1,65 @@
+\documentclass[11pt,a4paper]{article}
+
+\usepackage{listings}
+\usepackage{color}
+
+\definecolor{comment}{rgb}{0.6, 0.6, 0.6}
+\definecolor{string}{rgb}{0.6, 0.26, 0.26}
+
+\lstnewenvironment{code}[1][]
+{\lstset{%
+    basicstyle=\small\ttfamily,%
+    flexiblecolumns=false,%
+    basewidth={0.5em,0.45em},%
+    keywordstyle=\color{blue},%
+    commentstyle=\color{comment},%
+    stringstyle=\color{string},%
+    breaklines=true,%
+    frame=tb,%
+    aboveskip=1cm,%
+    belowskip=1cm,%
+    showstringspaces=false,%
+    literate={<=}{{$\le$}}2 {>=}{{$\ge$}}2 {!=}{{$\ne$}}2%
+    {=>}{{$\Rightarrow$}}2 {==>}{{$\Longrightarrow$}}2%
+    {->}{{$\rightarrow$}}2 {<-}{{$\leftarrow$}}2%
+    {\ .}{{$\circ$}}2 {\ .\ }{{$\circ$}}2,%
+    title=\lstname,%
+    #1%
+}}
+{}
+
+\title{TeX outline template}
+
+\begin{document}
+
+\maketitle
+
+The following code goes to the base file of code output:
+
+\begin{code}
+Hello Literal Programmer!
+==> More code.
+\end{code}
+
+In the code output, \verb`==> More code.` will be replaced by the following code:
+
+\begin{code}[name=More code]
+Have fun with outline!
+\end{code}
+
+To create code in other files, use \verb`file:<path/to/file>` as block name.
+Here, we create a file \verb`main.rs` in subfolder \verb`src`:
+
+\begin{code}[language=rust,name=file:src/main.rs]
+fn main() {
+    println!("Hello Literal Programmer!");
+    ==> More code in main.
+}
+\end{code}
+
+Pulling code together works as usual:
+
+\begin{code}[language=rust,name=More code in main]
+println!("Have fun with outline!");
+\end{code}
+\end{document}
