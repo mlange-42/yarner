@@ -1,10 +1,10 @@
 //! Config objects, to be read from Outline.toml
 
 use crate::parser::*;
-use serde_derive::Deserialize;
+use serde_derive::{Deserialize, Serialize};
 
 /// Top-leven config
-#[derive(Deserialize, Default, Debug)]
+#[derive(Serialize, Deserialize, Default, Debug)]
 pub struct AnyConfig {
     /// Config for Bird parser
     pub bird: Option<BirdParser>,
@@ -19,7 +19,7 @@ pub struct AnyConfig {
 }
 
 /// Config for paths
-#[derive(Deserialize, Default, Debug)]
+#[derive(Serialize, Deserialize, Default, Debug)]
 pub struct Paths {
     /// Code output path
     pub code: Option<String>,
