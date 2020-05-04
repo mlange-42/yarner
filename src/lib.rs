@@ -9,6 +9,7 @@ use std::fmt;
 pub mod config;
 pub mod document;
 pub mod parser;
+pub mod templates;
 mod util;
 
 /// Error type for failed project creation.
