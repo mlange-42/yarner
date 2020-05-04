@@ -1,7 +1,9 @@
 use clap::{App, Arg, SubCommand};
 use either::Either::{self, *};
-use outline::config::AnyConfig;
+use outline::config::{AnyConfig, Paths};
 use outline::parser::{BirdParser, HtmlParser, MdParser, Parser, Printer, TexParser};
+use outline::ProjectCreationError;
+use std::error::Error;
 use std::fs::{self, File};
 use std::io::{stdin, Read, Write};
 use std::path::PathBuf;
@@ -68,7 +70,37 @@ fn main() {
                 .value_name("input")
                 .multiple(true)
                 .index(1)))
+        .subcommand(SubCommand::with_name("create")
+            .about("Creates an outline project in the current directory")
+            .arg(Arg::with_name("file")
+                .help("The base for the doc sources, with normal file extension, but without additional style extension.")
+                .value_name("file")
+                .takes_value(true)
+                .required(true)
+                .index(1))
+            .arg(Arg::with_name("style")
+                .short("s")
+                .help("Sets the style to use.")
+                .takes_value(true)
+                .possible_values(&["bird", "md", "tex", "html"])
+                .default_value("md")
+                .index(2)))
         .get_matches();
+
+    if let Some(matches) = matches.subcommand_matches("create") {
+        let file = matches.value_of("file").unwrap();
+        let style = matches.value_of("style").unwrap();
+
+        match create_project(file, style) {
+            Ok(_) => eprintln!(
+                "Successfully created project for {}.\nTo compile the project, run `outline` from the project directory.",
+                file
+            ),
+            Err(err) => eprintln!("Creating project failed for {}: {}", file, err),
+        }
+
+        return;
+    }
 
     let any_config: AnyConfig = match matches.value_of("config") {
         None => AnyConfig::default(),
@@ -292,6 +324,50 @@ fn main() {
             }
         };
     }
+}
+
+fn create_project(file: &str, style: &str) -> Result<(), Box<dyn Error>> {
+    let file_name = format!("{}.{}", file, style);
+    let base_path = PathBuf::from(&file_name);
+    let toml_path = PathBuf::from("Outline.toml");
+
+    if base_path.exists() {
+        return Err(Box::new(ProjectCreationError(format!(
+            "File {:?} already exists.",
+            base_path
+        ))));
+    }
+    if toml_path.exists() {
+        return Err(Box::new(ProjectCreationError(format!(
+            "File {:?} already exists.",
+            toml_path
+        ))));
+    }
+
+    let mut config = AnyConfig::default();
+    config.paths = Some(Paths {
+        code: Some("code/".to_string()),
+        docs: Some("docs/".to_string()),
+        files: Some(vec![file_name]),
+    });
+
+    match style {
+        "md" => config.md = Some(MdParser::default()),
+        "tex" => config.tex = Some(TexParser::default()),
+        "html" => config.html = Some(HtmlParser::default()),
+        "bird" => config.bird = Some(BirdParser::default()),
+        _ => {}
+    };
+
+    let toml = toml::to_string(&config).unwrap();
+    let mut toml_file = File::create(&toml_path)?;
+    toml_file.write_all(&toml.as_bytes())?;
+
+    let doc = "".to_string();
+    let mut base_file = File::create(&base_path)?;
+    base_file.write_all(&doc.as_bytes())?;
+
+    Ok(())
 }
 
 fn compile<P>(

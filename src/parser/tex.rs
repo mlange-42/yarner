@@ -26,7 +26,7 @@
 //! Currently, the TeX parser does not support code that is written to the compiled file, but
 //! not rendered in the documentation file.
 
-use serde_derive::Deserialize;
+use serde_derive::{Deserialize, Serialize};
 use std::collections::HashMap;
 use std::iter::FromIterator;
 
@@ -39,7 +39,7 @@ use crate::document::Document;
 use crate::util::try_collect::TryCollectExt;
 
 /// The config for parsing a TeX document
-#[derive(Clone, Deserialize, Debug)]
+#[derive(Clone, Deserialize, Serialize, Debug)]
 pub struct TexParser {
     /// The environment used to indicate code.
     ///

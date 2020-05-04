@@ -19,7 +19,7 @@
 //! Currently, the Bird Style does not support code that is written to the compiled file, but not
 //! rendered in the documentation file.
 
-use serde_derive::Deserialize;
+use serde_derive::{Deserialize, Serialize};
 use std::iter::FromIterator;
 
 use super::{ParseError, Parser, ParserConfig, Printer};
@@ -31,7 +31,7 @@ use crate::document::Document;
 use crate::util::try_collect::TryCollectExt;
 
 /// The config for parsing a Bird Style document
-#[derive(Deserialize, Debug)]
+#[derive(Deserialize, Serialize, Debug)]
 pub struct BirdParser {
     /// The line starter to identify code lines
     ///
