@@ -5,7 +5,7 @@ use outline::parser::{BirdParser, HtmlParser, MdParser, Parser, Printer, TexPars
 use outline::{templates, ProjectCreationError};
 use std::error::Error;
 use std::fs::{self, File};
-use std::io::{stdin, Read, Write};
+use std::io::Write;
 use std::path::PathBuf;
 
 fn main() {
@@ -56,7 +56,7 @@ fn main() {
             .value_name("input")
             .multiple(true)
             .index(1))
-        .subcommand(SubCommand::with_name("tangle")
+        /*.subcommand(SubCommand::with_name("tangle")
             .about("Tangle input and print to STDOUT")
             .arg(Arg::with_name("input")
                 .help("The input source file(s). If none are specified, read from STDIN")
@@ -69,7 +69,7 @@ fn main() {
                 .help("The input source file(s). If none are specified, read from STDIN")
                 .value_name("input")
                 .multiple(true)
-                .index(1)))
+                .index(1)))*/
         .subcommand(SubCommand::with_name("create")
             .about("Creates an outline project in the current directory")
             .arg(Arg::with_name("file")
@@ -150,13 +150,13 @@ fn main() {
 
     enum Input {
         File(String),
-        Stdin,
+        //Stdin,
     }
 
     let inputs = matches
-        .subcommand_matches("weave")
+        /*.subcommand_matches("weave")
         .or(matches.subcommand_matches("tangle"))
-        .unwrap_or(&matches)
+        .unwrap_or(&matches)*/
         .values_of("input")
         .map(|files| {
             files
@@ -165,14 +165,22 @@ fn main() {
                 .collect()
         });
 
-    let inputs = inputs
+    let inputs: Vec<_> = match inputs
         .or_else(|| {
             paths
                 .files
                 .as_ref()
                 .map(|files| files.iter().map(|file| Input::File(file.clone())).collect())
-        })
-        .unwrap_or_else(|| vec![Input::Stdin]);
+        }) {
+        Some(inputs) => inputs,
+        None => {
+            eprintln!(
+                "No inputs provided via arguments or toml file.",
+            );
+            return;
+        }
+    };
+        //.unwrap_or_else(|| vec![Input::Stdin]);
 
     for input in inputs {
         let (file_name, contents, style_type, code_type) = match input {
@@ -204,7 +212,7 @@ fn main() {
                 });
                 (Some(file_name), contents, style_type, code_type)
             }
-            Input::Stdin => {
+            /*Input::Stdin => {
                 let mut input = String::new();
                 match stdin().read_to_string(&mut input) {
                     Ok(..) => (),
@@ -214,7 +222,7 @@ fn main() {
                     }
                 }
                 (None, input, None, None)
-            }
+            }*/
         };
 
         let language = matches.value_of("language");
