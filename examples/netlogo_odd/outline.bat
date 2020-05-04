@@ -1,6 +1,3 @@
-..\..\target\debug\outline ^
-    --output code/ ^
-    --docs docs/ ^
-    Rabies.nlogo.md
-REM code\Rabies.nlogo
+..\..\target\debug\outline
+code\Rabies.nlogo
 pause

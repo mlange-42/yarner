@@ -23,7 +23,7 @@
 //! Currently, the Markdown parser does not support code that is written to the compiled file, but
 //! not rendered in the documentation file.
 
-use serde_derive::Deserialize;
+use serde_derive::{Deserialize, Serialize};
 use std::iter::FromIterator;
 
 use super::{ParseError, Parser, ParserConfig, Printer};
@@ -35,7 +35,7 @@ use crate::document::Document;
 use crate::util::try_collect::TryCollectExt;
 
 /// The config for parsing a Markdown document
-#[derive(Clone, Deserialize, Debug)]
+#[derive(Clone, Deserialize, Serialize, Debug)]
 pub struct MdParser {
     /// The sequence that identifies the start and end of a fenced code block
     ///
@@ -312,7 +312,7 @@ impl Printer for MdParser {
         if let Some(name) = &block.name {
             output.push_str(&self.comment_start);
             output.push(' ');
-            output.push_str(&self.print_name(name.clone(), &block.vars));
+            output.push_str(&self.print_name(name.clone(), &block.vars, &block.defaults));
             output.push('\n');
         }
 

@@ -1,18 +1,12 @@
 use clap::{App, Arg, SubCommand};
 use either::Either::{self, *};
+use outline::config::{AnyConfig, Paths};
 use outline::parser::{BirdParser, HtmlParser, MdParser, Parser, Printer, TexParser};
-use serde_derive::Deserialize;
+use outline::{templates, ProjectCreationError};
+use std::error::Error;
 use std::fs::{self, File};
 use std::io::{stdin, Read, Write};
 use std::path::PathBuf;
-
-#[derive(Deserialize, Default)]
-struct AnyConfig {
-    bird: Option<BirdParser>,
-    md: Option<MdParser>,
-    tex: Option<TexParser>,
-    html: Option<HtmlParser>,
-}
 
 fn main() {
     let matches = App::new("Outline")
@@ -76,7 +70,37 @@ fn main() {
                 .value_name("input")
                 .multiple(true)
                 .index(1)))
+        .subcommand(SubCommand::with_name("create")
+            .about("Creates an outline project in the current directory")
+            .arg(Arg::with_name("file")
+                .help("The base for the doc sources, with normal file extension, but without additional style extension.")
+                .value_name("file")
+                .takes_value(true)
+                .required(true)
+                .index(1))
+            .arg(Arg::with_name("style")
+                .short("s")
+                .help("Sets the style to use.")
+                .takes_value(true)
+                .possible_values(&["bird", "md", "tex", "html"])
+                .default_value("md")
+                .index(2)))
         .get_matches();
+
+    if let Some(matches) = matches.subcommand_matches("create") {
+        let file = matches.value_of("file").unwrap();
+        let style = matches.value_of("style").unwrap();
+
+        match create_project(file, style) {
+            Ok(_) => eprintln!(
+                "Successfully created project for {}.\nTo compile the project, run `outline` from the project directory.",
+                file
+            ),
+            Err(err) => eprintln!("Creating project failed for {}: {}", file, err),
+        }
+
+        return;
+    }
 
     let any_config: AnyConfig = match matches.value_of("config") {
         None => AnyConfig::default(),
@@ -101,26 +125,54 @@ fn main() {
         }
     };
 
+    let paths = any_config.paths.unwrap_or_default();
+
     let doc_dir = match matches.subcommand_matches("weave") {
         Some(..) => Left(()),
-        None => Right(matches.value_of("doc_dir").map(PathBuf::from)),
+        None => Right(
+            matches
+                .value_of("doc_dir")
+                .map(|s| s.to_string())
+                .or_else(|| paths.docs.as_ref().map(|s| s.to_string()))
+                .map(PathBuf::from),
+        ),
     };
     let code_dir = match matches.subcommand_matches("tangle") {
         Some(..) => Left(()),
-        None => Right(matches.value_of("code_dir").map(PathBuf::from)),
+        None => Right(
+            matches
+                .value_of("code_dir")
+                .map(|s| s.to_string())
+                .or_else(|| paths.code.as_ref().map(|s| s.to_string()))
+                .map(PathBuf::from),
+        ),
     };
 
-    enum Input<'a> {
-        File(&'a str),
+    enum Input {
+        File(String),
         Stdin,
     }
+
     let inputs = matches
         .subcommand_matches("weave")
         .or(matches.subcommand_matches("tangle"))
         .unwrap_or(&matches)
         .values_of("input")
-        .map(|files| files.into_iter().map(|file| Input::File(file)).collect())
-        .unwrap_or(vec![Input::Stdin]);
+        .map(|files| {
+            files
+                .into_iter()
+                .map(|file| Input::File(file.to_string()))
+                .collect()
+        });
+
+    let inputs = inputs
+        .or_else(|| {
+            paths
+                .files
+                .as_ref()
+                .map(|files| files.iter().map(|file| Input::File(file.clone())).collect())
+        })
+        .unwrap_or_else(|| vec![Input::Stdin]);
 
     for input in inputs {
         let (file_name, contents, style_type, code_type) = match input {
@@ -272,6 +324,61 @@ fn main() {
             }
         };
     }
+}
+
+fn create_project(file: &str, style: &str) -> Result<(), Box<dyn Error>> {
+    let file_name = format!("{}.{}", file, style);
+    let base_path = PathBuf::from(&file_name);
+    let toml_path = PathBuf::from("Outline.toml");
+
+    if base_path.exists() {
+        return Err(Box::new(ProjectCreationError(format!(
+            "File {:?} already exists.",
+            base_path
+        ))));
+    }
+    if toml_path.exists() {
+        return Err(Box::new(ProjectCreationError(format!(
+            "File {:?} already exists.",
+            toml_path
+        ))));
+    }
+
+    let mut config = AnyConfig::default();
+    config.paths = Some(Paths {
+        code: Some("code/".to_string()),
+        docs: Some("docs/".to_string()),
+        files: Some(vec![file_name]),
+    });
+
+    let template = match style {
+        "md" => {
+            config.md = Some(MdParser::default());
+            templates::MD
+        }
+        "tex" => {
+            config.tex = Some(TexParser::default());
+            templates::TEX
+        }
+        "html" => {
+            config.html = Some(HtmlParser::default());
+            templates::HTML
+        }
+        "bird" => {
+            config.bird = Some(BirdParser::default());
+            templates::BIRD
+        }
+        _ => "",
+    };
+
+    let toml = toml::to_string(&config).unwrap();
+    let mut toml_file = File::create(&toml_path)?;
+    toml_file.write_all(&toml.as_bytes())?;
+
+    let mut base_file = File::create(&base_path)?;
+    base_file.write_all(&template.as_bytes())?;
+
+    Ok(())
 }
 
 fn compile<P>(

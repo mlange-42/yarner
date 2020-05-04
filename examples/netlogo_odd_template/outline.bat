@@ -1,6 +1,3 @@
-..\..\target\debug\outline ^
-    --output code/ ^
-    --docs docs/ ^
-    ODD_Template.nlogo.md
+..\..\target\debug\outline
 code\ODD_Template.nlogo
 pause

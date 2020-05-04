@@ -30,7 +30,7 @@
 //! Currently, the HTML parser does not support code that is written to the compiled file, but
 //! not rendered in the documentation file.
 
-use serde_derive::Deserialize;
+use serde_derive::{Deserialize, Serialize};
 use std::collections::HashMap;
 use std::iter::FromIterator;
 
@@ -43,7 +43,7 @@ use crate::document::Document;
 use crate::util::try_collect::TryCollectExt;
 
 /// The config for parsing an HTML document
-#[derive(Clone, Deserialize, Debug)]
+#[derive(Clone, Deserialize, Serialize, Debug)]
 pub struct HtmlParser {
     /// The tag that code is written in when parsing. When printing, the code is always rendered in
     /// `<pre><code></code></pre>`, as is recommended by W3C.
@@ -377,7 +377,7 @@ impl Printer for HtmlParser {
             output.push_str(&format!(
                 " {}=\"{}\"",
                 self.name_attribute,
-                self.print_name(name.clone(), &block.vars)
+                self.print_name(name.clone(), &block.vars, &block.defaults)
             ));
         }
         output.push_str(">\n");

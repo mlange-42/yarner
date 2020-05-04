@@ -1,5 +1,2 @@
-..\..\target\debug\outline ^
-    --output code/ ^
-    --docs docs/ ^
-    README.md.md
+..\..\target\debug\outline
 pause

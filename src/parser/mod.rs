@@ -189,8 +189,25 @@ pub trait Printer: ParserConfig {
     /// Prints a text block
     fn print_text_block<'a>(&self, block: &TextBlock<'a>) -> String;
 
+    /// Fills a name with its placeholders and defaults
+    fn print_name(&self, mut name: String, vars: &[&str], defaults: &[Option<&str>]) -> String {
+        let start = self.interpolation_start();
+        let end = self.interpolation_end();
+        let var_placeholder = format!("{}{}", start, end);
+        for (var, default) in vars.iter().zip(defaults) {
+            let mut var_full = var.to_string();
+            if let Some(default) = default {
+                var_full.push_str(self.variable_sep());
+                var_full.push_str(default);
+            }
+            let var_name = format!("{}{}{}", start, var_full, end);
+            name = name.replacen(&var_placeholder, &var_name, 1);
+        }
+        name
+    }
+
     /// Fills a name with its placeholders
-    fn print_name(&self, mut name: String, vars: &[&str]) -> String {
+    fn print_macro_call(&self, mut name: String, vars: &[&str]) -> String {
         let start = self.interpolation_start();
         let end = self.interpolation_end();
         let var_placeholder = format!("{}{}", start, end);
@@ -207,7 +224,7 @@ pub trait Printer: ParserConfig {
         match &line.source {
             Source::Macro { name, scope } => {
                 output.push_str(self.macro_start());
-                output.push_str(&self.print_name(name.clone(), &scope));
+                output.push_str(&self.print_macro_call(name.clone(), &scope));
                 output.push_str(self.macro_end());
             }
             Source::Source(segments) => {
