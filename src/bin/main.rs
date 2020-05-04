@@ -3,6 +3,7 @@ use either::Either::{self, *};
 use outline::config::{AnyConfig, Paths};
 use outline::parser::{BirdParser, HtmlParser, MdParser, Parser, Printer, TexParser};
 use outline::{templates, ProjectCreationError};
+use std::collections::HashSet;
 use std::error::Error;
 use std::fs::{self, File};
 use std::io::Write;
@@ -235,7 +236,13 @@ fn main() {
                 let default = BirdParser::default();
                 let parser = any_config.bird.as_ref().unwrap_or(&default);
                 if let Err(error) = compile_all(
-                    parser, &doc_dir, &code_dir, &file_name, entrypoint, language,
+                    parser,
+                    &doc_dir,
+                    &code_dir,
+                    &file_name,
+                    entrypoint,
+                    language,
+                    &mut HashSet::new(),
                 ) {
                     eprintln!(
                         "Failed to compile source file \"{}\": {}",
@@ -253,7 +260,13 @@ fn main() {
                     .unwrap_or(&default)
                     .default_language(code_type);
                 if let Err(error) = compile_all(
-                    &parser, &doc_dir, &code_dir, &file_name, entrypoint, language,
+                    &parser,
+                    &doc_dir,
+                    &code_dir,
+                    &file_name,
+                    entrypoint,
+                    language,
+                    &mut HashSet::new(),
                 ) {
                     eprintln!(
                         "Failed to compile source file \"{}\": {}",
@@ -271,7 +284,13 @@ fn main() {
                     .unwrap_or(&default)
                     .default_language(code_type);
                 if let Err(error) = compile_all(
-                    &parser, &doc_dir, &code_dir, &file_name, entrypoint, language,
+                    &parser,
+                    &doc_dir,
+                    &code_dir,
+                    &file_name,
+                    entrypoint,
+                    language,
+                    &mut HashSet::new(),
                 ) {
                     eprintln!(
                         "Failed to compile source file \"{}\": {}",
@@ -289,7 +308,13 @@ fn main() {
                     .unwrap_or(&default)
                     .default_language(code_type);
                 if let Err(error) = compile_all(
-                    &parser, &doc_dir, &code_dir, &file_name, entrypoint, language,
+                    &parser,
+                    &doc_dir,
+                    &code_dir,
+                    &file_name,
+                    entrypoint,
+                    language,
+                    &mut HashSet::new(),
                 ) {
                     eprintln!(
                         "Failed to compile source file \"{}\": {}",
@@ -369,6 +394,7 @@ fn compile_all<P>(
     file_name: &PathBuf,
     entrypoint: Option<&str>,
     language: Option<&str>,
+    all_files: &mut HashSet<PathBuf>,
 ) -> Result<(), Box<dyn std::error::Error>>
 where
     P: Parser + Printer,
@@ -389,8 +415,14 @@ where
 
     let files: Vec<_> = links.into_iter().map(|l| l).collect();
 
+    all_files.insert(file_name.clone());
+
     for file in files {
-        compile_all(parser, doc_dir, code_dir, &file, entrypoint, language)?;
+        if !all_files.contains(&file) {
+            compile_all(
+                parser, doc_dir, code_dir, &file, entrypoint, language, all_files,
+            )?;
+        }
     }
 
     Ok(())
@@ -409,6 +441,7 @@ where
     P: Parser + Printer,
     P::Error: 'static,
 {
+    eprintln!("Compiling file {:?}", file_name);
     let document = parser.parse(source)?;
 
     let mut entries = vec![(entrypoint, file_name.clone())];
