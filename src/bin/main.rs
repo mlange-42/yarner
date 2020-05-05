@@ -1,4 +1,4 @@
-use clap::{App, Arg, SubCommand};
+use clap::{crate_authors, crate_version, App, Arg, SubCommand};
 use either::Either::{self, *};
 use outline::config::{AnyConfig, Paths};
 use outline::parser::{BirdParser, HtmlParser, MdParser, Parser, Printer, TexParser};
@@ -11,8 +11,9 @@ use std::path::PathBuf;
 
 fn main() {
     let matches = App::new("Outline")
-        .version("1.0")
-        .author("Cameron Eldridge <cameldridge@gmail.com>")
+        .version(crate_version!())
+        .author(crate_authors!())
+        //.author("Cameron Eldridge <cameldridge@gmail.com>, Martin Lange <martin_lange_@gmx.net>")
         .about("Literate programming compiler")
         .arg(Arg::with_name("config")
             .short("c")

@@ -1,7 +1,7 @@
 [package]
 name = "outline"
 version = "0.2.1"
-authors = ["Cameron Eldridge <cameldridge@gmail.com>"]
+authors = ["Cameron Eldridge <cameldridge@gmail.com>", "Martin Lange <martin_lange_@gmx.net>"]
 description = "\"Good enough\" literate programming tool"
 homepage = "https://github.com/foxfriends/outline"
 repository = "https://github.com/foxfriends/outline"
