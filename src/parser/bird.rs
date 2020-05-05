@@ -115,9 +115,6 @@ impl ParserConfig for BirdParser {
     fn file_prefix(&self) -> &str {
         &self.file_prefix
     }
-    fn hidden_prefix(&self) -> &str {
-        &self.hidden_prefix
-    }
 }
 
 impl Parser for BirdParser {
@@ -171,7 +168,7 @@ impl Parser for BirdParser {
                                 }))
                             }
                         };
-                    let hidden = name.starts_with(self.hidden_prefix());
+                    let hidden = name.starts_with(&self.hidden_prefix);
                     let code_block = CodeBlock::new().named(name, vars, defaults).hidden(hidden);
                     state.blank_line = false;
                     let node = std::mem::replace(&mut state.node, Node::Code(code_block));
@@ -236,11 +233,10 @@ impl Parser for BirdParser {
         document.push(state.node);
         Ok(Document::from_iter(document))
     }
-    
+
     fn find_links(&self, _input: &str) -> Result<Vec<PathBuf>, Self::Error> {
         Ok(vec![])
     }
-    
 }
 
 impl Printer for BirdParser {

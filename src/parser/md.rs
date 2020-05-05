@@ -156,9 +156,6 @@ impl ParserConfig for MdParser {
     fn file_prefix(&self) -> &str {
         &self.file_prefix
     }
-    fn hidden_prefix(&self) -> &str {
-        &self.hidden_prefix
-    }
 }
 
 impl Parser for MdParser {
@@ -234,7 +231,7 @@ impl Parser for MdParser {
                             code_block = match name {
                                 None => code_block,
                                 Some(Ok((name, vars, defaults))) => {
-                                    let hidden = name.starts_with(self.hidden_prefix());
+                                    let hidden = name.starts_with(&self.hidden_prefix);
                                     code_block.named(name, vars, defaults).hidden(hidden)
                                 }
                                 Some(Err(error)) => {

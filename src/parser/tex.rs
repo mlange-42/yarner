@@ -143,9 +143,6 @@ impl ParserConfig for TexParser {
     fn file_prefix(&self) -> &str {
         &self.file_prefix
     }
-    fn hidden_prefix(&self) -> &str {
-        &self.hidden_prefix
-    }
 }
 
 impl TexParser {
@@ -289,7 +286,7 @@ impl Parser for TexParser {
                                             }))
                                         }
                                     };
-                                    let hidden = name.starts_with(self.hidden_prefix());
+                                    let hidden = name.starts_with(&self.hidden_prefix);
                                     code_block =
                                         code_block.named(name, vars, defaults).hidden(hidden);
                                 }
@@ -321,7 +318,7 @@ impl Parser for TexParser {
         document.push(state.node);
         Ok(Document::from_iter(document))
     }
-    
+
     fn find_links(&self, _input: &str) -> Result<Vec<PathBuf>, Self::Error> {
         Ok(vec![])
     }

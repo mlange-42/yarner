@@ -179,9 +179,6 @@ impl ParserConfig for HtmlParser {
     fn file_prefix(&self) -> &str {
         &self.file_prefix
     }
-    fn hidden_prefix(&self) -> &str {
-        &self.hidden_prefix
-    }
 }
 
 impl HtmlParser {
@@ -329,7 +326,7 @@ impl Parser for HtmlParser {
                                         }))
                                     }
                                 };
-                                let hidden = name.starts_with(self.hidden_prefix());
+                                let hidden = name.starts_with(&self.hidden_prefix);
                                 code_block = code_block.named(name, vars, defaults).hidden(hidden);
                             }
                             code_block = match args.get("language") {
@@ -357,7 +354,7 @@ impl Parser for HtmlParser {
         document.push(state.node);
         Ok(Document::from_iter(document))
     }
-    
+
     fn find_links(&self, _input: &str) -> Result<Vec<PathBuf>, Self::Error> {
         Ok(vec![])
     }

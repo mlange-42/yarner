@@ -103,7 +103,7 @@ fn dead_code() {
 ## Hidden code
 
 Code blocks can be hidden from the documentation by prefixing their name with 'hidden:'.
-Here, we include a code block that will not apprear in the documentation
+Here, we include a code block that will not appear in the documentation
 
 ```rust - file:src/lib.rs
 pub fn secret() {
