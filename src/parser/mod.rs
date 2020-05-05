@@ -53,7 +53,7 @@ pub trait Parser: ParserConfig {
     /// Parses the text part of the document. Should delegate the code section on a line-by-line
     /// basis to the built in code parser.
     fn parse<'a>(&self, input: &'a str) -> Result<Document<'a>, Self::Error>;
-    
+
     /// Find all files linked into the document for later compilation and/or transclusion.
     fn find_links(&self, input: &str) -> Result<Vec<PathBuf>, Self::Error>;
 
@@ -63,7 +63,7 @@ pub trait Parser: ParserConfig {
         mut input: &'a str,
         is_call: bool,
     ) -> Result<(String, Vec<&'a str>, Vec<Option<&'a str>>), ParseError> {
-        let orig = input.to_string();
+        let orig = input;
         let mut name = String::new();
         let mut vars = vec![];
         let mut optionals = vec![];
@@ -93,7 +93,7 @@ pub trait Parser: ParserConfig {
                     }
                     input = &input[start_index + start.len() + end_index + end.len()..];
                 } else {
-                    return Err(ParseError::UnclosedVariableError(orig));
+                    return Err(ParseError::UnclosedVariableError(orig.to_owned()));
                 }
             } else {
                 name.push_str(input);
@@ -105,7 +105,7 @@ pub trait Parser: ParserConfig {
 
     /// Parses a line as code, returning the parsed `Line` object
     fn parse_line<'a>(&self, line_number: usize, input: &'a str) -> Result<Line<'a>, ParseError> {
-        let orig = input.to_string();
+        let orig = input;
         let indent_len = input
             .chars()
             .take_while(|ch| ch.is_whitespace())
@@ -144,7 +144,7 @@ pub trait Parser: ParserConfig {
                     ));
                     rest = &rest[start_index + start.len() + end_index + end.len()..];
                 } else {
-                    return Err(ParseError::UnclosedVariableError(orig));
+                    return Err(ParseError::UnclosedVariableError(orig.to_owned()));
                 }
             } else {
                 if !rest.is_empty() {
