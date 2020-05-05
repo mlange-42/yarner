@@ -37,7 +37,7 @@ authors = ["m-lange <martin_lange_@gmx.net>"]
 edition = "2018"
 ```
 
-# Git ignore file
+## Git ignore file
 
 In the file `.gitignore`, we need nothing more than the target directory.
 However, the last line of this file should always be blank.
