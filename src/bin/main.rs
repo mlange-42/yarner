@@ -1,6 +1,7 @@
 use clap::{crate_authors, crate_version, App, Arg, SubCommand};
 use either::Either::{self, *};
 use outline::config::{AnyConfig, Paths};
+use outline::document::{CompileError, CompileErrorKind};
 use outline::parser::{BirdParser, HtmlParser, MdParser, Parser, Printer, TexParser};
 use outline::{templates, ProjectCreationError};
 use std::collections::HashSet;
@@ -445,23 +446,16 @@ where
     eprintln!("Compiling file {:?}", file_name);
     let document = parser.parse(source)?;
 
-    let mut entries = vec![(entrypoint, file_name.clone())];
+    let mut entries = vec![]; //vec![(entrypoint, file_name.clone())];
+    if entrypoint.is_some() {
+        entries.push((entrypoint, file_name.clone()));
+    }
     entries.extend(
         parser
             .get_entry_points(&document)
             .iter()
             .map(|(e, p)| (Some(*e), PathBuf::from(p.to_owned().to_owned() + ".temp"))),
     );
-
-    /*if file_name.is_none() {
-        match doc_dir {
-            Left(..) => {
-                let docs = document.print_docs(parser);
-                print!("{}", docs);
-            }
-            Right(..) => {}
-        }
-    }*/
 
     match doc_dir {
         Left(..) => {
@@ -477,6 +471,13 @@ where
             write!(doc_file, "{}", documentation).unwrap();
         }
         _ => {}
+    }
+
+    if entries.is_empty() {
+        return Err(Box::new(CompileError::Single {
+            line_number: 0,
+            kind: CompileErrorKind::MissingEntrypoint,
+        }));
     }
 
     for (entrypoint, file_name) in entries {

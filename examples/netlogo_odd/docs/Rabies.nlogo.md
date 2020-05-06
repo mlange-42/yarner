@@ -1,6 +1,5 @@
 # From ODD to NetLogo
 
-
 This document explores the creation of a [NetLogo](https://ccl.northwestern.edu/netlogo/) model
 from it's own ODD model description (Grimm et al. 2006, 2010).
 Processed with `outline`, the document produces a runnable file of the described model
@@ -78,7 +77,7 @@ The model proceeds in discrete monthly steps (ticks).
 ### Process overview and scheduling
 
 Processes in the model are dispersal (abstracting away reproduction),
-infection, and aging of infection (to death).
+infection, and ageing of infection (to death).
 The processes are executed on each tick sequentially, in the following order:
 
 ```nlogo
