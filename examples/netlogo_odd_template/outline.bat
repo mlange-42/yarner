@@ -1,3 +1,3 @@
 ..\..\target\debug\outline
-code\ODD_Template.nlogo
+__code\ODD_Template.nlogo
 pause

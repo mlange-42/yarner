@@ -14,6 +14,6 @@ file_prefix = "file:"
 hidden_prefix = "hidden:"
 
 [paths]
-code = "code/"
-docs = "docs/"
+code = "__code/"
+docs = "__docs/"
 files = ["Rabies.nlogo.md"]

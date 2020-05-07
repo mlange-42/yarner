@@ -6,7 +6,7 @@ comment_start = "//"
 interpolation_start = "@{"
 interpolation_end = "}"
 macro_start = "==> "
-macro_end = "..."
+macro_end = "."
 transclusion_start = "@{{"
 transclusion_end = "}}"
 variable_sep = ":"
@@ -16,4 +16,4 @@ hidden_prefix = "hidden:"
 [paths]
 code = "__code/"
 docs = "__docs/"
-files = ["ODD_Template.nlogo.md"]
+files = ["ModularODD.nlogo.md"]
