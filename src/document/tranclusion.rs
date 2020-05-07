@@ -3,7 +3,7 @@
 use std::path::PathBuf;
 
 /// A `Transclusion` is a reference to another file that should be pulled into the source
-#[derive(Debug)]
+#[derive(Debug, PartialEq)]
 pub struct Transclusion {
     /// The target file path
     file: PathBuf,

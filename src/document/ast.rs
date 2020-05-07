@@ -114,6 +114,26 @@ impl<'a> Ast<'a> {
                 kind: CompileErrorKind::MissingEntrypoint,
             }))
     }
+
+    /// Renders the program this AST is representing in the documentation format
+    pub(crate) fn transclude(&mut self, replace: &Node, with: Ast<'a>) {
+        if let Node::Transclusion(replace) = replace {
+            let mut index = 0;
+            while index < self.nodes.len() {
+                if let Node::Transclusion(trans) = &self.nodes[index] {
+                    if trans == replace {
+                        for (i, node) in with.nodes.into_iter().enumerate() {
+                            self.nodes.insert(index + i, node);
+                        }
+                        // TODO: currently, only one transclusion of a particular document is possible.
+                        // May be sufficient, but should be checked.
+                        break;
+                    }
+                }
+                index += 1;
+            }
+        }
+    }
 }
 
 impl<'a> FromIterator<Node<'a>> for Ast<'a> {
