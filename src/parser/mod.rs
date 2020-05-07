@@ -18,6 +18,7 @@ pub use self::tex::TexParser;
 
 use crate::document::code::{CodeBlock, Line, Segment, Source};
 use crate::document::text::TextBlock;
+use crate::document::tranclusion::Transclusion;
 use crate::document::Document;
 use std::path::PathBuf;
 
@@ -190,6 +191,9 @@ pub trait Printer: ParserConfig {
 
     /// Prints a text block
     fn print_text_block<'a>(&self, block: &TextBlock<'a>) -> String;
+
+    /// Prints a code block
+    fn print_transclusion<'a>(&self, transclusion: &Transclusion<'a>) -> String;
 
     /// Fills a name with its placeholders and defaults
     fn print_name(&self, mut name: String, vars: &[&str], defaults: &[Option<&str>]) -> String {

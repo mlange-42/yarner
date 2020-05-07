@@ -1,7 +1,6 @@
 use clap::{crate_authors, crate_version, App, Arg, SubCommand};
 use either::Either::{self, *};
 use outline::config::{AnyConfig, Paths};
-use outline::document::{CompileError, CompileErrorKind};
 use outline::parser::{BirdParser, HtmlParser, MdParser, Parser, Printer, TexParser};
 use outline::{templates, ProjectCreationError};
 use std::collections::HashSet;
@@ -402,28 +401,27 @@ where
     P: Parser + Printer,
     P::Error: 'static,
 {
-    let source_main = fs::read_to_string(&file_name)?;
-    let links = parser.find_links(&source_main)?;
+    if !all_files.contains(file_name) {
+        let source_main = fs::read_to_string(&file_name)?;
+        let links = parser.find_links(&source_main)?;
 
-    compile(
-        parser,
-        &source_main,
-        doc_dir,
-        code_dir,
-        &file_name,
-        entrypoint,
-        language,
-    )?;
+        compile(
+            parser,
+            &source_main,
+            doc_dir,
+            code_dir,
+            &file_name,
+            entrypoint,
+            language,
+        )?;
+        all_files.insert(file_name.clone());
 
-    let files: Vec<_> = links.into_iter().map(|l| l).collect();
-
-    all_files.insert(file_name.clone());
-
-    for file in files {
-        if !all_files.contains(&file) {
-            compile_all(
-                parser, doc_dir, code_dir, &file, entrypoint, language, all_files,
-            )?;
+        for file in links {
+            if !all_files.contains(&file) {
+                compile_all(
+                    parser, doc_dir, code_dir, &file, entrypoint, language, all_files,
+                )?;
+            }
         }
     }
 
@@ -446,10 +444,10 @@ where
     eprintln!("Compiling file {:?}", file_name);
     let document = parser.parse(source)?;
 
-    let mut entries = vec![]; //vec![(entrypoint, file_name.clone())];
-    if entrypoint.is_some() {
+    let mut entries = vec![(entrypoint, file_name.clone())];
+    /*if entrypoint.is_some() {
         entries.push((entrypoint, file_name.clone()));
-    }
+    }*/
     entries.extend(
         parser
             .get_entry_points(&document)
@@ -473,12 +471,12 @@ where
         _ => {}
     }
 
-    if entries.is_empty() {
+    /*if entries.is_empty() {
         return Err(Box::new(CompileError::Single {
             line_number: 0,
             kind: CompileErrorKind::MissingEntrypoint,
         }));
-    }
+    }*/
 
     for (entrypoint, file_name) in entries {
         match code_dir {

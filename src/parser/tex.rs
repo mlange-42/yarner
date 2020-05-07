@@ -35,6 +35,7 @@ use super::{ParseError, Parser, ParserConfig, Printer};
 use crate::document::ast::Node;
 use crate::document::code::CodeBlock;
 use crate::document::text::TextBlock;
+use crate::document::tranclusion::Transclusion;
 use crate::document::Document;
 use crate::util::try_collect::TryCollectExt;
 use std::path::PathBuf;
@@ -307,6 +308,7 @@ impl Parser for TexParser {
                             Some(Parse::Incomplete)
                         }
                     }
+                    Node::Transclusion(_) => Some(Parse::Incomplete), // TODO?
                 }
             })
             .filter_map(|parse| match parse {
@@ -361,6 +363,11 @@ impl Printer for TexParser {
         output.push_str(&format!("\\end{{{}}}\n", self.code_environment));
 
         output
+    }
+
+    fn print_transclusion<'a>(&self, _transclusion: &Transclusion<'a>) -> String {
+        // TODO
+        String::new()
     }
 }
 

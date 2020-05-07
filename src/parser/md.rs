@@ -31,6 +31,7 @@ use super::{ParseError, Parser, ParserConfig, Printer};
 use crate::document::ast::Node;
 use crate::document::code::CodeBlock;
 use crate::document::text::TextBlock;
+use crate::document::tranclusion::Transclusion;
 use crate::document::Document;
 use crate::util::try_collect::TryCollectExt;
 use regex::Regex;
@@ -78,6 +79,14 @@ pub struct MdParser {
     ///
     /// Default: `.`
     pub macro_end: String,
+    /// The sequence to identify the start of a transclusion.
+    ///
+    /// Default: `@{{`
+    pub transclusion_start: String,
+    /// The sequence to identify the end of a transclusion.
+    ///
+    /// Default: `}}`
+    pub transclusion_end: String,
     /// The sequence to split variables into name and value.
     ///
     /// Default: `:`
@@ -105,6 +114,8 @@ impl Default for MdParser {
             interpolation_end: String::from("}"),
             macro_start: String::from("==> "),
             macro_end: String::from("."),
+            transclusion_start: String::from("@{{"),
+            transclusion_end: String::from("}}"),
             variable_sep: String::from(":"),
             file_prefix: String::from("file:"),
             hidden_prefix: String::from("hidden:"),
@@ -113,6 +124,8 @@ impl Default for MdParser {
 }
 
 impl MdParser {
+    const LINK_PATTERN: &'static str = r"\[([^\[\]]*)\]\((.*?)\)";
+
     /// Creates a default parser with a fallback language
     pub fn for_language(language: String) -> Self {
         Self {
@@ -131,6 +144,10 @@ impl MdParser {
         } else {
             self.clone()
         }
+    }
+
+    fn parse_transclusion(_line: &str) -> Option<Node> {
+        None
     }
 }
 
@@ -254,12 +271,21 @@ impl Parser for MdParser {
                             let mut new_block = TextBlock::new();
                             new_block.add_line(line);
                             state.node = Some(Node::Text(new_block));
-                            Some(Parse::Incomplete)
+                            match Self::parse_transclusion(line) {
+                                Some(node) => Some(Parse::Complete(node)),
+                                None => Some(Parse::Incomplete),
+                            }
                         }
-                        Some(Node::Text(block)) => {
-                            block.add_line(line);
-                            Some(Parse::Incomplete)
-                        }
+                        Some(Node::Text(block)) => match Self::parse_transclusion(line) {
+                            Some(node) => {
+                                state.node = None;
+                                Some(Parse::Complete(node))
+                            }
+                            None => {
+                                block.add_line(line);
+                                Some(Parse::Incomplete)
+                            }
+                        },
                         Some(Node::Code(block)) => {
                             if line.starts_with(block.indent) {
                                 let line = match self
@@ -282,6 +308,7 @@ impl Parser for MdParser {
                                 }))
                             }
                         }
+                        Some(Node::Transclusion(_)) => Some(Parse::Incomplete), // TODO!!!
                     }
                 }
             })
@@ -298,7 +325,7 @@ impl Parser for MdParser {
     }
 
     fn find_links(&self, input: &str) -> Result<Vec<PathBuf>, Self::Error> {
-        let regex = Regex::new(r"\[([^\[\]]*)\]\((.*?)\)").unwrap();
+        let regex = Regex::new(Self::LINK_PATTERN).unwrap();
         let paths = regex
             .captures_iter(input)
             .map(|m| m.get(2).unwrap().as_str())
@@ -358,6 +385,11 @@ impl Printer for MdParser {
         }
 
         output
+    }
+
+    fn print_transclusion<'a>(&self, _transclusion: &Transclusion<'a>) -> String {
+        // TODO
+        String::new()
     }
 }
 

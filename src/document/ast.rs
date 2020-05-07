@@ -6,6 +6,7 @@ use std::iter::FromIterator;
 use super::code::CodeBlock;
 use super::text::TextBlock;
 use super::{CompileError, CompileErrorKind};
+use crate::document::tranclusion::Transclusion;
 use crate::parser::Printer;
 
 /// A `Node` in the `Ast`
@@ -15,6 +16,8 @@ pub(crate) enum Node<'a> {
     Text(TextBlock<'a>),
     /// A code block
     Code(CodeBlock<'a>),
+    /// A transclusion
+    Transclusion(Transclusion<'a>),
 }
 
 /// The AST of a literate document
@@ -59,6 +62,9 @@ impl<'a> Ast<'a> {
         let mut output = String::new();
         for node in &self.nodes {
             match node {
+                Node::Transclusion(transclusion) => {
+                    output.push_str(&printer.print_transclusion(transclusion))
+                }
                 Node::Text(text_block) => output.push_str(&printer.print_text_block(text_block)),
                 Node::Code(code_block) => {
                     if !code_block.hidden {

@@ -27,6 +27,7 @@ use super::{ParseError, Parser, ParserConfig, Printer};
 use crate::document::ast::Node;
 use crate::document::code::CodeBlock;
 use crate::document::text::TextBlock;
+use crate::document::tranclusion::Transclusion;
 use crate::document::Document;
 use crate::util::try_collect::TryCollectExt;
 use std::path::PathBuf;
@@ -153,6 +154,7 @@ impl Parser for BirdParser {
                             text_block.add_line(line);
                             Some(Parse::Incomplete)
                         }
+                        Node::Transclusion(_) => Some(Parse::Incomplete), // TODO?
                     }
                 }
                 State {
@@ -223,6 +225,10 @@ impl Parser for BirdParser {
                     text_block.add_line(&line);
                     Some(Parse::Incomplete)
                 }
+                State {
+                    node: Node::Transclusion(_),
+                    ..
+                } => Some(Parse::Incomplete),
             })
             .filter_map(|parse| match parse {
                 Parse::Incomplete => None,
@@ -257,6 +263,11 @@ impl Printer for BirdParser {
             output.push('\n');
         }
         output
+    }
+
+    fn print_transclusion<'a>(&self, _transclusion: &Transclusion<'a>) -> String {
+        // TODO
+        String::new()
     }
 }
 
