@@ -164,7 +164,10 @@ impl MdParser {
                 if path.is_relative() && File::open(&path).is_ok() {
                     Ok(Some(Node::Transclusion(Transclusion::new(path))))
                 } else {
-                    Err(ParseError::InvalidTransclusionError(line.to_owned()))
+                    Err(ParseError::InvalidTransclusionError(format!(
+                        "Not a relative path, of file not found: {}",
+                        line.to_owned()
+                    )))
                 }
             } else {
                 Err(ParseError::UnclosedTransclusionError(line.to_owned()))
