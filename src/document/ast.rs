@@ -56,7 +56,7 @@ impl<'a> Ast<'a> {
         }
         code_blocks
     }
-    /// Gets all the code blocks of this AST, concatenating blocks of the same name
+    /// Gets all the text blocks of this AST
     pub(crate) fn text_blocks(&self) -> Vec<&TextBlock> {
         self.nodes
             .iter()
@@ -65,6 +65,19 @@ impl<'a> Ast<'a> {
                 _ => None,
             })
             .collect()
+    }
+
+    /// Gets all the transclusions of this AST
+    pub fn transclusions(&self) -> Vec<Transclusion> {
+        let vec = self
+            .nodes
+            .iter()
+            .filter_map(|node| match node {
+                Node::Transclusion(trans) => Some((*trans).clone()),
+                _ => None,
+            })
+            .collect();
+        vec
     }
 
     /// Renders the program this AST is representing in the documentation format
@@ -116,22 +129,20 @@ impl<'a> Ast<'a> {
     }
 
     /// Renders the program this AST is representing in the documentation format
-    pub(crate) fn transclude(&mut self, replace: &Node, with: Ast<'a>) {
-        if let Node::Transclusion(replace) = replace {
-            let mut index = 0;
-            while index < self.nodes.len() {
-                if let Node::Transclusion(trans) = &self.nodes[index] {
-                    if trans == replace {
-                        for (i, node) in with.nodes.into_iter().enumerate() {
-                            self.nodes.insert(index + i, node);
-                        }
-                        // TODO: currently, only one transclusion of a particular document is possible.
-                        // May be sufficient, but should be checked.
-                        break;
+    pub fn transclude(&mut self, replace: &Transclusion, with: Ast<'a>) {
+        let mut index = 0;
+        while index < self.nodes.len() {
+            if let Node::Transclusion(trans) = &self.nodes[index] {
+                if trans == replace {
+                    for (i, node) in with.nodes.into_iter().enumerate() {
+                        self.nodes.insert(index + i, node);
                     }
+                    // TODO: currently, only one transclusion of a particular document is possible.
+                    // May be sufficient, but should be checked.
+                    break;
                 }
-                index += 1;
             }
+            index += 1;
         }
     }
 }

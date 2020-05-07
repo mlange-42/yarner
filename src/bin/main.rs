@@ -388,7 +388,26 @@ fn create_project(file: &str, style: &str) -> Result<(), Box<dyn Error>> {
 
     Ok(())
 }
+/*
+fn transclude<'a, P>(
+    parser: &P,
+    file_name: &PathBuf,
+) -> Result<Document<'a>, Box<dyn std::error::Error>>
+where
+    P: Parser + Printer,
+    P::Error: 'static,
+{
+    let source_main = fs::read_to_string(&file_name)?;
+    let mut document = parser.parse(&source_main)?;
 
+    let transclusions = document.tree().transclusions();
+    for trans in transclusions {
+        let doc = transclude(parser, trans.file())?;
+        document.tree_mut().transclude(&trans, doc.into_tree());
+    }
+    Ok(document)
+}
+*/
 fn compile_all<P>(
     parser: &P,
     doc_dir: &Either<(), Option<PathBuf>>,
@@ -404,6 +423,7 @@ where
 {
     if !all_files.contains(file_name) {
         let source_main = fs::read_to_string(&file_name)?;
+        //let document = transclude(parser, file_name)?;
         let document = parser.parse(&source_main)?;
         let links = parser.find_links(&document)?;
 

@@ -39,6 +39,16 @@ impl<'a> Document<'a> {
     pub fn tree(&self) -> &Ast<'a> {
         &self.tree
     }
+
+    /// Return the document's AST in mutable form
+    pub fn tree_mut(&mut self) -> &mut Ast<'a> {
+        &mut self.tree
+    }
+
+    /// Return the document's AST, consuming the document
+    pub fn into_tree(self) -> Ast<'a> {
+        self.tree
+    }
 }
 
 impl<'a, T> FromIterator<T> for Document<'a>
