@@ -9,6 +9,14 @@ license = "MIT"
 exclude = ["examples/*"]
 edition = "2018"
 
+[profile.release]
+opt-level = 3
+lto = true
+codegen-units = 1
+debug = false
+debug-assertions = false
+overflow-checks = false
+
 [lib]
 name = "outline"
 path = "src/lib.rs"
