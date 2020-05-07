@@ -24,12 +24,22 @@ Line 1 before transclusion
 **This is transcluded**
 ```
 
-
-Line 2 before transclusion
+Here comes a deep transclusion:
 
 
 ```md
 /// Transcluded 2
-**This is transcluded**
+**This is transcluded twice**
 ```
 
+
+Here comes a transclusion with entypoint (`main.rs`)
+
+This goes to file `main.rs`
+
+```md
+/// file:main.rs
+fn main() {
+    
+}
+```

@@ -3,7 +3,7 @@ use either::Either::{self, *};
 use outline::config::{AnyConfig, Paths};
 use outline::document::Document;
 use outline::parser::{BirdParser, HtmlParser, MdParser, Parser, Printer, TexParser};
-use outline::{templates, ProjectCreationError};
+use outline::{templates, MultipleTransclusionError, ProjectCreationError};
 use std::collections::HashSet;
 use std::error::Error;
 use std::fs::{self, File};
@@ -398,9 +398,28 @@ where
     let mut document = parser.parse(&source_main)?;
 
     let transclusions = document.tree().transclusions();
+
+    let mut trans_so_far = HashSet::new();
     for trans in transclusions {
-        let doc = transclude(parser, trans.file())?;
-        document.tree_mut().transclude(&trans, doc.into_tree());
+        if !trans_so_far.contains(trans.file()) {
+            let doc = transclude(parser, trans.file())?;
+
+            // TODO: handle unwrap as error
+            let ext = trans.file().extension().unwrap().to_str().unwrap();
+            let path = trans.file().to_str().unwrap();
+            let path = format!(
+                "{}{}",
+                parser.file_prefix(),
+                &path[..path.len() - ext.len() - 1]
+            );
+            document
+                .tree_mut()
+                .transclude(&trans, doc.into_tree(), &path);
+
+            trans_so_far.insert(trans.file().clone());
+        } else {
+            return Err(Box::new(MultipleTransclusionError(trans.file().clone())));
+        }
     }
     Ok(document)
 }

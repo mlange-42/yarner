@@ -20,6 +20,6 @@ Line 1 before transclusion
 
 @{{[Transclude](transclude1.md.md)}}
 
-Line 2 before transclusion
+Here comes a transclusion with entypoint (`main.rs`)
 
-@{{[Transclude](transclude2.md.md)}}
+@{{[Main](main.rs.md)}}

@@ -129,16 +129,22 @@ impl Ast {
     }
 
     /// Renders the program this AST is representing in the documentation format
-    pub fn transclude(&mut self, replace: &Transclusion, with: Ast) {
+    pub fn transclude(&mut self, replace: &Transclusion, with: Ast, from: &String) {
         let mut index = 0;
         while index < self.nodes.len() {
             if let Node::Transclusion(trans) = &self.nodes[index] {
                 if trans == replace {
-                    for (i, node) in with.nodes.into_iter().enumerate() {
+                    self.nodes.remove(index);
+                    for (i, mut node) in with.nodes.into_iter().enumerate() {
+                        if let Node::Code(code) = &mut node {
+                            if code.name.is_none() {
+                                code.name = Some(from.clone());
+                            }
+                        };
                         self.nodes.insert(index + i, node);
                     }
-                    // TODO: currently, only one transclusion of a particular document is possible.
-                    // May be sufficient, but should be checked.
+                    // TODO: currently, only a single transclusion of a particular document is possible.
+                    // May be sufficient (or even desired), but should be checked.
                     break;
                 }
             }

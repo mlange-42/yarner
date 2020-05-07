@@ -302,7 +302,7 @@ impl Parser for MdParser {
                                 })),
                                 Ok(trans) => match trans {
                                     Some(node) => {
-                                        let mut new_block = TextBlock::new();
+                                        let new_block = TextBlock::new();
                                         state.node = Some(Node::Text(new_block));
 
                                         Some(Parse::Complete(node))
@@ -451,9 +451,12 @@ impl Printer for MdParser {
         output
     }
 
-    fn print_transclusion(&self, _transclusion: &Transclusion) -> String {
-        // TODO
-        String::new()
+    fn print_transclusion(&self, transclusion: &Transclusion) -> String {
+        let mut output = String::new();
+        output.push_str("**WARNING!** Missed/skipped transclusion: ");
+        output.push_str(transclusion.file().to_str().unwrap());
+        output.push('\n');
+        output
     }
 }
 
