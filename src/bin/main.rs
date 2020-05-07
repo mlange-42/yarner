@@ -1,8 +1,9 @@
-use clap::{App, Arg, SubCommand};
+use clap::{crate_authors, crate_version, App, Arg, SubCommand};
 use either::Either::{self, *};
 use outline::config::{AnyConfig, Paths};
+use outline::document::Document;
 use outline::parser::{BirdParser, HtmlParser, MdParser, Parser, Printer, TexParser};
-use outline::{templates, ProjectCreationError};
+use outline::{templates, MultipleTransclusionError, ProjectCreationError};
 use std::collections::HashSet;
 use std::error::Error;
 use std::fs::{self, File};
@@ -11,8 +12,9 @@ use std::path::PathBuf;
 
 fn main() {
     let matches = App::new("Outline")
-        .version("1.0")
-        .author("Cameron Eldridge <cameldridge@gmail.com>")
+        .version(crate_version!())
+        .author(crate_authors!())
+        //.author("Cameron Eldridge <cameldridge@gmail.com>, Martin Lange <martin_lange_@gmx.net>")
         .about("Literate programming compiler")
         .arg(Arg::with_name("config")
             .short("c")
@@ -387,6 +389,41 @@ fn create_project(file: &str, style: &str) -> Result<(), Box<dyn Error>> {
     Ok(())
 }
 
+fn transclude<P>(parser: &P, file_name: &PathBuf) -> Result<Document, Box<dyn std::error::Error>>
+where
+    P: Parser + Printer,
+    P::Error: 'static,
+{
+    let source_main = fs::read_to_string(&file_name)?;
+    let mut document = parser.parse(&source_main)?;
+
+    let transclusions = document.tree().transclusions();
+
+    let mut trans_so_far = HashSet::new();
+    for trans in transclusions {
+        if !trans_so_far.contains(trans.file()) {
+            let doc = transclude(parser, trans.file())?;
+
+            // TODO: handle unwrap as error
+            let ext = trans.file().extension().unwrap().to_str().unwrap();
+            let path = trans.file().to_str().unwrap();
+            let path = format!(
+                "{}{}",
+                parser.file_prefix(),
+                &path[..path.len() - ext.len() - 1]
+            );
+            document
+                .tree_mut()
+                .transclude(&trans, doc.into_tree(), &path);
+
+            trans_so_far.insert(trans.file().clone());
+        } else {
+            return Err(Box::new(MultipleTransclusionError(trans.file().clone())));
+        }
+    }
+    Ok(document)
+}
+
 fn compile_all<P>(
     parser: &P,
     doc_dir: &Either<(), Option<PathBuf>>,
@@ -400,28 +437,23 @@ where
     P: Parser + Printer,
     P::Error: 'static,
 {
-    let source_main = fs::read_to_string(&file_name)?;
-    let links = parser.find_links(&source_main)?;
+    if !all_files.contains(file_name) {
+        //let source_main = fs::read_to_string(&file_name)?;
+        //let document = parser.parse(&source_main)?;
+        let document = transclude(parser, file_name)?;
+        let links = parser.find_links(&document)?;
 
-    compile(
-        parser,
-        &source_main,
-        doc_dir,
-        code_dir,
-        &file_name,
-        entrypoint,
-        language,
-    )?;
+        compile(
+            parser, &document, doc_dir, code_dir, &file_name, entrypoint, language,
+        )?;
+        all_files.insert(file_name.clone());
 
-    let files: Vec<_> = links.into_iter().map(|l| l).collect();
-
-    all_files.insert(file_name.clone());
-
-    for file in files {
-        if !all_files.contains(&file) {
-            compile_all(
-                parser, doc_dir, code_dir, &file, entrypoint, language, all_files,
-            )?;
+        for file in links {
+            if !all_files.contains(&file) {
+                compile_all(
+                    parser, doc_dir, code_dir, &file, entrypoint, language, all_files,
+                )?;
+            }
         }
     }
 
@@ -430,7 +462,7 @@ where
 
 fn compile<P>(
     parser: &P,
-    source: &str,
+    document: &Document,
     doc_dir: &Either<(), Option<PathBuf>>,
     code_dir: &Either<(), Option<PathBuf>>,
     file_name: &PathBuf,
@@ -442,25 +474,15 @@ where
     P::Error: 'static,
 {
     eprintln!("Compiling file {:?}", file_name);
-    let document = parser.parse(source)?;
 
     let mut entries = vec![(entrypoint, file_name.clone())];
-    entries.extend(
-        parser
-            .get_entry_points(&document)
-            .iter()
-            .map(|(e, p)| (Some(*e), PathBuf::from(p.to_owned().to_owned() + ".temp"))),
-    );
+    let extra_entries = parser.get_entry_points(&document);
 
-    /*if file_name.is_none() {
-        match doc_dir {
-            Left(..) => {
-                let docs = document.print_docs(parser);
-                print!("{}", docs);
-            }
-            Right(..) => {}
-        }
-    }*/
+    entries.extend(
+        extra_entries
+            .iter()
+            .map(|(e, p)| (Some(&e[..]), PathBuf::from((*p).to_owned() + ".temp"))),
+    );
 
     match doc_dir {
         Left(..) => {
@@ -477,6 +499,13 @@ where
         }
         _ => {}
     }
+
+    /*if entries.is_empty() {
+        return Err(Box::new(CompileError::Single {
+            line_number: 0,
+            kind: CompileErrorKind::MissingEntrypoint,
+        }));
+    }*/
 
     for (entrypoint, file_name) in entries {
         match code_dir {

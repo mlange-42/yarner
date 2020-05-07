@@ -27,6 +27,7 @@ use super::{ParseError, Parser, ParserConfig, Printer};
 use crate::document::ast::Node;
 use crate::document::code::CodeBlock;
 use crate::document::text::TextBlock;
+use crate::document::tranclusion::Transclusion;
 use crate::document::Document;
 use crate::util::try_collect::TryCollectExt;
 use std::path::PathBuf;
@@ -115,23 +116,20 @@ impl ParserConfig for BirdParser {
     fn file_prefix(&self) -> &str {
         &self.file_prefix
     }
-    fn hidden_prefix(&self) -> &str {
-        &self.hidden_prefix
-    }
 }
 
 impl Parser for BirdParser {
     type Error = BirdError;
 
-    fn parse<'a>(&self, input: &'a str) -> Result<Document<'a>, Self::Error> {
-        struct State<'a> {
-            node: Node<'a>,
+    fn parse(&self, input: &str) -> Result<Document, Self::Error> {
+        struct State {
+            node: Node,
             blank_line: bool,
         }
 
-        enum Parse<'a> {
+        enum Parse {
             Incomplete,
-            Complete(Node<'a>),
+            Complete(Node),
             Error(BirdError),
         }
 
@@ -156,6 +154,7 @@ impl Parser for BirdParser {
                             text_block.add_line(line);
                             Some(Parse::Incomplete)
                         }
+                        Node::Transclusion(_) => Some(Parse::Incomplete), // TODO?
                     }
                 }
                 State {
@@ -171,7 +170,7 @@ impl Parser for BirdParser {
                                 }))
                             }
                         };
-                    let hidden = name.starts_with(self.hidden_prefix());
+                    let hidden = name.starts_with(&self.hidden_prefix);
                     let code_block = CodeBlock::new().named(name, vars, defaults).hidden(hidden);
                     state.blank_line = false;
                     let node = std::mem::replace(&mut state.node, Node::Code(code_block));
@@ -226,6 +225,10 @@ impl Parser for BirdParser {
                     text_block.add_line(&line);
                     Some(Parse::Incomplete)
                 }
+                State {
+                    node: Node::Transclusion(_),
+                    ..
+                } => Some(Parse::Incomplete),
             })
             .filter_map(|parse| match parse {
                 Parse::Incomplete => None,
@@ -236,19 +239,18 @@ impl Parser for BirdParser {
         document.push(state.node);
         Ok(Document::from_iter(document))
     }
-    
-    fn find_links(&self, _input: &str) -> Result<Vec<PathBuf>, Self::Error> {
+
+    fn find_links(&self, _input: &Document) -> Result<Vec<PathBuf>, Self::Error> {
         Ok(vec![])
     }
-    
 }
 
 impl Printer for BirdParser {
-    fn print_text_block<'a>(&self, block: &TextBlock<'a>) -> String {
+    fn print_text_block(&self, block: &TextBlock) -> String {
         format!("{}\n", block.to_string())
     }
 
-    fn print_code_block<'a>(&self, block: &CodeBlock<'a>) -> String {
+    fn print_code_block(&self, block: &CodeBlock) -> String {
         let mut output = String::new();
         if let Some(name) = &block.name {
             output.push_str(&self.code_name_marker);
@@ -261,6 +263,11 @@ impl Printer for BirdParser {
             output.push('\n');
         }
         output
+    }
+
+    fn print_transclusion(&self, _transclusion: &Transclusion) -> String {
+        // TODO
+        String::new()
     }
 }
 

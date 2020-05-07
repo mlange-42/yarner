@@ -6,59 +6,60 @@ use std::collections::HashMap;
 
 /// A `Segment` is some of the raw source text.
 #[derive(Clone, Debug)]
-pub enum Segment<'a> {
+pub enum Segment {
     /// Raw source text
-    Source(&'a str),
+    Source(String),
     /// A meta variable, to be interpolated by the literate compiler
-    MetaVar(&'a str),
+    MetaVar(String),
 }
 
 /// A `Source` represents the source code on a line.
 #[derive(Clone, Debug)]
-pub enum Source<'a> {
+pub enum Source {
     /// A macro invocation, resolved by the literate compiler
     Macro {
         /// The name of the macro
         name: String,
         /// The meta-variable values to interpolate
-        scope: Vec<&'a str>,
+        scope: Vec<String>,
     },
     /// Source text, possibly including meta variable interpolations
-    Source(Vec<Segment<'a>>),
+    Source(Vec<Segment>),
 }
 
 /// A `Line` defines a line of code.
 #[derive(Clone, Debug)]
-pub struct Line<'a> {
+pub struct Line {
     /// The line number of this line (original source)
     pub line_number: usize,
     /// The indent on this line. An indent is defined as leading whitespace (spaces/tabs)
-    pub indent: &'a str,
+    pub indent: String,
     /// The source text
-    pub source: Source<'a>,
+    pub source: Source,
     /// The literate compiler defined comment - this is extracted from source text to be rendered
     /// in an appropriate format in the documentation, rather than as a comment in the source file
-    pub comment: Option<&'a str>,
+    pub comment: Option<String>,
 }
 
-impl<'a> Line<'a> {
+impl Line {
     fn compile_with(
         &self,
-        code_blocks: &HashMap<Option<&str>, CodeBlock<'a>>,
-        scope: &HashMap<&str, &str>,
+        code_blocks: &HashMap<Option<&str>, CodeBlock>,
+        scope: &HashMap<String, String>,
     ) -> Result<String, CompileError> {
         match &self.source {
             Source::Source(segments) => {
                 let code = segments
                     .iter()
                     .map(|segment| match segment {
-                        Segment::Source(source) => Ok(*source),
-                        Segment::MetaVar(name) => {
-                            scope.get(name).map(|var| *var).ok_or(CompileError::Single {
+                        Segment::Source(source) => Ok(source.clone()),
+                        Segment::MetaVar(name) => scope
+                            .get(&name[..])
+                            .map(|var| var.to_owned())
+                            .ok_or(CompileError::Single {
                                 line_number: self.line_number,
                                 kind: CompileErrorKind::UnknownMetaVariable(name.to_string()),
-                            })
-                        }
+                            }),
                     })
                     .try_collect()
                     .map(|vec: Vec<_>| vec.join(""))?;
@@ -69,7 +70,7 @@ impl<'a> Line<'a> {
                     line_number: self.line_number,
                     kind: CompileErrorKind::UnknownMacro(name.to_string()),
                 })?;
-                let scope = block.assign_vars(scope);
+                let scope = block.assign_vars(&scope[..]);
                 block.compile_with(code_blocks, scope).map(|code| {
                     code.split("\n")
                         .map(|line| format!("{}{}", self.indent, line))
@@ -83,36 +84,39 @@ impl<'a> Line<'a> {
 
 /// A `CodeBlock` is a block of code as defined by the input format.
 #[derive(Clone, Default, Debug)]
-pub struct CodeBlock<'a> {
+pub struct CodeBlock {
     /// The indent of this code block is in the documentation file
-    pub indent: &'a str,
+    pub indent: String,
     /// The name of this code block
     pub name: Option<String>,
     /// The variables extracted from the name
-    pub vars: Vec<&'a str>,
+    pub vars: Vec<String>,
     /// The variables' default values extracted from the name
-    pub defaults: Vec<Option<&'a str>>,
+    pub defaults: Vec<Option<String>>,
     /// The language this block was written in
     pub language: Option<String>,
     /// Marks the code block es hidden from docs
     pub hidden: bool,
     /// The source is the lines of code
-    pub source: Vec<Line<'a>>,
+    pub source: Vec<Line>,
 }
 
-impl<'a> CodeBlock<'a> {
+impl CodeBlock {
     /// Creates a new empty `CodeBlock`
     pub fn new() -> Self {
         Self::default()
     }
 
     /// Indents this code block
-    pub fn indented(self, indent: &'a str) -> Self {
-        Self { indent, ..self }
+    pub fn indented(self, indent: &str) -> Self {
+        Self {
+            indent: indent.to_owned(),
+            ..self
+        }
     }
 
     /// Names this code block
-    pub fn named(self, name: String, vars: Vec<&'a str>, defaults: Vec<Option<&'a str>>) -> Self {
+    pub fn named(self, name: String, vars: Vec<String>, defaults: Vec<Option<String>>) -> Self {
         Self {
             name: Some(name),
             vars,
@@ -135,19 +139,19 @@ impl<'a> CodeBlock<'a> {
     }
 
     /// Adds a line to this code block
-    pub fn add_line(&mut self, line: Line<'a>) {
+    pub fn add_line(&mut self, line: Line) {
         self.source.push(line);
     }
 
     /// Appends another code block to the end of this one
-    pub fn append(&mut self, other: &CodeBlock<'a>) {
+    pub fn append(&mut self, other: &CodeBlock) {
         self.source.extend_from_slice(&other.source)
     }
 
     /// "Compiles" this code block into its output code
     pub fn compile(
         &self,
-        code_blocks: &HashMap<Option<&str>, CodeBlock<'a>>,
+        code_blocks: &HashMap<Option<&str>, CodeBlock>,
     ) -> Result<String, CompileError> {
         self.compile_with(code_blocks, HashMap::default())
     }
@@ -159,8 +163,8 @@ impl<'a> CodeBlock<'a> {
 
     fn compile_with(
         &self,
-        code_blocks: &HashMap<Option<&str>, CodeBlock<'a>>,
-        scope: HashMap<&str, &str>,
+        code_blocks: &HashMap<Option<&str>, CodeBlock>,
+        scope: HashMap<String, String>,
     ) -> Result<String, CompileError> {
         self.source
             .iter()
@@ -169,18 +173,18 @@ impl<'a> CodeBlock<'a> {
             .map(|vec: Vec<_>| vec.join("\n"))
     }
 
-    fn assign_vars(&self, scope: &[&'a str]) -> HashMap<&str, &'a str> {
+    fn assign_vars(&self, scope: &[String]) -> HashMap<String, String> {
         self.vars
             .iter()
             .zip(&self.defaults)
             .zip(scope)
             .map(|((name, default), value)| {
                 (
-                    *name,
+                    name.clone(),
                     if value.is_empty() {
-                        default.unwrap_or_else(|| value)
+                        default.clone().unwrap_or_else(|| value.clone())
                     } else {
-                        *value
+                        value.clone()
                     },
                 )
             })

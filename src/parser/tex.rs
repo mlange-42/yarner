@@ -35,6 +35,7 @@ use super::{ParseError, Parser, ParserConfig, Printer};
 use crate::document::ast::Node;
 use crate::document::code::CodeBlock;
 use crate::document::text::TextBlock;
+use crate::document::tranclusion::Transclusion;
 use crate::document::Document;
 use crate::util::try_collect::TryCollectExt;
 use std::path::PathBuf;
@@ -143,9 +144,6 @@ impl ParserConfig for TexParser {
     fn file_prefix(&self) -> &str {
         &self.file_prefix
     }
-    fn hidden_prefix(&self) -> &str {
-        &self.hidden_prefix
-    }
 }
 
 impl TexParser {
@@ -213,14 +211,14 @@ impl TexParser {
 impl Parser for TexParser {
     type Error = TexError;
 
-    fn parse<'a>(&self, input: &'a str) -> Result<Document<'a>, Self::Error> {
-        struct State<'a> {
-            node: Node<'a>,
+    fn parse(&self, input: &str) -> Result<Document, Self::Error> {
+        struct State {
+            node: Node,
         }
 
-        enum Parse<'a> {
+        enum Parse {
             Incomplete,
-            Complete(Node<'a>),
+            Complete(Node),
             Error(TexError),
         }
 
@@ -237,7 +235,7 @@ impl Parser for TexParser {
             .scan(&mut state, |state, (line_number, line)| {
                 match &mut state.node {
                     Node::Code(code_block) => {
-                        if !line.starts_with(code_block.indent) {
+                        if !line.starts_with(&code_block.indent) {
                             return Some(Parse::Error(TexError::Single {
                                 line_number,
                                 kind: TexErrorKind::IncorrectIndentation,
@@ -289,7 +287,7 @@ impl Parser for TexParser {
                                             }))
                                         }
                                     };
-                                    let hidden = name.starts_with(self.hidden_prefix());
+                                    let hidden = name.starts_with(&self.hidden_prefix);
                                     code_block =
                                         code_block.named(name, vars, defaults).hidden(hidden);
                                 }
@@ -310,6 +308,7 @@ impl Parser for TexParser {
                             Some(Parse::Incomplete)
                         }
                     }
+                    Node::Transclusion(_) => Some(Parse::Incomplete), // TODO?
                 }
             })
             .filter_map(|parse| match parse {
@@ -321,18 +320,18 @@ impl Parser for TexParser {
         document.push(state.node);
         Ok(Document::from_iter(document))
     }
-    
-    fn find_links(&self, _input: &str) -> Result<Vec<PathBuf>, Self::Error> {
+
+    fn find_links(&self, _input: &Document) -> Result<Vec<PathBuf>, Self::Error> {
         Ok(vec![])
     }
 }
 
 impl Printer for TexParser {
-    fn print_text_block<'a>(&self, block: &TextBlock<'a>) -> String {
+    fn print_text_block(&self, block: &TextBlock) -> String {
         format!("{}\n", block.to_string())
     }
 
-    fn print_code_block<'a>(&self, block: &CodeBlock<'a>) -> String {
+    fn print_code_block(&self, block: &CodeBlock) -> String {
         let mut output = format!("\\begin{{{}}}", self.code_environment);
         if block.language.is_some() || block.name.is_some() {
             output.push('[');
@@ -364,6 +363,11 @@ impl Printer for TexParser {
         output.push_str(&format!("\\end{{{}}}\n", self.code_environment));
 
         output
+    }
+
+    fn print_transclusion(&self, _transclusion: &Transclusion) -> String {
+        // TODO
+        String::new()
     }
 }
 
