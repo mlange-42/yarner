@@ -17,7 +17,7 @@ pub(crate) enum Node<'a> {
     /// A code block
     Code(CodeBlock<'a>),
     /// A transclusion
-    Transclusion(Transclusion<'a>),
+    Transclusion(Transclusion),
 }
 
 /// The AST of a literate document
@@ -55,6 +55,16 @@ impl<'a> Ast<'a> {
             }
         }
         code_blocks
+    }
+    /// Gets all the code blocks of this AST, concatenating blocks of the same name
+    pub(crate) fn text_blocks(&self) -> Vec<&TextBlock> {
+        self.nodes
+            .iter()
+            .filter_map(|node| match node {
+                Node::Text(block) => Some(block),
+                _ => None,
+            })
+            .collect()
     }
 
     /// Renders the program this AST is representing in the documentation format

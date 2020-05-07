@@ -1,6 +1,7 @@
 use clap::{crate_authors, crate_version, App, Arg, SubCommand};
 use either::Either::{self, *};
 use outline::config::{AnyConfig, Paths};
+use outline::document::Document;
 use outline::parser::{BirdParser, HtmlParser, MdParser, Parser, Printer, TexParser};
 use outline::{templates, ProjectCreationError};
 use std::collections::HashSet;
@@ -403,16 +404,11 @@ where
 {
     if !all_files.contains(file_name) {
         let source_main = fs::read_to_string(&file_name)?;
-        let links = parser.find_links(&source_main)?;
+        let document = parser.parse(&source_main)?;
+        let links = parser.find_links(&document)?;
 
         compile(
-            parser,
-            &source_main,
-            doc_dir,
-            code_dir,
-            &file_name,
-            entrypoint,
-            language,
+            parser, &document, doc_dir, code_dir, &file_name, entrypoint, language,
         )?;
         all_files.insert(file_name.clone());
 
@@ -430,7 +426,7 @@ where
 
 fn compile<P>(
     parser: &P,
-    source: &str,
+    document: &Document,
     doc_dir: &Either<(), Option<PathBuf>>,
     code_dir: &Either<(), Option<PathBuf>>,
     file_name: &PathBuf,
@@ -442,7 +438,6 @@ where
     P::Error: 'static,
 {
     eprintln!("Compiling file {:?}", file_name);
-    let document = parser.parse(source)?;
 
     let mut entries = vec![(entrypoint, file_name.clone())];
     /*if entrypoint.is_some() {

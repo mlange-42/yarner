@@ -54,7 +54,7 @@ pub trait Parser: ParserConfig {
     fn parse<'a>(&self, input: &'a str) -> Result<Document<'a>, Self::Error>;
 
     /// Find all files linked into the document for later compilation and/or transclusion.
-    fn find_links(&self, input: &str) -> Result<Vec<PathBuf>, Self::Error>;
+    fn find_links(&self, input: &Document) -> Result<Vec<PathBuf>, Self::Error>;
 
     /// Parses a macro name, returning the name and the extracted variables
     fn parse_name<'a>(
@@ -181,6 +181,10 @@ pub trait Parser: ParserConfig {
 pub enum ParseError {
     /// Error for unclosed variables, e.g. @{ without }
     UnclosedVariableError(String),
+    /// Error for unclosed transclusions, e.g. @{{ without }}
+    UnclosedTransclusionError(String),
+    /// Error for invalid transclusions, e.g. if the file is not found
+    InvalidTransclusionError(String),
 } // is there even such a thing as a parse error? who knows.
 
 /// A `Printer` can invert the parsing process, printing the code blocks how they should be
@@ -193,7 +197,7 @@ pub trait Printer: ParserConfig {
     fn print_text_block<'a>(&self, block: &TextBlock<'a>) -> String;
 
     /// Prints a code block
-    fn print_transclusion<'a>(&self, transclusion: &Transclusion<'a>) -> String;
+    fn print_transclusion(&self, transclusion: &Transclusion) -> String;
 
     /// Fills a name with its placeholders and defaults
     fn print_name(&self, mut name: String, vars: &[&str], defaults: &[Option<&str>]) -> String {

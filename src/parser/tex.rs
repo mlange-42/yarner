@@ -321,7 +321,7 @@ impl Parser for TexParser {
         Ok(Document::from_iter(document))
     }
 
-    fn find_links(&self, _input: &str) -> Result<Vec<PathBuf>, Self::Error> {
+    fn find_links(&self, _input: &Document) -> Result<Vec<PathBuf>, Self::Error> {
         Ok(vec![])
     }
 }
@@ -365,7 +365,7 @@ impl Printer for TexParser {
         output
     }
 
-    fn print_transclusion<'a>(&self, _transclusion: &Transclusion<'a>) -> String {
+    fn print_transclusion(&self, _transclusion: &Transclusion) -> String {
         // TODO
         String::new()
     }

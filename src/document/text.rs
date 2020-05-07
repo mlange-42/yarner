@@ -4,7 +4,7 @@
 #[derive(Debug, Default)]
 pub struct TextBlock<'a> {
     /// The source text
-    text: Vec<&'a str>
+    text: Vec<&'a str>,
 }
 
 impl<'a> TextBlock<'a> {
@@ -21,5 +21,10 @@ impl<'a> TextBlock<'a> {
     /// Renders this `TextBlock` as the text it represents
     pub fn to_string(&self) -> String {
         self.text.join("\n")
+    }
+
+    /// Renders this `TextBlock` as the text it represents
+    pub fn lines(&self) -> &Vec<&'a str> {
+        &self.text
     }
 }

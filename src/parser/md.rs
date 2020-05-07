@@ -146,8 +146,32 @@ impl MdParser {
         }
     }
 
-    fn parse_transclusion(_line: &str) -> Option<Node> {
-        None
+    fn parse_transclusion<'a>(&self, line: &str) -> Result<Option<Node<'a>>, ParseError> {
+        let trim = line.trim();
+        if trim.starts_with(&self.transclusion_start) {
+            if let Some(index) = line.find(&self.transclusion_end) {
+                let trans = &trim[..index];
+                let regex = Regex::new(Self::LINK_PATTERN).unwrap();
+
+                let path: Vec<_> = regex
+                    .captures_iter(trans)
+                    .map(|m| m.get(2).unwrap().as_str())
+                    .collect();
+
+                let target = path.get(0).unwrap_or(&trans);
+
+                let path = PathBuf::from(target);
+                if path.is_relative() && File::open(&path).is_ok() {
+                    Ok(Some(Node::Transclusion(Transclusion::new(path))))
+                } else {
+                    Err(ParseError::InvalidTransclusionError(line.to_owned()))
+                }
+            } else {
+                Err(ParseError::UnclosedTransclusionError(line.to_owned()))
+            }
+        } else {
+            Ok(None)
+        }
     }
 }
 
@@ -271,21 +295,38 @@ impl Parser for MdParser {
                             let mut new_block = TextBlock::new();
                             new_block.add_line(line);
                             state.node = Some(Node::Text(new_block));
-                            match Self::parse_transclusion(line) {
-                                Some(node) => Some(Parse::Complete(node)),
-                                None => Some(Parse::Incomplete),
+                            match self.parse_transclusion(line) {
+                                Err(err) => Some(Parse::Error(MdError::Single {
+                                    line_number,
+                                    kind: MdErrorKind::Parse(err),
+                                })),
+                                Ok(trans) => match trans {
+                                    Some(node) => Some(Parse::Complete(node)),
+                                    None => Some(Parse::Incomplete),
+                                },
                             }
+                            //Some(Parse::Incomplete)
                         }
-                        Some(Node::Text(block)) => match Self::parse_transclusion(line) {
-                            Some(node) => {
-                                state.node = None;
-                                Some(Parse::Complete(node))
-                            }
-                            None => {
-                                block.add_line(line);
-                                Some(Parse::Incomplete)
-                            }
+                        Some(Node::Text(block)) => match self.parse_transclusion(line) {
+                            Err(err) => Some(Parse::Error(MdError::Single {
+                                line_number,
+                                kind: MdErrorKind::Parse(err),
+                            })),
+                            Ok(trans) => match trans {
+                                Some(node) => {
+                                    state.node = None;
+                                    Some(Parse::Complete(node))
+                                }
+                                None => {
+                                    block.add_line(line);
+                                    Some(Parse::Incomplete)
+                                }
+                            },
                         },
+                        /*{
+                            block.add_line(line);
+                            Some(Parse::Incomplete)
+                        },*/
                         Some(Node::Code(block)) => {
                             if line.starts_with(block.indent) {
                                 let line = match self
@@ -324,19 +365,27 @@ impl Parser for MdParser {
         Ok(Document::from_iter(document))
     }
 
-    fn find_links(&self, input: &str) -> Result<Vec<PathBuf>, Self::Error> {
+    fn find_links(&self, input: &Document) -> Result<Vec<PathBuf>, Self::Error> {
         let regex = Regex::new(Self::LINK_PATTERN).unwrap();
-        let paths = regex
-            .captures_iter(input)
-            .map(|m| m.get(2).unwrap().as_str())
-            .filter_map(|p| {
-                let path = PathBuf::from(p);
-                if path.is_relative() && File::open(&path).is_ok() {
-                    //Some(PathBuf::from(p.to_string() + ".md"))
-                    Some(path)
-                } else {
-                    None
-                }
+        let paths = input
+            .tree()
+            .text_blocks()
+            .iter()
+            .flat_map(|block| {
+                block.lines().iter().flat_map(|line| {
+                    regex
+                        .captures_iter(line)
+                        .map(|m| m.get(2).unwrap().as_str())
+                        .filter_map(|p| {
+                            let path = PathBuf::from(p);
+                            if path.is_relative() && File::open(&path).is_ok() {
+                                //Some(PathBuf::from(p.to_string() + ".md"))
+                                Some(path)
+                            } else {
+                                None
+                            }
+                        })
+                })
             })
             .collect();
         Ok(paths)
@@ -387,7 +436,7 @@ impl Printer for MdParser {
         output
     }
 
-    fn print_transclusion<'a>(&self, _transclusion: &Transclusion<'a>) -> String {
+    fn print_transclusion(&self, _transclusion: &Transclusion) -> String {
         // TODO
         String::new()
     }

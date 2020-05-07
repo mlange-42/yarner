@@ -4,14 +4,14 @@ use std::path::PathBuf;
 
 /// A `Transclusion` is a reference to another file that should be pulled into the source
 #[derive(Debug)]
-pub struct Transclusion<'a> {
+pub struct Transclusion {
     /// The target file path
-    file: &'a PathBuf,
+    file: PathBuf,
 }
 
-impl<'a> Transclusion<'a> {
+impl Transclusion {
     /// Creates a new `Transclusion`
-    pub fn new(file: &'a PathBuf) -> Self {
+    pub fn new(file: PathBuf) -> Self {
         Transclusion { file }
     }
 }
