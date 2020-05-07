@@ -4,6 +4,7 @@ use std::iter::FromIterator;
 pub mod ast;
 pub mod code;
 pub mod text;
+pub mod tranclusion;
 
 use self::ast::Ast;
 use crate::parser::Printer;
