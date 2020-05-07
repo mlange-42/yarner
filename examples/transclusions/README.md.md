@@ -10,6 +10,16 @@ All code in this folder and subfolders, including this readme,
 
 You find the documentation from which the code and all other files were derived from
 here: [../README.md.md](../README.md.md).
+
+==> Transcluded 1...
+
+==> Transcluded 2...
 ```
 
-@{{[Transclude](transclude.md.md)}}
+Line 1 before transclusion
+
+@{{[Transclude](transclude1.md.md)}}
+
+Line 2 before transclusion
+
+@{{[Transclude](transclude2.md.md)}}

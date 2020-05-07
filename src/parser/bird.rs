@@ -121,15 +121,15 @@ impl ParserConfig for BirdParser {
 impl Parser for BirdParser {
     type Error = BirdError;
 
-    fn parse<'a>(&self, input: &'a str) -> Result<Document<'a>, Self::Error> {
-        struct State<'a> {
-            node: Node<'a>,
+    fn parse(&self, input: &str) -> Result<Document, Self::Error> {
+        struct State {
+            node: Node,
             blank_line: bool,
         }
 
-        enum Parse<'a> {
+        enum Parse {
             Incomplete,
-            Complete(Node<'a>),
+            Complete(Node),
             Error(BirdError),
         }
 
@@ -246,11 +246,11 @@ impl Parser for BirdParser {
 }
 
 impl Printer for BirdParser {
-    fn print_text_block<'a>(&self, block: &TextBlock<'a>) -> String {
+    fn print_text_block(&self, block: &TextBlock) -> String {
         format!("{}\n", block.to_string())
     }
 
-    fn print_code_block<'a>(&self, block: &CodeBlock<'a>) -> String {
+    fn print_code_block(&self, block: &CodeBlock) -> String {
         let mut output = String::new();
         if let Some(name) = &block.name {
             output.push_str(&self.code_name_marker);

@@ -10,4 +10,26 @@ All code in this folder and subfolders, including this readme,
 
 You find the documentation from which the code and all other files were derived from
 here: [../README.md.md](../README.md.md).
+
+==> Transcluded 1.
+
+==> Transcluded 2.
 ```
+
+Line 1 before transclusion
+
+
+```md
+/// Transcluded 1
+**This is transcluded**
+```
+
+
+Line 2 before transclusion
+
+
+```md
+/// Transcluded 2
+**This is transcluded**
+```
+

@@ -388,11 +388,8 @@ fn create_project(file: &str, style: &str) -> Result<(), Box<dyn Error>> {
 
     Ok(())
 }
-/*
-fn transclude<'a, P>(
-    parser: &P,
-    file_name: &PathBuf,
-) -> Result<Document<'a>, Box<dyn std::error::Error>>
+
+fn transclude<P>(parser: &P, file_name: &PathBuf) -> Result<Document, Box<dyn std::error::Error>>
 where
     P: Parser + Printer,
     P::Error: 'static,
@@ -407,7 +404,7 @@ where
     }
     Ok(document)
 }
-*/
+
 fn compile_all<P>(
     parser: &P,
     doc_dir: &Either<(), Option<PathBuf>>,
@@ -422,9 +419,9 @@ where
     P::Error: 'static,
 {
     if !all_files.contains(file_name) {
-        let source_main = fs::read_to_string(&file_name)?;
-        //let document = transclude(parser, file_name)?;
-        let document = parser.parse(&source_main)?;
+        //let source_main = fs::read_to_string(&file_name)?;
+        //let document = parser.parse(&source_main)?;
+        let document = transclude(parser, file_name)?;
         let links = parser.find_links(&document)?;
 
         compile(
@@ -460,14 +457,12 @@ where
     eprintln!("Compiling file {:?}", file_name);
 
     let mut entries = vec![(entrypoint, file_name.clone())];
-    /*if entrypoint.is_some() {
-        entries.push((entrypoint, file_name.clone()));
-    }*/
+    let extra_entries = parser.get_entry_points(&document);
+
     entries.extend(
-        parser
-            .get_entry_points(&document)
+        extra_entries
             .iter()
-            .map(|(e, p)| (Some(*e), PathBuf::from(p.to_owned().to_owned() + ".temp"))),
+            .map(|(e, p)| (Some(&e[..]), PathBuf::from((*p).to_owned() + ".temp"))),
     );
 
     match doc_dir {

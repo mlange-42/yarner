@@ -248,14 +248,14 @@ impl HtmlParser {
 impl Parser for HtmlParser {
     type Error = HtmlError;
 
-    fn parse<'a>(&self, input: &'a str) -> Result<Document<'a>, Self::Error> {
-        struct State<'a> {
-            node: Node<'a>,
+    fn parse(&self, input: &str) -> Result<Document, Self::Error> {
+        struct State {
+            node: Node,
         }
 
-        enum Parse<'a> {
+        enum Parse {
             Incomplete,
-            Complete(Node<'a>),
+            Complete(Node),
             Error(HtmlError),
         }
 
@@ -272,7 +272,7 @@ impl Parser for HtmlParser {
             .scan(&mut state, |state, (line_number, line)| {
                 match &mut state.node {
                     Node::Code(code_block) => {
-                        if !line.starts_with(code_block.indent) {
+                        if !line.starts_with(&code_block.indent) {
                             return Some(Parse::Error(HtmlError::Single {
                                 line_number,
                                 kind: HtmlErrorKind::IncorrectIndentation,
@@ -363,11 +363,11 @@ impl Parser for HtmlParser {
 }
 
 impl Printer for HtmlParser {
-    fn print_text_block<'a>(&self, block: &TextBlock<'a>) -> String {
+    fn print_text_block(&self, block: &TextBlock) -> String {
         format!("{}\n", block.to_string())
     }
 
-    fn print_code_block<'a>(&self, block: &CodeBlock<'a>) -> String {
+    fn print_code_block(&self, block: &CodeBlock) -> String {
         let mut output = String::new();
         output.push_str(&format!("<pre class=\"{}\"><code", self.block_class));
         if let Some(language) = &block.language {

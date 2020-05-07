@@ -51,17 +51,17 @@ pub trait Parser: ParserConfig {
 
     /// Parses the text part of the document. Should delegate the code section on a line-by-line
     /// basis to the built in code parser.
-    fn parse<'a>(&self, input: &'a str) -> Result<Document<'a>, Self::Error>;
+    fn parse(&self, input: &str) -> Result<Document, Self::Error>;
 
     /// Find all files linked into the document for later compilation and/or transclusion.
     fn find_links(&self, input: &Document) -> Result<Vec<PathBuf>, Self::Error>;
 
     /// Parses a macro name, returning the name and the extracted variables
-    fn parse_name<'a>(
+    fn parse_name(
         &self,
-        mut input: &'a str,
+        mut input: &str,
         is_call: bool,
-    ) -> Result<(String, Vec<&'a str>, Vec<Option<&'a str>>), ParseError> {
+    ) -> Result<(String, Vec<String>, Vec<Option<String>>), ParseError> {
         let orig = input;
         let mut name = String::new();
         let mut vars = vec![];
@@ -79,14 +79,14 @@ pub trait Parser: ParserConfig {
                     let var =
                         &input[start_index + start.len()..start_index + start.len() + end_index];
                     if is_call {
-                        vars.push(var);
+                        vars.push(var.to_owned());
                         optionals.push(None);
                     } else {
                         if let Some(sep_index) = var.find(sep) {
-                            vars.push(&var[..sep_index]);
-                            optionals.push(Some(&var[sep_index + sep_len..]));
+                            vars.push((&var[..sep_index]).to_owned());
+                            optionals.push(Some((&var[sep_index + sep_len..]).to_owned()));
                         } else {
-                            vars.push(&var);
+                            vars.push(var.to_owned());
                             optionals.push(None);
                         }
                     }
@@ -103,7 +103,7 @@ pub trait Parser: ParserConfig {
     }
 
     /// Parses a line as code, returning the parsed `Line` object
-    fn parse_line<'a>(&self, line_number: usize, input: &'a str) -> Result<Line<'a>, ParseError> {
+    fn parse_line(&self, line_number: usize, input: &str) -> Result<Line, ParseError> {
         let orig = input;
         let indent_len = input
             .chars()
@@ -113,7 +113,10 @@ pub trait Parser: ParserConfig {
         let (indent, rest) = input.split_at(indent_len);
         let (mut rest, comment) = if let Some(comment_index) = rest.find(self.comment_start()) {
             let (rest, comment) = rest.split_at(comment_index);
-            (rest, Some(&comment[self.comment_start().len()..]))
+            (
+                rest,
+                Some((&comment[self.comment_start().len()..]).to_owned()),
+            )
         } else {
             (rest, None)
         };
@@ -124,7 +127,7 @@ pub trait Parser: ParserConfig {
                     self.parse_name(&rest[self.macro_start().len()..end_index], true)?;
                 return Ok(Line {
                     line_number,
-                    indent,
+                    indent: indent.to_owned(),
                     source: Source::Macro { name, scope },
                     comment,
                 });
@@ -137,9 +140,10 @@ pub trait Parser: ParserConfig {
         loop {
             if let Some(start_index) = rest.find(start) {
                 if let Some(end_index) = rest[start_index + start.len()..].find(end) {
-                    source.push(Segment::Source(&rest[..start_index]));
+                    source.push(Segment::Source((&rest[..start_index]).to_owned()));
                     source.push(Segment::MetaVar(
-                        &rest[start_index + start.len()..start_index + start.len() + end_index],
+                        (&rest[start_index + start.len()..start_index + start.len() + end_index])
+                            .to_owned(),
                     ));
                     rest = &rest[start_index + start.len() + end_index + end.len()..];
                 } else {
@@ -147,7 +151,7 @@ pub trait Parser: ParserConfig {
                 }
             } else {
                 if !rest.is_empty() {
-                    source.push(Segment::Source(rest));
+                    source.push(Segment::Source(rest.to_owned()));
                 }
                 break;
             }
@@ -155,20 +159,20 @@ pub trait Parser: ParserConfig {
 
         Ok(Line {
             line_number,
-            indent,
+            indent: indent.to_owned(),
             source: Source::Source(source),
             comment,
         })
     }
 
     /// Finds all file-specific entry points
-    fn get_entry_points<'a>(&self, doc: &'a Document<'a>) -> Vec<(&'a str, &'a str)> {
+    fn get_entry_points(&self, doc: &Document) -> Vec<(String, String)> {
         let mut entries = vec![];
         let pref = self.file_prefix();
         for (name, _block) in doc.tree().code_blocks(None) {
             if let Some(name) = name {
                 if name.starts_with(pref) {
-                    entries.push((name, &name[pref.len()..]))
+                    entries.push((name.to_owned(), (&name[pref.len()..]).to_owned()))
                 }
             }
         }
@@ -191,16 +195,16 @@ pub enum ParseError {
 /// rendered in the documentation text.
 pub trait Printer: ParserConfig {
     /// Prints a code block
-    fn print_code_block<'a>(&self, block: &CodeBlock<'a>) -> String;
+    fn print_code_block(&self, block: &CodeBlock) -> String;
 
     /// Prints a text block
-    fn print_text_block<'a>(&self, block: &TextBlock<'a>) -> String;
+    fn print_text_block(&self, block: &TextBlock) -> String;
 
     /// Prints a code block
     fn print_transclusion(&self, transclusion: &Transclusion) -> String;
 
     /// Fills a name with its placeholders and defaults
-    fn print_name(&self, mut name: String, vars: &[&str], defaults: &[Option<&str>]) -> String {
+    fn print_name(&self, mut name: String, vars: &[String], defaults: &[Option<String>]) -> String {
         let start = self.interpolation_start();
         let end = self.interpolation_end();
         let var_placeholder = format!("{}{}", start, end);
@@ -217,7 +221,7 @@ pub trait Printer: ParserConfig {
     }
 
     /// Fills a name with its placeholders
-    fn print_macro_call(&self, mut name: String, vars: &[&str]) -> String {
+    fn print_macro_call(&self, mut name: String, vars: &[String]) -> String {
         let start = self.interpolation_start();
         let end = self.interpolation_end();
         let var_placeholder = format!("{}{}", start, end);
@@ -229,7 +233,7 @@ pub trait Printer: ParserConfig {
     }
 
     /// Prints a line of a code block
-    fn print_line<'a>(&self, line: &Line<'a>, print_comments: bool) -> String {
+    fn print_line(&self, line: &Line, print_comments: bool) -> String {
         let mut output = line.indent.to_string();
         match &line.source {
             Source::Macro { name, scope } => {
@@ -251,9 +255,9 @@ pub trait Printer: ParserConfig {
             }
         }
         if print_comments {
-            if let Some(comment) = line.comment {
+            if let Some(comment) = &line.comment {
                 output.push_str(self.comment_start());
-                output.push_str(comment);
+                output.push_str(&comment);
             }
         }
         output

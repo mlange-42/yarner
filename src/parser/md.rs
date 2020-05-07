@@ -146,7 +146,7 @@ impl MdParser {
         }
     }
 
-    fn parse_transclusion<'a>(&self, line: &str) -> Result<Option<Node<'a>>, ParseError> {
+    fn parse_transclusion(&self, line: &str) -> Result<Option<Node>, ParseError> {
         let trim = line.trim();
         if trim.starts_with(&self.transclusion_start) {
             if let Some(index) = line.find(&self.transclusion_end) {
@@ -202,15 +202,15 @@ impl ParserConfig for MdParser {
 impl Parser for MdParser {
     type Error = MdError;
 
-    fn parse<'a>(&self, input: &'a str) -> Result<Document<'a>, Self::Error> {
+    fn parse(&self, input: &str) -> Result<Document, Self::Error> {
         #[derive(Default)]
-        struct State<'a> {
-            node: Option<Node<'a>>,
+        struct State {
+            node: Option<Node>,
         }
 
-        enum Parse<'a> {
+        enum Parse {
             Incomplete,
-            Complete(Node<'a>),
+            Complete(Node),
             Error(MdError),
         }
 
@@ -222,7 +222,7 @@ impl Parser for MdParser {
                 if line.trim_start().starts_with(&self.fence_sequence) {
                     match state.node.take() {
                         Some(Node::Code(code_block)) => {
-                            if line.starts_with(code_block.indent) {
+                            if line.starts_with(&code_block.indent) {
                                 state.node = None;
                                 Some(Parse::Complete(Node::Code(code_block)))
                             } else {
@@ -301,7 +301,12 @@ impl Parser for MdParser {
                                     kind: MdErrorKind::Parse(err),
                                 })),
                                 Ok(trans) => match trans {
-                                    Some(node) => Some(Parse::Complete(node)),
+                                    Some(node) => {
+                                        let mut new_block = TextBlock::new();
+                                        state.node = Some(Node::Text(new_block));
+
+                                        Some(Parse::Complete(node))
+                                    }
                                     None => Some(Parse::Incomplete),
                                 },
                             }
@@ -314,8 +319,12 @@ impl Parser for MdParser {
                             })),
                             Ok(trans) => match trans {
                                 Some(node) => {
-                                    state.node = None;
-                                    Some(Parse::Complete(node))
+                                    //state.node = None;
+                                    //Some(Parse::Complete(node))
+
+                                    let ret = state.node.take();
+                                    state.node = Some(node);
+                                    Some(Parse::Complete(ret.unwrap()))
                                 }
                                 None => {
                                     block.add_line(line);
@@ -328,7 +337,7 @@ impl Parser for MdParser {
                             Some(Parse::Incomplete)
                         },*/
                         Some(Node::Code(block)) => {
-                            if line.starts_with(block.indent) {
+                            if line.starts_with(&block.indent) {
                                 let line = match self
                                     .parse_line(line_number, &line[block.indent.len()..])
                                 {
@@ -349,7 +358,13 @@ impl Parser for MdParser {
                                 }))
                             }
                         }
-                        Some(Node::Transclusion(_)) => Some(Parse::Incomplete), // TODO!!!
+                        Some(Node::Transclusion(trans)) => {
+                            let trans = trans.clone();
+                            let mut new_block = TextBlock::new();
+                            new_block.add_line(line);
+                            state.node = Some(Node::Text(new_block));
+                            Some(Parse::Complete(Node::Transclusion(trans)))
+                        }
                     }
                 }
             })
@@ -393,11 +408,11 @@ impl Parser for MdParser {
 }
 
 impl Printer for MdParser {
-    fn print_text_block<'a>(&self, block: &TextBlock<'a>) -> String {
+    fn print_text_block(&self, block: &TextBlock) -> String {
         format!("{}\n", block.to_string())
     }
 
-    fn print_code_block<'a>(&self, block: &CodeBlock<'a>) -> String {
+    fn print_code_block(&self, block: &CodeBlock) -> String {
         let mut output = self.fence_sequence.clone();
         if let Some(language) = &block.language {
             output.push_str(language);

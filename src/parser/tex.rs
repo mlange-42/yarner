@@ -211,14 +211,14 @@ impl TexParser {
 impl Parser for TexParser {
     type Error = TexError;
 
-    fn parse<'a>(&self, input: &'a str) -> Result<Document<'a>, Self::Error> {
-        struct State<'a> {
-            node: Node<'a>,
+    fn parse(&self, input: &str) -> Result<Document, Self::Error> {
+        struct State {
+            node: Node,
         }
 
-        enum Parse<'a> {
+        enum Parse {
             Incomplete,
-            Complete(Node<'a>),
+            Complete(Node),
             Error(TexError),
         }
 
@@ -235,7 +235,7 @@ impl Parser for TexParser {
             .scan(&mut state, |state, (line_number, line)| {
                 match &mut state.node {
                     Node::Code(code_block) => {
-                        if !line.starts_with(code_block.indent) {
+                        if !line.starts_with(&code_block.indent) {
                             return Some(Parse::Error(TexError::Single {
                                 line_number,
                                 kind: TexErrorKind::IncorrectIndentation,
@@ -327,11 +327,11 @@ impl Parser for TexParser {
 }
 
 impl Printer for TexParser {
-    fn print_text_block<'a>(&self, block: &TextBlock<'a>) -> String {
+    fn print_text_block(&self, block: &TextBlock) -> String {
         format!("{}\n", block.to_string())
     }
 
-    fn print_code_block<'a>(&self, block: &CodeBlock<'a>) -> String {
+    fn print_code_block(&self, block: &CodeBlock) -> String {
         let mut output = format!("\\begin{{{}}}", self.code_environment);
         if block.language.is_some() || block.name.is_some() {
             output.push('[');
