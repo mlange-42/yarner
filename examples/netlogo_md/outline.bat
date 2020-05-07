@@ -1,5 +1,5 @@
 ..\..\target\debug\outline ^
-    --output code/ ^
-    --docs docs/ ^
+    --output __code/ ^
+    --docs __docs/ ^
     Model.nlogo.md
 pause

@@ -7,11 +7,13 @@ interpolation_start = "@{"
 interpolation_end = "}"
 macro_start = "==> "
 macro_end = "."
+transclusion_start = "@{{"
+transclusion_end = "}}"
 variable_sep = ":"
 file_prefix = "file:"
 hidden_prefix = "hidden:"
 
 [paths]
-code = "code/"
-docs = "docs/"
+code = "__code/"
+docs = "__docs/"
 files = ["README.md.md"]

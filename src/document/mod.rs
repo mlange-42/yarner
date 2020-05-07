@@ -4,19 +4,20 @@ use std::iter::FromIterator;
 pub mod ast;
 pub mod code;
 pub mod text;
+pub mod tranclusion;
 
 use self::ast::Ast;
 use crate::parser::Printer;
 
 /// A representation of a `Document` of literate code
 #[derive(Debug)]
-pub struct Document<'a> {
-    tree: Ast<'a>,
+pub struct Document {
+    tree: Ast,
 }
 
-impl<'a> Document<'a> {
+impl Document {
     /// Creates a new document with the tree
-    pub(crate) fn new(tree: Ast<'a>) -> Self {
+    pub(crate) fn new(tree: Ast) -> Self {
         Document { tree }
     }
 
@@ -35,23 +36,33 @@ impl<'a> Document<'a> {
     }
 
     /// Return the document's AST
-    pub fn tree(&self) -> &Ast<'a> {
+    pub fn tree(&self) -> &Ast {
         &self.tree
+    }
+
+    /// Return the document's AST in mutable form
+    pub fn tree_mut(&mut self) -> &mut Ast {
+        &mut self.tree
+    }
+
+    /// Return the document's AST, consuming the document
+    pub fn into_tree(self) -> Ast {
+        self.tree
     }
 }
 
-impl<'a, T> FromIterator<T> for Document<'a>
+impl<T> FromIterator<T> for Document
 where
-    Ast<'a>: FromIterator<T>,
+    Ast: FromIterator<T>,
 {
     fn from_iter<I: IntoIterator<Item = T>>(iter: I) -> Self {
         Self::new(iter.into_iter().collect())
     }
 }
 
-impl<'a, T> From<T> for Document<'a>
+impl<T> From<T> for Document
 where
-    Ast<'a>: From<T>,
+    Ast: From<T>,
 {
     fn from(value: T) -> Self {
         Self::new(value.into())

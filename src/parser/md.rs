@@ -31,6 +31,7 @@ use super::{ParseError, Parser, ParserConfig, Printer};
 use crate::document::ast::Node;
 use crate::document::code::CodeBlock;
 use crate::document::text::TextBlock;
+use crate::document::tranclusion::Transclusion;
 use crate::document::Document;
 use crate::util::try_collect::TryCollectExt;
 use regex::Regex;
@@ -78,6 +79,14 @@ pub struct MdParser {
     ///
     /// Default: `.`
     pub macro_end: String,
+    /// The sequence to identify the start of a transclusion.
+    ///
+    /// Default: `@{{`
+    pub transclusion_start: String,
+    /// The sequence to identify the end of a transclusion.
+    ///
+    /// Default: `}}`
+    pub transclusion_end: String,
     /// The sequence to split variables into name and value.
     ///
     /// Default: `:`
@@ -105,6 +114,8 @@ impl Default for MdParser {
             interpolation_end: String::from("}"),
             macro_start: String::from("==> "),
             macro_end: String::from("."),
+            transclusion_start: String::from("@{{"),
+            transclusion_end: String::from("}}"),
             variable_sep: String::from(":"),
             file_prefix: String::from("file:"),
             hidden_prefix: String::from("hidden:"),
@@ -113,6 +124,8 @@ impl Default for MdParser {
 }
 
 impl MdParser {
+    const LINK_PATTERN: &'static str = r"\[([^\[\]]*)\]\((.*?)\)";
+
     /// Creates a default parser with a fallback language
     pub fn for_language(language: String) -> Self {
         Self {
@@ -130,6 +143,37 @@ impl MdParser {
             }
         } else {
             self.clone()
+        }
+    }
+
+    fn parse_transclusion(&self, line: &str) -> Result<Option<Node>, ParseError> {
+        let trim = line.trim();
+        if trim.starts_with(&self.transclusion_start) {
+            if let Some(index) = line.find(&self.transclusion_end) {
+                let trans = &trim[..index];
+                let regex = Regex::new(Self::LINK_PATTERN).unwrap();
+
+                let path: Vec<_> = regex
+                    .captures_iter(trans)
+                    .map(|m| m.get(2).unwrap().as_str())
+                    .collect();
+
+                let target = path.get(0).unwrap_or(&trans);
+
+                let path = PathBuf::from(target);
+                if path.is_relative() && File::open(&path).is_ok() {
+                    Ok(Some(Node::Transclusion(Transclusion::new(path))))
+                } else {
+                    Err(ParseError::InvalidTransclusionError(format!(
+                        "Not a relative path, of file not found: {}",
+                        line.to_owned()
+                    )))
+                }
+            } else {
+                Err(ParseError::UnclosedTransclusionError(line.to_owned()))
+            }
+        } else {
+            Ok(None)
         }
     }
 }
@@ -156,23 +200,20 @@ impl ParserConfig for MdParser {
     fn file_prefix(&self) -> &str {
         &self.file_prefix
     }
-    fn hidden_prefix(&self) -> &str {
-        &self.hidden_prefix
-    }
 }
 
 impl Parser for MdParser {
     type Error = MdError;
 
-    fn parse<'a>(&self, input: &'a str) -> Result<Document<'a>, Self::Error> {
+    fn parse(&self, input: &str) -> Result<Document, Self::Error> {
         #[derive(Default)]
-        struct State<'a> {
-            node: Option<Node<'a>>,
+        struct State {
+            node: Option<Node>,
         }
 
-        enum Parse<'a> {
+        enum Parse {
             Incomplete,
-            Complete(Node<'a>),
+            Complete(Node),
             Error(MdError),
         }
 
@@ -184,7 +225,7 @@ impl Parser for MdParser {
                 if line.trim_start().starts_with(&self.fence_sequence) {
                     match state.node.take() {
                         Some(Node::Code(code_block)) => {
-                            if line.starts_with(code_block.indent) {
+                            if line.starts_with(&code_block.indent) {
                                 state.node = None;
                                 Some(Parse::Complete(Node::Code(code_block)))
                             } else {
@@ -234,7 +275,7 @@ impl Parser for MdParser {
                             code_block = match name {
                                 None => code_block,
                                 Some(Ok((name, vars, defaults))) => {
-                                    let hidden = name.starts_with(self.hidden_prefix());
+                                    let hidden = name.starts_with(&self.hidden_prefix);
                                     code_block.named(name, vars, defaults).hidden(hidden)
                                 }
                                 Some(Err(error)) => {
@@ -257,14 +298,49 @@ impl Parser for MdParser {
                             let mut new_block = TextBlock::new();
                             new_block.add_line(line);
                             state.node = Some(Node::Text(new_block));
-                            Some(Parse::Incomplete)
+                            match self.parse_transclusion(line) {
+                                Err(err) => Some(Parse::Error(MdError::Single {
+                                    line_number,
+                                    kind: MdErrorKind::Parse(err),
+                                })),
+                                Ok(trans) => match trans {
+                                    Some(node) => {
+                                        let new_block = TextBlock::new();
+                                        state.node = Some(Node::Text(new_block));
+
+                                        Some(Parse::Complete(node))
+                                    }
+                                    None => Some(Parse::Incomplete),
+                                },
+                            }
+                            //Some(Parse::Incomplete)
                         }
-                        Some(Node::Text(block)) => {
+                        Some(Node::Text(block)) => match self.parse_transclusion(line) {
+                            Err(err) => Some(Parse::Error(MdError::Single {
+                                line_number,
+                                kind: MdErrorKind::Parse(err),
+                            })),
+                            Ok(trans) => match trans {
+                                Some(node) => {
+                                    //state.node = None;
+                                    //Some(Parse::Complete(node))
+
+                                    let ret = state.node.take();
+                                    state.node = Some(node);
+                                    Some(Parse::Complete(ret.unwrap()))
+                                }
+                                None => {
+                                    block.add_line(line);
+                                    Some(Parse::Incomplete)
+                                }
+                            },
+                        },
+                        /*{
                             block.add_line(line);
                             Some(Parse::Incomplete)
-                        }
+                        },*/
                         Some(Node::Code(block)) => {
-                            if line.starts_with(block.indent) {
+                            if line.starts_with(&block.indent) {
                                 let line = match self
                                     .parse_line(line_number, &line[block.indent.len()..])
                                 {
@@ -285,6 +361,13 @@ impl Parser for MdParser {
                                 }))
                             }
                         }
+                        Some(Node::Transclusion(trans)) => {
+                            let trans = trans.clone();
+                            let mut new_block = TextBlock::new();
+                            new_block.add_line(line);
+                            state.node = Some(Node::Text(new_block));
+                            Some(Parse::Complete(Node::Transclusion(trans)))
+                        }
                     }
                 }
             })
@@ -300,19 +383,27 @@ impl Parser for MdParser {
         Ok(Document::from_iter(document))
     }
 
-    fn find_links(&self, input: &str) -> Result<Vec<PathBuf>, Self::Error> {
-        let regex = Regex::new(r"\[([^\[\]]*)\]\((.*?)\)").unwrap();
-        let paths = regex
-            .captures_iter(input)
-            .map(|m| m.get(2).unwrap().as_str())
-            .filter_map(|p| {
-                let path = PathBuf::from(p);
-                if path.is_relative() && File::open(&path).is_ok() {
-                    //Some(PathBuf::from(p.to_string() + ".md"))
-                    Some(path)
-                } else {
-                    None
-                }
+    fn find_links(&self, input: &Document) -> Result<Vec<PathBuf>, Self::Error> {
+        let regex = Regex::new(Self::LINK_PATTERN).unwrap();
+        let paths = input
+            .tree()
+            .text_blocks()
+            .iter()
+            .flat_map(|block| {
+                block.lines().iter().flat_map(|line| {
+                    regex
+                        .captures_iter(line)
+                        .map(|m| m.get(2).unwrap().as_str())
+                        .filter_map(|p| {
+                            let path = PathBuf::from(p);
+                            if path.is_relative() && File::open(&path).is_ok() {
+                                //Some(PathBuf::from(p.to_string() + ".md"))
+                                Some(path)
+                            } else {
+                                None
+                            }
+                        })
+                })
             })
             .collect();
         Ok(paths)
@@ -320,11 +411,11 @@ impl Parser for MdParser {
 }
 
 impl Printer for MdParser {
-    fn print_text_block<'a>(&self, block: &TextBlock<'a>) -> String {
+    fn print_text_block(&self, block: &TextBlock) -> String {
         format!("{}\n", block.to_string())
     }
 
-    fn print_code_block<'a>(&self, block: &CodeBlock<'a>) -> String {
+    fn print_code_block(&self, block: &CodeBlock) -> String {
         let mut output = self.fence_sequence.clone();
         if let Some(language) = &block.language {
             output.push_str(language);
@@ -360,6 +451,14 @@ impl Printer for MdParser {
             ));
         }
 
+        output
+    }
+
+    fn print_transclusion(&self, transclusion: &Transclusion) -> String {
+        let mut output = String::new();
+        output.push_str("**WARNING!** Missed/skipped transclusion: ");
+        output.push_str(transclusion.file().to_str().unwrap());
+        output.push('\n');
         output
     }
 }

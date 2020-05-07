@@ -6,28 +6,31 @@ use std::iter::FromIterator;
 use super::code::CodeBlock;
 use super::text::TextBlock;
 use super::{CompileError, CompileErrorKind};
+use crate::document::tranclusion::Transclusion;
 use crate::parser::Printer;
 
 /// A `Node` in the `Ast`
 #[derive(Debug)]
-pub(crate) enum Node<'a> {
+pub(crate) enum Node {
     /// A text block
-    Text(TextBlock<'a>),
+    Text(TextBlock),
     /// A code block
-    Code(CodeBlock<'a>),
+    Code(CodeBlock),
+    /// A transclusion
+    Transclusion(Transclusion),
 }
 
 /// The AST of a literate document
 #[derive(Debug)]
-pub struct Ast<'a> {
+pub struct Ast {
     /// A list of the nodes in this "tree", which is actually just a sequence until the parsers get
     /// cooler.
-    nodes: Vec<Node<'a>>,
+    nodes: Vec<Node>,
 }
 
-impl<'a> Ast<'a> {
+impl Ast {
     /// Create a new empty AST
-    pub(crate) fn new(nodes: Vec<Node<'a>>) -> Self {
+    pub(crate) fn new(nodes: Vec<Node>) -> Self {
         Ast { nodes }
     }
 
@@ -47,11 +50,34 @@ impl<'a> Ast<'a> {
                 }
                 code_blocks
                     .entry(block.name.as_ref().map(|x| &x[..])) // TODO: any nicer way to write this
-                    .and_modify(|existing: &mut CodeBlock<'a>| existing.append(block))
+                    .and_modify(|existing: &mut CodeBlock| existing.append(block))
                     .or_insert_with(|| block.clone());
             }
         }
         code_blocks
+    }
+    /// Gets all the text blocks of this AST
+    pub(crate) fn text_blocks(&self) -> Vec<&TextBlock> {
+        self.nodes
+            .iter()
+            .filter_map(|node| match node {
+                Node::Text(block) => Some(block),
+                _ => None,
+            })
+            .collect()
+    }
+
+    /// Gets all the transclusions of this AST
+    pub fn transclusions(&self) -> Vec<Transclusion> {
+        let vec = self
+            .nodes
+            .iter()
+            .filter_map(|node| match node {
+                Node::Transclusion(trans) => Some((*trans).clone()),
+                _ => None,
+            })
+            .collect();
+        vec
     }
 
     /// Renders the program this AST is representing in the documentation format
@@ -59,6 +85,9 @@ impl<'a> Ast<'a> {
         let mut output = String::new();
         for node in &self.nodes {
             match node {
+                Node::Transclusion(transclusion) => {
+                    output.push_str(&printer.print_transclusion(transclusion))
+                }
                 Node::Text(text_block) => output.push_str(&printer.print_text_block(text_block)),
                 Node::Code(code_block) => {
                     if !code_block.hidden {
@@ -98,16 +127,40 @@ impl<'a> Ast<'a> {
                 kind: CompileErrorKind::MissingEntrypoint,
             }))
     }
+
+    /// Renders the program this AST is representing in the documentation format
+    pub fn transclude(&mut self, replace: &Transclusion, with: Ast, from: &String) {
+        let mut index = 0;
+        while index < self.nodes.len() {
+            if let Node::Transclusion(trans) = &self.nodes[index] {
+                if trans == replace {
+                    self.nodes.remove(index);
+                    for (i, mut node) in with.nodes.into_iter().enumerate() {
+                        if let Node::Code(code) = &mut node {
+                            if code.name.is_none() {
+                                code.name = Some(from.clone());
+                            }
+                        };
+                        self.nodes.insert(index + i, node);
+                    }
+                    // TODO: currently, only a single transclusion of a particular document is possible.
+                    // May be sufficient (or even desired), but should be checked.
+                    break;
+                }
+            }
+            index += 1;
+        }
+    }
 }
 
-impl<'a> FromIterator<Node<'a>> for Ast<'a> {
-    fn from_iter<I: IntoIterator<Item = Node<'a>>>(iter: I) -> Self {
+impl FromIterator<Node> for Ast {
+    fn from_iter<I: IntoIterator<Item = Node>>(iter: I) -> Self {
         Self::new(iter.into_iter().collect())
     }
 }
 
-impl<'a> From<Vec<Node<'a>>> for Ast<'a> {
-    fn from(nodes: Vec<Node<'a>>) -> Self {
+impl From<Vec<Node>> for Ast {
+    fn from(nodes: Vec<Node>) -> Self {
         Self::new(nodes)
     }
 }
