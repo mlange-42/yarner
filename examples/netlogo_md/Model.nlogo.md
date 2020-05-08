@@ -15,7 +15,8 @@ Here we insert two simple procedures that will be called from buttons (see [Inte
 
 First, we need to set up the world. We do this in `setup`.
 
-``` - Code tab
+```
+// Code tab
 to setup
   clear-all
   create-turtles 10 [
@@ -28,7 +29,8 @@ end
 
 Next, some fancy things shall happen in `go`.
 
-``` - Code tab
+```
+// Code tab
 to go
   ask turtles [
     ==> Per-turtle action.
@@ -39,7 +41,8 @@ end
 
 In every model step, each turtle will then do the following:
 
-``` - Per-turtle action
+```
+// Per-turtle action
 forward 1
 right (random 90) - 45
 ```
@@ -76,7 +79,8 @@ Details for `.nlogo` files can be found in [NetLogo's Hithub repository](https:/
 
 Here, we just insert a short description template, in NetLogo's syntax:
 
-``` - Info tab
+```
+// Info tab
 ## WHAT IS IT?
 
 (a general understanding of what the model is trying to show or explain)
@@ -95,7 +99,8 @@ Here, we just insert a short description template, in NetLogo's syntax:
 Setting up the user interface in NetLogo is a bit inconvenient.
 First, we need to set up the world's attributes:
 
-``` - Interface tab
+```
+// Interface tab
 GRAPHICS-WINDOW
 210
 10
@@ -127,7 +132,8 @@ ticks
 
 Then, we add two buttons:
 
-``` - Interface tab
+```
+// Interface tab
 ==> Button @{setup} @{16} @{13} @{79} @{46} @{NIL}.
 ==> Button @{go} @{85} @{13} @{148} @{46} @{T}.
 ```
@@ -138,7 +144,8 @@ The actual button code is presented in the [Appendix](#appendix)
 
 We need to define the default shape for turtles:
 
-``` - Turtle shapes
+```
+// Turtle shapes
 default
 true
 0
@@ -149,7 +156,8 @@ Polygon -7500403 true true 150 5 40 250 150 205 260 250
 
 And finally, the default link shape:
 
-``` - Link shapes
+```
+// Link shapes
 default
 0.0
 -0.2 0 0.0 1.0
@@ -164,7 +172,8 @@ Line -7500403 true 150 150 210 180
 
 ## NetLogo version
 
-``` - NetLogo version
+```
+// NetLogo version
 NetLogo 6.1.0
 ```
 
@@ -172,7 +181,8 @@ NetLogo 6.1.0
 
 Code for a Button in NetLogo:
 
-``` - Button @{name} @{left} @{top} @{right} @{bottom} @{forever}
+```
+// Button @{name} @{left} @{top} @{right} @{bottom} @{forever}
 BUTTON
 @{left}
 @{top}

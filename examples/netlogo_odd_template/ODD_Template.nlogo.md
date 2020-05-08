@@ -18,7 +18,8 @@ For help on the Literate Programming syntax, see [README](https://github.com/mla
 
 ### Process overview and scheduling
 
-``` - Go
+```
+// Go
 to go
   ==> Random walk...
   tick
@@ -32,7 +33,8 @@ end
 
 ### Initialization
 
-``` - Setup
+```
+// Setup
 to setup
   create-turtles 10 [
     pen-down
@@ -48,7 +50,8 @@ end
 
 #### Random walk
 
-``` - Random walk
+```
+// Random walk
 ask turtles [
   right (random 90) - 45
   forward 1
@@ -63,7 +66,8 @@ In the NetLogo Code tab, the code is structured as follows:
 
 <!-- Here, you put together all top-level code parts from above -->
 
-``` - Code tab
+```
+// Code tab
 ==> Setup...
 ==> Go...
 ```
@@ -100,7 +104,8 @@ Further details about the `.nlogo` file atructure can be found in [NetLogo's Hit
 
 Here, we just insert a short description in NetLogo's Markdown syntax:
 
-``` - Info tab
+```
+// Info tab
 ## WHAT IS IT?
 
 ## HOW IT WORKS
@@ -116,7 +121,8 @@ Setting up the user interface in NetLogo programmatically is a bit inconvenient.
 We add two buttons, some sliders, and set up the world and graphics window,
 using `outline`'s "meta variables" feature:
 
-``` - Interface tab
+```
+// Interface tab
 ==> Button @{setup} @{10} @{10} @{80} @{50} @{NIL}...
 ==> Button @{go} @{90} @{10} @{160} @{50} @{T}...
 
@@ -125,7 +131,8 @@ using `outline`'s "meta variables" feature:
 
 The actual code for a Button in NetLogo looks like this:
 
-``` - Button @{name} @{left} @{top} @{right} @{bottom} @{forever}
+```
+// Button @{name} @{left} @{top} @{right} @{bottom} @{forever}
 BUTTON
 @{left}
 @{top}
@@ -147,7 +154,8 @@ NIL
 
 The actual code for a Slider in NetLogo looks like this:
 
-``` - Slider @{name} @{left} @{top} @{right} @{bottom} @{min} @{max} @{step} @{value}
+```
+// Slider @{name} @{left} @{top} @{right} @{bottom} @{min} @{max} @{step} @{value}
 SLIDER
 @{left}
 @{top}
@@ -167,7 +175,8 @@ HORIZONTAL
 
 The actual code for the Graphics window looks like this:
 
-``` - GraphicsWindow at @{left} @{top} size @{width} @{height} wrap @{wrap_x:1} @{wrap_y:1} ps @{patch_size:5.0} fps @{fps:30.0} tick @{on_tick:1}
+```
+// GraphicsWindow at @{left} @{top} size @{width} @{height} wrap @{wrap_x:1} @{wrap_y:1} ps @{patch_size:5.0} fps @{fps:30.0} tick @{on_tick:1}
 GRAPHICS-WINDOW
 @{left}
 @{top}
@@ -201,7 +210,8 @@ ticks
 
 We need to define the default shape for turtles:
 
-``` - Turtle shapes
+```
+// Turtle shapes
 default
 true
 0
@@ -212,7 +222,8 @@ Polygon -7500403 true true 150 5 40 250 150 205 260 250
 
 And the default link shape:
 
-``` - Link shapes
+```
+// Link shapes
 default
 0.0
 -0.2 0 0.0 1.0
@@ -229,6 +240,7 @@ Line -7500403 true 150 150 210 180
 
 Last but not least, the file's NetLogo version is required.
 
-``` - NetLogo version
+```
+// NetLogo version
 NetLogo 6.1.0
 ```

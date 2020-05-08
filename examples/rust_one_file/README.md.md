@@ -28,7 +28,8 @@ here: [../README.md.md](../README.md.md).
 
 First, we need a simple `Cargo.toml` file:
 
-```toml - file:Cargo.toml
+```toml
+// file:Cargo.toml
 [package]
 name = "rust_md"
 version = "0.1.0"
@@ -41,7 +42,8 @@ edition = "2018"
 In the file `.gitignore`, we need nothing more than the target directory.
 However, the last line of this file should always be blank.
 
-``` - file:.gitignore
+```
+// file:.gitignore
 /target
 
 ```
@@ -50,7 +52,8 @@ However, the last line of this file should always be blank.
 
 Everything starts in the `main` function:
 
-```rust - file:src/main.rs
+```rust
+// file:src/main.rs
 use rust_md;
 
 fn main() {
@@ -67,7 +70,8 @@ fn main() {
 
 The code for the `start()` function looks like this:
 
-```rust - Code of the functions
+```rust
+// Code of the functions
 fn start() {
     println!("start");
 }
@@ -75,7 +79,8 @@ fn start() {
 
 The code for the `step()` function looks like this:
 
-```rust - Code of the functions
+```rust
+// Code of the functions
 fn step() {
     println!("    step");
 }
@@ -83,7 +88,8 @@ fn step() {
 
 And finally, the code for the `stop()` function looks like this:
 
-```rust - Code of the functions
+```rust
+// Code of the functions
 fn stop() {
     println!("stop");
 }
@@ -94,7 +100,8 @@ fn stop() {
 Code blocks that should not appear in code output can be achieved
 by giving them a name that is never used as a macro:
 
-```rust - Example
+```rust
+// Example
 fn dead_code() {
     println!("I will not appear in the code.");
 }
@@ -105,7 +112,8 @@ fn dead_code() {
 Code blocks can be hidden from the documentation by prefixing their name with 'hidden:'.
 Here, we include a code block that will not appear in the documentation
 
-```rust - file:src/lib.rs
+```rust
+// file:src/lib.rs
 pub fn secret() {
     ==> hidden:Secret code.
 }
@@ -113,6 +121,7 @@ pub fn secret() {
 
 The hidden code was here, but is excluded from the output docs:
 
-```rust - hidden:Secret code
+```rust
+// hidden:Secret code
 println!("I'm produced by hidden code!");
 ```

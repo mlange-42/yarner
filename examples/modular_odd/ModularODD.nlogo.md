@@ -24,7 +24,8 @@ For help on the Literate Programming syntax, see the [README](https://github.com
 
 The only process in the model is turtle movement.
 
-``` - Go
+```
+// Go
 to go
   ==> Turtle movement...
   tick
@@ -36,7 +37,8 @@ end
 
 Turtles are initialised and move in different ways, depending on which submodels are included in this document (called transclusion). Transclusions are links in curly braces after an @:
 
-``` - Transclusion syntax
+```
+// Transclusion syntax
 @{{[Title](target.md)}}
 ```
 
@@ -44,7 +46,8 @@ Turtles are initialised and move in different ways, depending on which submodels
 
 ### Initialization
 
-``` - Setup
+```
+// Setup
 to setup
   ==> Initialization...
 end
