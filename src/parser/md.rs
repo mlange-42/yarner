@@ -441,9 +441,14 @@ impl Parser for MdParser {
                         .map(|m| m.get(2).unwrap().as_str())
                         .filter_map(|p| {
                             let path = PathBuf::from(p);
-                            if path.is_relative() && File::open(&path).is_ok() {
-                                //Some(PathBuf::from(p.to_string() + ".md"))
-                                Some(path)
+                            if path.is_relative() && !p.starts_with("#") {
+                                if File::open(&path).is_ok() {
+                                    Some(path)
+                                } else {
+                                    // TODO: move out of function?
+                                    eprintln!("WARNING: link target not found for {:?}", path);
+                                    None
+                                }
                             } else {
                                 None
                             }
