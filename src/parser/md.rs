@@ -48,7 +48,7 @@ pub struct MdParser {
     /// Alternative sequence that identifies the start and end of a fenced code block.
     /// Allows for normal Markdown fences in code blocks
     ///
-    /// Default: `\`\`\`\`
+    /// Default: \~\~\~
     pub fence_sequence_alt: String,
     /// The sequence that separates the language from the name of the code block after the fence
     ///
@@ -111,7 +111,7 @@ impl Default for MdParser {
         Self {
             default_language: None,
             fence_sequence: String::from("```"),
-            fence_sequence_alt: String::from("````"),
+            fence_sequence_alt: String::from("~~~"),
             block_name_start: String::from(" - "),
             block_name_end: None,
             comments_as_aside: false,
