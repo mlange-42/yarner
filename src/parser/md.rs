@@ -45,6 +45,11 @@ pub struct MdParser {
     ///
     /// Default: `\`\`\``
     pub fence_sequence: String,
+    /// Alternative sequence that identifies the start and end of a fenced code block.
+    /// Allows for normal Markdown fences in code blocks
+    ///
+    /// Default: `\`\`\`\`
+    pub fence_sequence_alt: String,
     /// The sequence that separates the language from the name of the code block after the fence
     ///
     /// Default: ` - `
@@ -106,6 +111,7 @@ impl Default for MdParser {
         Self {
             default_language: None,
             fence_sequence: String::from("```"),
+            fence_sequence_alt: String::from("````"),
             block_name_start: String::from(" - "),
             block_name_end: None,
             comments_as_aside: false,
@@ -222,7 +228,28 @@ impl Parser for MdParser {
             .lines()
             .enumerate()
             .scan(&mut state, |state, (line_number, line)| {
-                if line.trim_start().starts_with(&self.fence_sequence) {
+                let (is_code, is_alt_fenced_code) =
+                    if let Some(Node::Code(code_block)) = &state.node {
+                        (true, code_block.alternative)
+                    } else {
+                        (false, false)
+                    };
+                let starts_fenced_alt = line.trim_start().starts_with(&self.fence_sequence_alt);
+                let starts_fenced = if starts_fenced_alt {
+                    false
+                } else {
+                    line.trim_start().starts_with(&self.fence_sequence)
+                };
+
+                if ((!is_code) && (starts_fenced || starts_fenced_alt))
+                    || (is_code && starts_fenced && !is_alt_fenced_code)
+                    || (is_code && starts_fenced_alt && is_alt_fenced_code)
+                {
+                    let fence_sequence = if starts_fenced_alt {
+                        &self.fence_sequence_alt
+                    } else {
+                        &self.fence_sequence
+                    };
                     match state.node.take() {
                         Some(Node::Code(code_block)) => {
                             if line.starts_with(&code_block.indent) {
@@ -236,9 +263,9 @@ impl Parser for MdParser {
                             }
                         }
                         previous => {
-                            let indent_len = line.find(&self.fence_sequence).unwrap();
+                            let indent_len = line.find(fence_sequence).unwrap();
                             let (indent, rest) = line.split_at(indent_len);
-                            let rest = &rest[self.fence_sequence.len()..];
+                            let rest = &rest[fence_sequence.len()..];
                             let name_start = rest.find(&self.block_name_start);
                             let name = name_start
                                 .map(|start| start + self.block_name_start.len())
@@ -272,6 +299,7 @@ impl Parser for MdParser {
                             if let Some(language) = language {
                                 code_block = code_block.in_language(language);
                             }
+                            code_block = code_block.alternative(starts_fenced_alt);
                             code_block = match name {
                                 None => code_block,
                                 Some(Ok((name, vars, defaults))) => {
@@ -433,7 +461,12 @@ impl Printer for MdParser {
     }
 
     fn print_code_block(&self, block: &CodeBlock) -> String {
-        let mut output = self.fence_sequence.clone();
+        let fence_sequence = if block.alternative {
+            &self.fence_sequence_alt
+        } else {
+            &self.fence_sequence
+        };
+        let mut output = fence_sequence.clone();
         if let Some(language) = &block.language {
             output.push_str(language);
         }
@@ -457,7 +490,7 @@ impl Printer for MdParser {
             output.push('\n');
         }
 
-        output.push_str(&self.fence_sequence);
+        output.push_str(fence_sequence);
         output.push('\n');
 
         for (line, comment) in comments {

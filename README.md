@@ -314,6 +314,7 @@ For more information on these options, see the [API documentation](https://docs.
 ```toml
 [md]
 fence_sequence = "```"
+fence_sequence_alt = "````"
 block_name_start = " - "
 comments_as_aside = false
 comment_start = "//"
