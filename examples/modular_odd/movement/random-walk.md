@@ -2,7 +2,8 @@
 
 Turtles do a random walk.
 
-``` - Turtle movement
+```
+// Turtle movement
 ; included from movement/random-walk.md
 ask turtles [
   right (random 90) - 45
