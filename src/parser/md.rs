@@ -322,9 +322,6 @@ impl Parser for MdParser {
                             })),
                             Ok(trans) => match trans {
                                 Some(node) => {
-                                    //state.node = None;
-                                    //Some(Parse::Complete(node))
-
                                     let ret = state.node.take();
                                     state.node = Some(node);
                                     Some(Parse::Complete(ret.unwrap()))
@@ -335,25 +332,45 @@ impl Parser for MdParser {
                                 }
                             },
                         },
-                        /*{
-                            block.add_line(line);
-                            Some(Parse::Incomplete)
-                        },*/
                         Some(Node::Code(block)) => {
                             if line.starts_with(&block.indent) {
-                                let line = match self
-                                    .parse_line(line_number, &line[block.indent.len()..])
+                                if block.name.is_none()
+                                    && block.source.is_empty()
+                                    && line.trim().starts_with(&self.comment_start)
                                 {
-                                    Ok(line) => line,
-                                    Err(error) => {
-                                        return Some(Parse::Error(MdError::Single {
-                                            line_number,
-                                            kind: error.into(),
-                                        }))
-                                    }
-                                };
-                                block.add_line(line);
-                                Some(Parse::Incomplete)
+                                    let trim = line.trim()[self.comment_start.len()..].trim();
+                                    let name = self.parse_name(trim, false);
+                                    match name {
+                                        Ok((name, vars, defaults)) => {
+                                            let hidden = name.starts_with(&self.hidden_prefix);
+                                            block.hidden = hidden;
+                                            block.name = Some(name);
+                                            block.vars = vars;
+                                            block.defaults = defaults;
+                                        }
+                                        Err(error) => {
+                                            return Some(Parse::Error(MdError::Single {
+                                                line_number,
+                                                kind: error.into(),
+                                            }))
+                                        }
+                                    };
+                                    Some(Parse::Incomplete)
+                                } else {
+                                    let line = match self
+                                        .parse_line(line_number, &line[block.indent.len()..])
+                                    {
+                                        Ok(line) => line,
+                                        Err(error) => {
+                                            return Some(Parse::Error(MdError::Single {
+                                                line_number,
+                                                kind: error.into(),
+                                            }))
+                                        }
+                                    };
+                                    block.add_line(line);
+                                    Some(Parse::Incomplete)
+                                }
                             } else {
                                 Some(Parse::Error(MdError::Single {
                                     line_number,
