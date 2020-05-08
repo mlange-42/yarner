@@ -202,6 +202,42 @@ fn say_hello() {
 \end{code}
 ```
 
+### File transclusion
+
+Outline supports file transclusion to allow for more structured or modular project sources.
+*This feature is currently only supported for Markdown.*
+
+Here, the content of file `src/main.rs.md` would be pulled into the document
+before compilation:
+
+```md
+@{{[src/main.rs](src/main.rs.md)}}
+```
+which would render as a link in the sources file. Or simply:
+```md
+@{{src/main.rs.md}}
+```
+which would not render as a link.
+
+Unnamed entrypoints are renamed to file entrypoints during transclusion.
+It is not required that transcluded files have their own entrypoints.
+
+All code blocks from transcluded files are accessible from the *transcluding* file,
+as well as from other transcluded files.
+
+### Include linked files
+
+Files linked from the main source document are included in the compilation process.
+*This feature is currently only supported for Markdown.*
+
+As an example, Outline would also compile the file `src/main.rs.md` here:
+
+```md
+* [src/main.rs](src/main.rs.md)
+```
+
+However, files are only included in the compilation if they are referenced by a *relative path*, and the file exists in that location.
+
 ### Multiple languages
 
 Some documentation formats allow you to indicate the language that a code block is written in. In
@@ -237,31 +273,33 @@ will cause only the code blocks tagged with `rb` will be used to generate code.
 ## Usage
 
 ```
-Outline 1.0
-Cameron Eldridge <cameldridge@gmail.com>
 Literate programming compiler
 
 USAGE:
-    outline [OPTIONS] [input]...
+    outline [OPTIONS] [input]... [SUBCOMMAND]
 
 FLAGS:
     -h, --help       Prints help information
     -V, --version    Prints version information
 
 OPTIONS:
-    -o, --output <code_dir>          Output tangled code files to this directory. No code files will be printed by
-                                     default.
+    -o, --output <code_dir>          Output tangled code files to this directory. If none is specified, uses 'path' ->
+                                     'code' from config file.
     -c, --config <config_file>       Sets the config file name [default: Outline.toml]
-    -d, --docs <doc_dir>             Directory to output weaved documentation files to. No documentation will be printed
-                                     by default.
+    -d, --docs <doc_dir>             Directory to output weaved documentation files to. If none is specified, uses
+                                     'path' -> 'docs' from config file.
     -e, --entrypoint <entrypoint>    The named entrypoint to use when tangling code. Defaults to the unnamed code block.
     -l, --language <language>        The language to output the tangled code in. Only code blocks in this language will
                                      be used.
     -s, --style <style>              Sets the style to use. If not specified, it is inferred from the file extension.
-                                     When reading from STDIN, defaults to 'md'. [possible values: bird, md, tex, html]
+                                     [possible values: bird, md, tex, html]
 
 ARGS:
-    <input>..
+    <input>...    The input source file(s). If none are specified, uses 'path' -> 'files' from config file.
+
+SUBCOMMANDS:
+    create    Creates an outline project in the current directory
+    help      Prints this message or the help of the given subcommand(s)
 ```
 
 ### Configuration
@@ -275,13 +313,17 @@ For more information on these options, see the [API documentation](https://docs.
 
 ```toml
 [tex]
-code_environment = "code"
-default_language = "rs" # optional
+fence_sequence = "```"
+block_name_start = " - "
+comments_as_aside = false
 comment_start = "//"
 interpolation_start = "@{"
 interpolation_end = "}"
 macro_start = "==> "
 macro_end = "."
+transclusion_start = "@{{"
+transclusion_end = "}}"
+variable_sep = ":"
 file_prefix = "file:"
 hidden_prefix = "hidden:"
 
