@@ -95,8 +95,10 @@ pub struct CodeBlock {
     pub defaults: Vec<Option<String>>,
     /// The language this block was written in
     pub language: Option<String>,
-    /// Marks the code block es hidden from docs
+    /// Marks the code block as hidden from docs
     pub hidden: bool,
+    /// Marks the code block as fenced by alternative sequence
+    pub alternative: bool,
     /// The source is the lines of code
     pub source: Vec<Line>,
 }
@@ -125,9 +127,17 @@ impl CodeBlock {
         }
     }
 
-    /// Indents this code block
+    /// Hides this code block
     pub fn hidden(self, hidden: bool) -> Self {
         Self { hidden, ..self }
+    }
+
+    /// Marks the code block as fenced by alternative sequence
+    pub fn alternative(self, alternative: bool) -> Self {
+        Self {
+            alternative,
+            ..self
+        }
     }
 
     /// Sets the language of this code block
