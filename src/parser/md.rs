@@ -341,6 +341,16 @@ impl Parser for MdParser {
                         },*/
                         Some(Node::Code(block)) => {
                             if line.starts_with(&block.indent) {
+                                // TODO: Complicated code name parsing
+                                /*
+                                if block.name.is_none()
+                                    && block.source.is_empty()
+                                    && line.trim().starts_with(&self.comment_start)
+                                {
+                                    let trim = line.trim()[self.comment_start.len()..].trim();
+                                    block.name = Some(self.parse_name(trim, false));
+                                    Some(Parse::Incomplete)
+                                } else {*/
                                 let line = match self
                                     .parse_line(line_number, &line[block.indent.len()..])
                                 {
@@ -354,6 +364,7 @@ impl Parser for MdParser {
                                 };
                                 block.add_line(line);
                                 Some(Parse::Incomplete)
+                            //}
                             } else {
                                 Some(Parse::Error(MdError::Single {
                                     line_number,
