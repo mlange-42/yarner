@@ -521,10 +521,17 @@ where
                 if let Some(language) = language {
                     file_path.set_extension(language);
                 }
-                fs::create_dir_all(file_path.parent().unwrap()).unwrap();
-                let mut code_file = File::create(file_path).unwrap();
-                let code = document.print_code(entrypoint, language)?;
-                write!(code_file, "{}", code).unwrap();
+                match document.print_code(entrypoint, language) {
+                    Ok(code) => {
+                        fs::create_dir_all(file_path.parent().unwrap()).unwrap();
+                        let mut code_file = File::create(file_path).unwrap();
+                        write!(code_file, "{}", code).unwrap()
+                    }
+                    Err(_) => eprintln!(
+                        "WARNING: No entrypoint for file {:?}, skipping code output.",
+                        file_name
+                    ),
+                };
             }
             _ => {}
         }
