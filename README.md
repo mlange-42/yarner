@@ -312,7 +312,7 @@ will be discarded).
 For more information on these options, see the [API documentation](https://docs.rs/outline).
 
 ```toml
-[tex]
+[md]
 fence_sequence = "```"
 block_name_start = " - "
 comments_as_aside = false
@@ -327,16 +327,15 @@ variable_sep = ":"
 file_prefix = "file:"
 hidden_prefix = "hidden:"
 
-[md]
-fence_sequence = "```"
-block_name_start = " - "
-comments_as_aside = false
+[tex]
 default_language = "rs" # optional
+code_environment = "code"
 comment_start = "//"
 interpolation_start = "@{"
 interpolation_end = "}"
 macro_start = "==> "
 macro_end = "."
+variable_sep = ":"
 file_prefix = "file:"
 hidden_prefix = "hidden:"
 
@@ -353,6 +352,7 @@ interpolation_start = "@{"
 interpolation_end = "}"
 macro_start = "==> "
 macro_end = "."
+variable_sep = ":"
 file_prefix = "file:"
 hidden_prefix = "hidden:"
 
@@ -364,6 +364,7 @@ interpolation_start = "@{"
 interpolation_end = "}"
 macro_start = "==> "
 macro_end = "."
+variable_sep = ":"
 file_prefix = "file:"
 hidden_prefix = "hidden:"
 ```
