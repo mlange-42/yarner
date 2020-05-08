@@ -32,7 +32,8 @@ models from their own ODD model description (the code blocks therein).
 The only entities in the model are fox families, represented by patches (the NetLogo term for grid cells).
 Each patch has the following state variables:
 
-``` - Patches
+```
+// Patches
 ; define patch variables
 patches-own [
   state               ; disease state of patch (see globals, default = EMPTY)
@@ -45,7 +46,8 @@ patches-own [
 
 The `state` represents the presence of a fox family, and its epidemiological status: 
 
-``` - Globals
+```
+// Globals
 ; define global variables
 globals [
   ; constants for patch (cell) states
@@ -59,7 +61,8 @@ globals [
 
 State names are just identifiers. Internally, they are integers:
 
-``` - Setup globals
+```
+// Setup globals
 set EMPTY 0
 set S 1
 set I 2
@@ -77,7 +80,8 @@ Processes in the model are dispersal (abstracting away reproduction),
 infection, and ageing of infection (to death).
 The processes are executed on each tick sequentially, in the following order:
 
-``` - Go
+```
+// Go
 ; one model step (called by button)
 to go
   ==> Assign dispersal...
@@ -107,7 +111,8 @@ and the death of foxes after a certain time span of infection.
 The model is initialized by setting all patches to susceptible (S).
 Then, one randomly selected patch is infected.
 
-``` - Setup
+```
+// Setup
 ; clears and sets up the model
 to setup
   clear-all
@@ -138,7 +143,8 @@ The model does not use any input data.
 
 Submodels are described in the order of their execution:
 
-``` - Submodels
+```
+// Submodels
 ==> Dispersal...
 ==> Disease transmission...
 ==> Disease course...
@@ -148,7 +154,8 @@ Submodels are described in the order of their execution:
 
 At the start of each year, the month of dispersal for each fox family's offspring is determined.
 
-``` - Assign dispersal
+```
+// Assign dispersal
 if ticks mod 12 = 0 [
   assign-dispersal
 ]
@@ -159,7 +166,8 @@ selected in the range given by parameters `start-dispersal` and `length-dispersa
 
 The selected month is stored in the patch state variable `dispersal-tick`.
 
-``` - Dispersal
+```
+// Dispersal
 ; assign step of year for dispersal
 to assign-dispersal
   ask patches with [ state != EMPTY ] [
@@ -178,7 +186,8 @@ If their number exceeds parameter `num-offspring`,
 If the number of collected empty patches is equal to or smaller than `num-offspring`,
 they are all set to susceptible.
 
-``` - Dispersal
+```
+// Dispersal
 ; dispersal of offspring
 to disperse
   ask patches with [ state != EMPTY and dispersal-tick = ticks ] [
@@ -206,7 +215,8 @@ and stored in patch variable `infected-neighbours`.
 Then, each susceptible fox family is infected with a probability according
 function `infection-prob` (see below).
 
-``` - Disease transmission
+```
+// Disease transmission
 ; calculates infections for all patches / fox families
 to infect-patches
   ask patches [                    ; reset number of infected neighbours
@@ -231,7 +241,8 @@ end
 The infection probability is calculated according the Reed-Frost model
 from the number of infected neighbors:
 
-``` - Infection probability
+```
+// Infection probability
 ; calculates the infection probability for a patch / fox family
 to-report infection-prob
   report 1 - (1 - beta) ^ infected-neighbours
@@ -244,7 +255,8 @@ end
 Upon infection, the fox family's `state` is set to infected,
 and the ticks remaining to their rabies-induced death (`ticks-to-death`) are set.
 
-``` - Infection
+```
+// Infection
 ; infects a patch / fox family
 to infect
   set state I
@@ -258,7 +270,8 @@ end
 For each infected fox family, their `ticks-to-death` are counted down each step.
 When they reach zero, the patch is set to empty (i.e. death of the foxes).
 
-``` - Disease course
+```
+// Disease course
 ; ages the infection and removes dead foxes
 to age-infection
   ask patches with [ state = I ] [
@@ -281,7 +294,8 @@ Simulation experiments are left to the user.
 
 The model can be observed through a colored grid view. Colors are updates after every model step:
 
-``` - Other functions
+```
+// Other functions
 ; updates the color of all patches
 to update-patch-color
   ask patches [
@@ -316,7 +330,8 @@ Recommended parameters are:
 
 In the NetLogo Code tab, the code is structured as follows:
 
-``` - Code tab
+```
+// Code tab
 ==> Globals...
 ==> Patches...
 ==> Setup...
@@ -357,7 +372,8 @@ Further details about the `.nlogo` file atructure can be found in [NetLogo's Hit
 
 Here, we just insert a short description in NetLogo's Markdown syntax:
 
-``` - Info tab
+```
+// Info tab
 ## WHAT IS IT?
 
 A simple individual-based model of rabies in fox populations.
@@ -381,7 +397,8 @@ Setting up the user interface in NetLogo programmatically is a bit inconvenient.
 We add two buttons, some sliders, and set up the world and graphics window,
 using `outline`'s "meta variables" feature:
 
-``` - Interface tab
+```
+// Interface tab
 ==> Button @{setup} @{10} @{10} @{80} @{50} @{NIL}...
 ==> Button @{go} @{90} @{10} @{160} @{50} @{T}...
 
@@ -399,7 +416,8 @@ using `outline`'s "meta variables" feature:
 
 The actual code for a Button in NetLogo looks like this:
 
-``` - Button @{name} @{left} @{top} @{right} @{bottom} @{forever}
+```
+// Button @{name} @{left} @{top} @{right} @{bottom} @{forever}
 BUTTON
 @{left}
 @{top}
@@ -421,7 +439,8 @@ NIL
 
 The actual code for a Slider in NetLogo looks like this:
 
-``` - Slider @{name} @{left} @{top} @{right} @{bottom} @{min} @{max} @{step} @{value}
+```
+// Slider @{name} @{left} @{top} @{right} @{bottom} @{min} @{max} @{step} @{value}
 SLIDER
 @{left}
 @{top}
@@ -441,7 +460,8 @@ HORIZONTAL
 
 The actual code for the Graphics window looks like this:
 
-``` - GraphicsWindow at @{left} @{top} size @{width} @{height} wrap @{wrap_x:1} @{wrap_y:1} ps @{patch_size:5.0} fps @{fps:30.0} tick @{on_tick:1}
+```
+// GraphicsWindow at @{left} @{top} size @{width} @{height} wrap @{wrap_x:1} @{wrap_y:1} ps @{patch_size:5.0} fps @{fps:30.0} tick @{on_tick:1}
 GRAPHICS-WINDOW
 @{left}
 @{top}
@@ -475,7 +495,8 @@ ticks
 
 We need to define the default shape for turtles:
 
-``` - Turtle shapes
+```
+// Turtle shapes
 default
 true
 0
@@ -486,7 +507,8 @@ Polygon -7500403 true true 150 5 40 250 150 205 260 250
 
 And the default link shape:
 
-``` - Link shapes
+```
+// Link shapes
 default
 0.0
 -0.2 0 0.0 1.0
@@ -503,6 +525,7 @@ Line -7500403 true 150 150 210 180
 
 Last but not least, the file's NetLogo version is required.
 
-``` - NetLogo version
+```
+// NetLogo version
 NetLogo 6.1.0
 ```

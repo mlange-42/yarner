@@ -47,7 +47,7 @@ Turtles are initialised and move in different ways, depending on which submodels
 ### Initialization
 
 ```
-//Setup
+// Setup
 to setup
   ==> Initialization...
 end
