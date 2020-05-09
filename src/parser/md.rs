@@ -500,6 +500,11 @@ impl Printer for MdParser {
             output.push_str(&self.comment_start);
             output.push(' ');
             output.push_str(&self.print_name(name.clone(), &block.vars, &block.defaults));
+            /*if let Some(source) = &block.source_file {
+                output.push_str(" (");
+                output.push_str(source);
+                output.push(')');
+            }*/
             output.push('\n');
         }
 

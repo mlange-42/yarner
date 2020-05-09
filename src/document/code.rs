@@ -3,7 +3,6 @@
 use super::{CompileError, CompileErrorKind};
 use crate::util::try_collect::TryCollectExt;
 use std::collections::HashMap;
-use std::path::PathBuf;
 
 /// A `CodeBlock` is a block of code as defined by the input format.
 #[derive(Clone, Default, Debug)]
