@@ -405,15 +405,15 @@ where
 
             // TODO: handle unwrap as error
             let ext = trans.file().extension().unwrap().to_str().unwrap();
-            let path = trans.file().to_str().unwrap();
+            let full_path = trans.file().to_str().unwrap();
             let path = format!(
                 "{}{}",
                 parser.file_prefix(),
-                &path[..path.len() - ext.len() - 1]
+                &full_path[..full_path.len() - ext.len() - 1]
             );
             document
                 .tree_mut()
-                .transclude(&trans, doc.into_tree(), &path);
+                .transclude(&trans, doc.into_tree(), &full_path, &path[..]);
 
             trans_so_far.insert(trans.file().clone());
         } else {

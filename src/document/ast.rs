@@ -130,7 +130,7 @@ impl Ast {
     }
 
     /// Renders the program this AST is representing in the documentation format
-    pub fn transclude(&mut self, replace: &Transclusion, with: Ast, from: &String) {
+    pub fn transclude(&mut self, replace: &Transclusion, with: Ast, from_source: &str, from: &str) {
         let mut index = 0;
         while index < self.nodes.len() {
             if let Node::Transclusion(trans) = &self.nodes[index] {
@@ -139,7 +139,11 @@ impl Ast {
                     for (i, mut node) in with.nodes.into_iter().enumerate() {
                         if let Node::Code(code) = &mut node {
                             if code.name.is_none() {
-                                code.name = Some(from.clone());
+                                code.name = Some(from.to_string());
+                            }
+                            // TODO: move to parser?
+                            if code.source_file.is_none() {
+                                code.source_file = Some(from_source.to_string());
                             }
                         };
                         self.nodes.insert(index + i, node);
