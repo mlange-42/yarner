@@ -117,11 +117,12 @@ impl Ast {
         &self,
         entrypoint: Option<&str>,
         language: Option<&str>,
+        blank_lines: bool,
     ) -> Result<String, CompileError> {
         let code_blocks = self.code_blocks(language);
         code_blocks
             .get(&entrypoint)
-            .map(|entrypoint| entrypoint.compile(&code_blocks))
+            .map(|entrypoint| entrypoint.compile(&code_blocks, blank_lines))
             .unwrap_or(Err(CompileError::Single {
                 line_number: 0,
                 kind: CompileErrorKind::MissingEntrypoint,

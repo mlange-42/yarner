@@ -41,6 +41,8 @@ pub trait ParserConfig {
     fn variable_sep(&self) -> &str;
     /// Prefix for file-specific entry points.
     fn file_prefix(&self) -> &str;
+    /// Determines if code lines containing only whitespace characters are printed as blank lines.
+    fn blank_lines(&self) -> bool;
 }
 
 /// A `Parser` determines which lines are code and which are text, and may use its `Config` to
@@ -260,6 +262,11 @@ pub trait Printer: ParserConfig {
                 output.push_str(&comment);
             }
         }
+        /*if self.blank_lines() && output.trim().is_empty() {
+            "".to_string()
+        } else {
+            output
+        }*/
         output
     }
 }

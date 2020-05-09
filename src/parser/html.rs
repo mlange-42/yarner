@@ -112,6 +112,10 @@ pub struct HtmlParser {
     ///
     /// Default: `hidden:`
     pub hidden_prefix: String,
+    /// Determines if code lines containing only whitespace characters are printed as blank lines.
+    ///
+    /// Default: true
+    pub blank_lines: bool,
 }
 
 impl Default for HtmlParser {
@@ -132,6 +136,7 @@ impl Default for HtmlParser {
             variable_sep: String::from(":"),
             file_prefix: String::from("file:"),
             hidden_prefix: String::from("hidden:"),
+            blank_lines: true,
         }
     }
 }
@@ -179,6 +184,9 @@ impl ParserConfig for HtmlParser {
     }
     fn file_prefix(&self) -> &str {
         &self.file_prefix
+    }
+    fn blank_lines(&self) -> bool {
+        self.blank_lines
     }
 }
 
