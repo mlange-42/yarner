@@ -31,8 +31,9 @@ impl Document {
         &self,
         entrypoint: Option<&str>,
         language: Option<&str>,
+        blank_lines: bool,
     ) -> Result<String, CompileError> {
-        self.tree.print_code(entrypoint, language)
+        self.tree.print_code(entrypoint, language, blank_lines)
     }
 
     /// Return the document's AST

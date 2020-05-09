@@ -309,6 +309,7 @@ transclusion_end = "}}"
 variable_sep = ":"
 file_prefix = "file:"
 hidden_prefix = "hidden:"
+blank_lines = true
 
 [tex]
 default_language = "rs" # optional
@@ -321,6 +322,7 @@ macro_end = "."
 variable_sep = ":"
 file_prefix = "file:"
 hidden_prefix = "hidden:"
+blank_lines = true
 
 [html]
 code_tag = "code"
@@ -338,6 +340,7 @@ macro_end = "."
 variable_sep = ":"
 file_prefix = "file:"
 hidden_prefix = "hidden:"
+blank_lines = true
 
 [bird]
 code_marker = "> "
@@ -350,6 +353,7 @@ macro_end = "."
 variable_sep = ":"
 file_prefix = "file:"
 hidden_prefix = "hidden:"
+blank_lines = true
 ```
 
 ### Extending
