@@ -46,6 +46,7 @@ impl Line {
         &self,
         code_blocks: &HashMap<Option<&str>, CodeBlock>,
         scope: &HashMap<String, String>,
+        blank_lines: bool,
     ) -> Result<String, CompileError> {
         match &self.source {
             Source::Source(segments) => {
@@ -63,7 +64,12 @@ impl Line {
                     })
                     .try_collect()
                     .map(|vec: Vec<_>| vec.join(""))?;
-                Ok(format!("{}{}", self.indent, code))
+
+                if blank_lines && code.trim().is_empty() {
+                    Ok("".to_string())
+                } else {
+                    Ok(format!("{}{}", self.indent, code))
+                }
             }
             Source::Macro { name, scope } => {
                 let block = code_blocks.get(&Some(name)).ok_or(CompileError::Single {
@@ -71,12 +77,21 @@ impl Line {
                     kind: CompileErrorKind::UnknownMacro(name.to_string()),
                 })?;
                 let scope = block.assign_vars(&scope[..]);
-                block.compile_with(code_blocks, scope).map(|code| {
-                    code.split("\n")
-                        .map(|line| format!("{}{}", self.indent, line))
-                        .collect::<Vec<_>>()
-                        .join("\n")
-                })
+                block
+                    .compile_with(code_blocks, scope, blank_lines)
+                    .map(|code| {
+                        code.split("\n")
+                            .map(|line| {
+                                if blank_lines && line.trim().is_empty() {
+                                    "".to_string()
+                                } else {
+                                    format!("{}{}", self.indent, line)
+                                }
+                                //format!("{}{}", self.indent, line)
+                            })
+                            .collect::<Vec<_>>()
+                            .join("\n")
+                    })
             }
         }
     }
@@ -162,8 +177,9 @@ impl CodeBlock {
     pub fn compile(
         &self,
         code_blocks: &HashMap<Option<&str>, CodeBlock>,
+        blank_lines: bool,
     ) -> Result<String, CompileError> {
-        self.compile_with(code_blocks, HashMap::default())
+        self.compile_with(code_blocks, HashMap::default(), blank_lines)
     }
 
     /// Returns the line number of the first line in this code block
@@ -175,10 +191,11 @@ impl CodeBlock {
         &self,
         code_blocks: &HashMap<Option<&str>, CodeBlock>,
         scope: HashMap<String, String>,
+        blank_lines: bool,
     ) -> Result<String, CompileError> {
         self.source
             .iter()
-            .map(|line| line.compile_with(code_blocks, &scope))
+            .map(|line| line.compile_with(code_blocks, &scope, blank_lines))
             .try_collect()
             .map(|vec: Vec<_>| vec.join("\n"))
     }

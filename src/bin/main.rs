@@ -509,7 +509,7 @@ where
     for (entrypoint, file_name) in entries {
         match code_dir {
             Left(..) => {
-                let code = document.print_code(entrypoint, language)?;
+                let code = document.print_code(entrypoint, language, parser.blank_lines())?;
                 println!("{}", code);
             }
             Right(Some(code_dir)) => {
@@ -521,7 +521,7 @@ where
                 if let Some(language) = language {
                     file_path.set_extension(language);
                 }
-                match document.print_code(entrypoint, language) {
+                match document.print_code(entrypoint, language, parser.blank_lines()) {
                     Ok(code) => {
                         fs::create_dir_all(file_path.parent().unwrap()).unwrap();
                         let mut code_file = File::create(file_path).unwrap();

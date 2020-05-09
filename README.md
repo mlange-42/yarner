@@ -37,24 +37,6 @@ outline = "0.1.2"
 If you write your own parser, feel free to continue hacking on the provided `src/bin/main.rs` to
 support your new parser.
 
-## Integrations
-
-*   JavaScript (Webpack): [`outline-loader`][]
-*   Swift (XCode): You can write Build Rules that pass matching files through the Outline binary:
-
-    Process Source files with names matching: `*.swift.md`
-
-    Using custom script:
-    ```bash
-    INFILE="$INPUT_FILE_DIR/$INPUT_FILE_NAME"
-    OUTFILE="$DERIVED_FILE_DIR/$INPUT_FILE_BASE.swift"
-    /Users/<username>/.cargo/bin/outline -l swift -s md < $INFILE > $OUTFILE
-    ```
-
-    Output files: `$(DERIVED_FILE_DIR)/$(INPUT_FILE_BASE).swift`
-*   Rust (Cargo): You can write a build script that uses the Outline crate to compile files. See
-    `examples/hello-world/` for a very contrived but working example.
-
 ## Features
 
 In all styles, the code sections are handled the same way, supporting:
@@ -120,41 +102,41 @@ value in the invocation.
 
 An example:
 
-```tex
+~~~md
 Here is our macro with meta variables:
 
-\begin{code}[language=rs,name={Say @{something} to @{someone}}]
+```rust - Say @{something} to @{someone}
 println!("Hey, @{someone}! I was told to tell you \"@{something}\"");
-\end{code}
+```
 
 Now, to say things to many people:
 
-\begin{code}[language=rs]
+```rust
 ==> Say @{Hello} to @{Jim}.
 ==> Say @{How are you} to @{Tom}.
 ==> Say @{I am good!} to @{Angela}.
-\end{code}
 ```
+~~~
 
 **Modification:**
 
 Meta variables can have default values:
 
-```tex
+~~~md
 Here is our macro with default meta variables:
 
-\begin{code}[language=rs,name={Say @{something:Hello} to @{someone}}]
+```rust - Say @{something:Hello} to @{someone}
 println!("Hey, @{someone}! I was told to tell you \"@{something}\"");
-\end{code}
+```
 
 Now, to say the default "Hello" to many people:
 
-\begin{code}[language=rs]
+```rust
 ==> Say @{} to @{Jim}.
 ==> Say @{} to @{Tom}.
 ==> Say @{} to @{Angela}.
-\end{code}
 ```
+~~~
 
 These features allows for more flexibility when writing macros, as well as possibly making the intent
 clearer.
@@ -194,13 +176,13 @@ readers of the documentation, so they are still useful.
 By naming code blocks with prefix 'file:' followed by a relative path, multiple code files can be created
 from one source file. Each code block with the 'file:' prefix is treated as a separate entry point.
 
-```tex
-\begin{code}[language=rs,name={file:src/lib.rs}]
+~~~md
+```rust - file:src/lib.rs
 fn say_hello() {
     println!("Hello Literate Programmer!");
 }
-\end{code}
 ```
+~~~
 
 ### File transclusion
 
@@ -250,21 +232,21 @@ supported nonetheless. By then supplying a language name on the command line, on
 that language are used when generating the tangled source. For example, here is a trivial program
 written in two languages:
 
-```tex
+~~~tex
 Here we have hello world in Ruby:
 
-\begin{code}[language=rb]
+```rb
 puts "Hello world"
-\end{code}
+```
 
 And here it is again in Rust:
 
-\begin{code}[language=rs]
+```rust
 fn main() {
   println!("Hello world");
 }
-\end{code}
 ```
+~~~
 
 Compiling this with no language supplied with just ignore language information, so a single output
 will be generated containing both languages. However, supplying the `--language rb` flag to Outline
@@ -327,6 +309,7 @@ transclusion_end = "}}"
 variable_sep = ":"
 file_prefix = "file:"
 hidden_prefix = "hidden:"
+blank_lines = true
 
 [tex]
 default_language = "rs" # optional
@@ -339,6 +322,7 @@ macro_end = "."
 variable_sep = ":"
 file_prefix = "file:"
 hidden_prefix = "hidden:"
+blank_lines = true
 
 [html]
 code_tag = "code"
@@ -356,6 +340,7 @@ macro_end = "."
 variable_sep = ":"
 file_prefix = "file:"
 hidden_prefix = "hidden:"
+blank_lines = true
 
 [bird]
 code_marker = "> "
@@ -368,6 +353,7 @@ macro_end = "."
 variable_sep = ":"
 file_prefix = "file:"
 hidden_prefix = "hidden:"
+blank_lines = true
 ```
 
 ### Extending
