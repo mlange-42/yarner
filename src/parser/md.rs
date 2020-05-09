@@ -304,7 +304,14 @@ impl Parser for MdParser {
                                 None => code_block,
                                 Some(Ok((name, vars, defaults))) => {
                                     let hidden = name.starts_with(&self.hidden_prefix);
-                                    code_block.named(name, vars, defaults).hidden(hidden)
+                                    let name = if hidden {
+                                        &name[self.hidden_prefix.len()..]
+                                    } else {
+                                        &name[..]
+                                    };
+                                    code_block
+                                        .named(name.to_string(), vars, defaults)
+                                        .hidden(hidden)
                                 }
                                 Some(Err(error)) => {
                                     return Some(Parse::Error(MdError::Single {
@@ -371,8 +378,13 @@ impl Parser for MdParser {
                                     match name {
                                         Ok((name, vars, defaults)) => {
                                             let hidden = name.starts_with(&self.hidden_prefix);
+                                            let name = if hidden {
+                                                &name[self.hidden_prefix.len()..]
+                                            } else {
+                                                &name[..]
+                                            };
+                                            block.name = Some(name.to_string());
                                             block.hidden = hidden;
-                                            block.name = Some(name);
                                             block.vars = vars;
                                             block.defaults = defaults;
                                         }
@@ -441,9 +453,14 @@ impl Parser for MdParser {
                         .map(|m| m.get(2).unwrap().as_str())
                         .filter_map(|p| {
                             let path = PathBuf::from(p);
-                            if path.is_relative() && File::open(&path).is_ok() {
-                                //Some(PathBuf::from(p.to_string() + ".md"))
-                                Some(path)
+                            if path.is_relative() && !p.starts_with("#") {
+                                if File::open(&path).is_ok() {
+                                    Some(path)
+                                } else {
+                                    // TODO: move out of function?
+                                    eprintln!("WARNING: link target not found for {:?}", path);
+                                    None
+                                }
                             } else {
                                 None
                             }
