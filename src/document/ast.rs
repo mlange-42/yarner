@@ -141,6 +141,9 @@ impl Ast {
                             if code.name.is_none() {
                                 code.name = Some(from.clone());
                             }
+                            if code.source_file.is_none() {
+                                code.source_file = Some(from.clone());
+                            }
                         };
                         self.nodes.insert(index + i, node);
                     }
