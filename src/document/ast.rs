@@ -35,6 +35,17 @@ impl Ast {
         Ast { nodes }
     }
 
+    /// Sets the source file for all code blocks that have none
+    pub fn set_source(&mut self, source: &str) {
+        for node in &mut self.nodes {
+            if let Node::Code(block) = node {
+                if block.source_file.is_none() {
+                    block.source_file = Some(source.to_owned());
+                }
+            }
+        }
+    }
+
     /// Gets all the code blocks of this AST, concatenating blocks of the same name
     pub(crate) fn code_blocks(
         &self,
@@ -155,6 +166,9 @@ impl Ast {
                     kind: CompileErrorKind::MissingEntrypoint,
                 })
             }
+        }
+        if settings.and_then(|s| Some(s.eof_newline)).unwrap_or(true) && !result.ends_with("\n\n") {
+            result.push('\n');
         }
         Ok(result)
     }

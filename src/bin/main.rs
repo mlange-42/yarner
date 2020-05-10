@@ -442,10 +442,11 @@ where
     P::Error: 'static,
 {
     if !all_files.contains(file_name) {
-        //let source_main = fs::read_to_string(&file_name)?;
-        //let document = parser.parse(&source_main)?;
-        let document = transclude(parser, file_name)?;
+        let mut document = transclude(parser, file_name)?;
         let links = parser.find_links(&document)?;
+
+        let file_str = file_name.to_str().unwrap();
+        document.tree_mut().set_source(file_str);
 
         compile(
             parser, &document, doc_dir, code_dir, &file_name, entrypoint, language, settings,
@@ -505,37 +506,43 @@ where
         _ => {}
     }
 
-    /*if entries.is_empty() {
-        return Err(Box::new(CompileError::Single {
-            line_number: 0,
-            kind: CompileErrorKind::MissingEntrypoint,
-        }));
-    }*/
-    let extension = file_name
-        .extension()
-        .and_then(|ext| ext.to_str())
-        .unwrap_or("")
-        .to_string();
-    let settings = match settings {
-        Some(set) => set.get(&extension),
-        None => None,
-    };
-
-    for (entrypoint, file_name) in entries {
+    for (entrypoint, sub_file_name) in entries {
         match code_dir {
             Left(..) => {
+                let extension = sub_file_name
+                    .extension()
+                    .and_then(|ext| ext.to_str())
+                    .unwrap_or("")
+                    .to_string();
+                let settings = match settings {
+                    Some(set) => set.get(&extension),
+                    None => None,
+                };
+
                 let code = document.print_code(entrypoint, language, &settings)?;
                 println!("{}", code);
             }
             Right(Some(code_dir)) => {
                 let mut file_path = code_dir.clone();
-                if let Some(par) = file_name.parent() {
+                if let Some(par) = sub_file_name.parent() {
                     file_path.push(par)
                 }
-                file_path.push(file_name.file_stem().unwrap());
+                file_path.push(sub_file_name.file_stem().unwrap());
                 if let Some(language) = language {
                     file_path.set_extension(language);
                 }
+
+                let extension = file_path
+                    .extension()
+                    .and_then(|ext| ext.to_str())
+                    .unwrap_or("")
+                    .to_string();
+                let settings = match settings {
+                    Some(set) => set.get(&extension),
+                    None => None,
+                };
+
+                println!("--> {:?}", file_path);
                 match document.print_code(entrypoint, language, &settings) {
                     Ok(code) => {
                         fs::create_dir_all(file_path.parent().unwrap()).unwrap();
@@ -550,7 +557,7 @@ where
                             CompileErrorKind::MissingEntrypoint => {
                                 eprintln!(
                                     "WARNING: No entrypoint for file {:?}, skipping code output.",
-                                    file_name
+                                    sub_file_name
                                 );
                             }
                             _ => return Err(Box::new(err)),

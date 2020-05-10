@@ -43,6 +43,8 @@ pub struct LanguageSettings {
     pub block_start: String,
     /// End of block labels
     pub block_end: String,
-    /// Determines if code lines containing only whitespace characters are printed as blank lines.
-    pub blank_lines: bool,
+    /// Determines if code lines containing only whitespace characters are printed as blank lines. Default: true.
+    pub clear_blank_lines: bool,
+    /// Determines if code files should end with a blank line. Default: true.
+    pub eof_newline: bool,
 }

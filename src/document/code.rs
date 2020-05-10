@@ -103,11 +103,39 @@ impl CodeBlock {
         scope: HashMap<String, String>,
         settings: &Option<&LanguageSettings>,
     ) -> Result<String, CompileError> {
-        self.source
+        let name = self.name.to_owned().unwrap_or_else(|| "".to_string());
+        let comment_end = settings
+            .and_then(|s| Some(s.comment_end.to_owned().unwrap_or_else(|| "".to_string())))
+            .unwrap_or_else(|| "".to_string());
+        let path = self.source_file.to_owned().unwrap_or_default();
+        let result = self
+            .source
             .iter()
             .map(|line| line.compile_with(code_blocks, &scope, settings))
             .try_collect()
             .map(|vec: Vec<_>| vec.join("\n"))
+            .map(|block: String| {
+                if let Some(s) = *settings {
+                    format!(
+                        "{} {}{}#{}{}\n{}\n{} {}{}#{}{}",
+                        s.comment_start,
+                        s.block_start,
+                        path,
+                        name,
+                        comment_end,
+                        block,
+                        s.comment_start,
+                        s.block_end,
+                        path,
+                        name,
+                        comment_end,
+                    )
+                } else {
+                    block
+                }
+            });
+
+        result
     }
 
     fn assign_vars(&self, scope: &[String]) -> HashMap<String, String> {
@@ -173,7 +201,9 @@ impl Line {
         scope: &HashMap<String, String>,
         settings: &Option<&LanguageSettings>,
     ) -> Result<String, CompileError> {
-        let blank_lines = settings.and_then(|s| Some(s.blank_lines)).unwrap_or(true);
+        let blank_lines = settings
+            .and_then(|s| Some(s.clear_blank_lines))
+            .unwrap_or(true);
         match &self.source {
             Source::Source(segments) => {
                 let code = segments
