@@ -454,7 +454,12 @@ impl Parser for MdParser {
                         .map(|m| m.get(2).unwrap().as_str())
                         .filter_map(|p| {
                             let path = PathBuf::from(p);
-                            if path.is_relative() && !p.starts_with("#") {
+                            if path.is_relative()
+                                && !p.starts_with("#")
+                                && !p.starts_with("http://")
+                                && !p.starts_with("https://")
+                                && !p.starts_with("ftp://")
+                            {
                                 if File::open(&path).is_ok() {
                                     Some(path)
                                 } else {
