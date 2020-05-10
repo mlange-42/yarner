@@ -1,7 +1,7 @@
 use clap::{crate_authors, crate_version, App, Arg, SubCommand};
 use either::Either::{self, *};
 use outline::config::{AnyConfig, Paths};
-use outline::document::Document;
+use outline::document::{CompileError, CompileErrorKind, Document};
 use outline::parser::{BirdParser, HtmlParser, MdParser, Parser, Printer, TexParser};
 use outline::{templates, MultipleTransclusionError, ProjectCreationError};
 use std::collections::HashSet;
@@ -126,6 +126,7 @@ fn main() {
             }
         }
     };
+    println!("{:#?}", any_config.language);
 
     let paths = any_config.paths.unwrap_or_default();
 
@@ -527,10 +528,21 @@ where
                         let mut code_file = File::create(file_path).unwrap();
                         write!(code_file, "{}", code).unwrap()
                     }
-                    Err(_) => eprintln!(
-                        "WARNING: No entrypoint for file {:?}, skipping code output.",
-                        file_name
-                    ),
+                    Err(err) => match &err {
+                        CompileError::Single {
+                            line_number: _,
+                            kind,
+                        } => match kind {
+                            CompileErrorKind::MissingEntrypoint => {
+                                eprintln!(
+                                    "WARNING: No entrypoint for file {:?}, skipping code output.",
+                                    file_name
+                                );
+                            }
+                            _ => return Err(Box::new(err)),
+                        },
+                        _ => return Err(Box::new(err)),
+                    },
                 };
             }
             _ => {}

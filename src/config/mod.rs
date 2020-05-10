@@ -2,6 +2,7 @@
 
 use crate::parser::*;
 use serde_derive::{Deserialize, Serialize};
+use std::collections::HashMap;
 
 /// Top-leven config
 #[derive(Serialize, Deserialize, Default, Debug)]
@@ -16,6 +17,8 @@ pub struct AnyConfig {
     pub html: Option<HtmlParser>,
     /// Config for paths
     pub paths: Option<Paths>,
+    /// Programming language specific settings
+    pub language: Option<HashMap<String, LanguageSettings>>,
 }
 
 /// Config for paths
@@ -27,4 +30,17 @@ pub struct Paths {
     pub docs: Option<String>,
     /// Input files
     pub files: Option<Vec<String>>,
+}
+
+/// Config for a programming language
+#[derive(Serialize, Deserialize, Default, Debug)]
+pub struct LanguageSettings {
+    /// Start of comments in the language
+    pub comment_start: String,
+    /// Optional end of comments in the language
+    pub comment_end: Option<String>,
+    /// Start of block labels
+    pub block_start: String,
+    /// End of block labels
+    pub block_end: String,
 }

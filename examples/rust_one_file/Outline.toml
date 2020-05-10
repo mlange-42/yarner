@@ -19,3 +19,13 @@ blank_lines = true
 code = "__code/"
 docs = "__docs/"
 files = ["README.md.md"]
+
+[language.rs]
+comment_start = "//"
+block_start = "<@ "
+block_end = " @>"
+
+[language.java]
+comment_start = "//"
+block_start = "<@ "
+block_end = " @>"
