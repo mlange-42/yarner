@@ -24,8 +24,4 @@ files = ["README.md.md"]
 comment_start = "//"
 block_start = "<@ "
 block_end = " @>"
-
-[language.java]
-comment_start = "//"
-block_start = "<@ "
-block_end = " @>"
+blank_lines = true

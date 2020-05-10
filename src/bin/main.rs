@@ -1,10 +1,10 @@
 use clap::{crate_authors, crate_version, App, Arg, SubCommand};
 use either::Either::{self, *};
-use outline::config::{AnyConfig, Paths};
+use outline::config::{AnyConfig, LanguageSettings, Paths};
 use outline::document::{CompileError, CompileErrorKind, Document};
 use outline::parser::{BirdParser, HtmlParser, MdParser, Parser, Printer, TexParser};
 use outline::{templates, MultipleTransclusionError, ProjectCreationError};
-use std::collections::HashSet;
+use std::collections::{HashMap, HashSet};
 use std::error::Error;
 use std::fs::{self, File};
 use std::io::Write;
@@ -126,7 +126,6 @@ fn main() {
             }
         }
     };
-    println!("{:#?}", any_config.language);
 
     let paths = any_config.paths.unwrap_or_default();
 
@@ -244,6 +243,7 @@ fn main() {
                     &file_name,
                     entrypoint,
                     language,
+                    &any_config.language,
                     &mut HashSet::new(),
                 ) {
                     eprintln!(
@@ -268,6 +268,7 @@ fn main() {
                     &file_name,
                     entrypoint,
                     language,
+                    &any_config.language,
                     &mut HashSet::new(),
                 ) {
                     eprintln!(
@@ -292,6 +293,7 @@ fn main() {
                     &file_name,
                     entrypoint,
                     language,
+                    &any_config.language,
                     &mut HashSet::new(),
                 ) {
                     eprintln!(
@@ -316,6 +318,7 @@ fn main() {
                     &file_name,
                     entrypoint,
                     language,
+                    &any_config.language,
                     &mut HashSet::new(),
                 ) {
                     eprintln!(
@@ -431,6 +434,7 @@ fn compile_all<P>(
     file_name: &PathBuf,
     entrypoint: Option<&str>,
     language: Option<&str>,
+    settings: &Option<HashMap<String, LanguageSettings>>,
     all_files: &mut HashSet<PathBuf>,
 ) -> Result<(), Box<dyn std::error::Error>>
 where
@@ -444,14 +448,14 @@ where
         let links = parser.find_links(&document)?;
 
         compile(
-            parser, &document, doc_dir, code_dir, &file_name, entrypoint, language,
+            parser, &document, doc_dir, code_dir, &file_name, entrypoint, language, settings,
         )?;
         all_files.insert(file_name.clone());
 
         for file in links {
             if !all_files.contains(&file) {
                 compile_all(
-                    parser, doc_dir, code_dir, &file, entrypoint, language, all_files,
+                    parser, doc_dir, code_dir, &file, entrypoint, language, settings, all_files,
                 )?;
             }
         }
@@ -468,6 +472,7 @@ fn compile<P>(
     file_name: &PathBuf,
     entrypoint: Option<&str>,
     language: Option<&str>,
+    settings: &Option<HashMap<String, LanguageSettings>>,
 ) -> Result<(), Box<dyn std::error::Error>>
 where
     P: Parser + Printer,
@@ -506,11 +511,20 @@ where
             kind: CompileErrorKind::MissingEntrypoint,
         }));
     }*/
+    let extension = file_name
+        .extension()
+        .and_then(|ext| ext.to_str())
+        .unwrap_or("")
+        .to_string();
+    let settings = match settings {
+        Some(set) => set.get(&extension),
+        None => None,
+    };
 
     for (entrypoint, file_name) in entries {
         match code_dir {
             Left(..) => {
-                let code = document.print_code(entrypoint, language, parser.blank_lines())?;
+                let code = document.print_code(entrypoint, language, &settings)?;
                 println!("{}", code);
             }
             Right(Some(code_dir)) => {
@@ -522,7 +536,7 @@ where
                 if let Some(language) = language {
                     file_path.set_extension(language);
                 }
-                match document.print_code(entrypoint, language, parser.blank_lines()) {
+                match document.print_code(entrypoint, language, &settings) {
                     Ok(code) => {
                         fs::create_dir_all(file_path.parent().unwrap()).unwrap();
                         let mut code_file = File::create(file_path).unwrap();

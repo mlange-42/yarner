@@ -6,6 +6,7 @@ use std::iter::FromIterator;
 use super::code::CodeBlock;
 use super::text::TextBlock;
 use super::{CompileError, CompileErrorKind};
+use crate::config::LanguageSettings;
 use crate::document::tranclusion::Transclusion;
 use crate::parser::Printer;
 
@@ -117,12 +118,12 @@ impl Ast {
         &self,
         entrypoint: Option<&str>,
         language: Option<&str>,
-        blank_lines: bool,
+        settings: &Option<&LanguageSettings>,
     ) -> Result<String, CompileError> {
         let code_blocks = self.code_blocks(language);
         code_blocks
             .get(&entrypoint)
-            .map(|entrypoint| entrypoint.compile(&code_blocks, blank_lines))
+            .map(|entrypoint| entrypoint.compile(&code_blocks, settings))
             .unwrap_or(Err(CompileError::Single {
                 line_number: 0,
                 kind: CompileErrorKind::MissingEntrypoint,

@@ -7,6 +7,7 @@ pub mod text;
 pub mod tranclusion;
 
 use self::ast::Ast;
+use crate::config::LanguageSettings;
 use crate::parser::Printer;
 
 /// A representation of a `Document` of literate code
@@ -31,9 +32,9 @@ impl Document {
         &self,
         entrypoint: Option<&str>,
         language: Option<&str>,
-        blank_lines: bool,
+        settings: &Option<&LanguageSettings>,
     ) -> Result<String, CompileError> {
-        self.tree.print_code(entrypoint, language, blank_lines)
+        self.tree.print_code(entrypoint, language, settings)
     }
 
     /// Return the document's AST

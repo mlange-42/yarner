@@ -1,6 +1,7 @@
 //! Representation of the code parts of the AST
 
 use super::{CompileError, CompileErrorKind};
+use crate::config::LanguageSettings;
 use crate::util::try_collect::TryCollectExt;
 use std::collections::HashMap;
 
@@ -86,9 +87,9 @@ impl CodeBlock {
     pub fn compile(
         &self,
         code_blocks: &HashMap<Option<&str>, CodeBlock>,
-        blank_lines: bool,
+        settings: &Option<&LanguageSettings>,
     ) -> Result<String, CompileError> {
-        self.compile_with(code_blocks, HashMap::default(), blank_lines)
+        self.compile_with(code_blocks, HashMap::default(), settings)
     }
 
     /// Returns the line number of the first line in this code block
@@ -100,11 +101,11 @@ impl CodeBlock {
         &self,
         code_blocks: &HashMap<Option<&str>, CodeBlock>,
         scope: HashMap<String, String>,
-        blank_lines: bool,
+        settings: &Option<&LanguageSettings>,
     ) -> Result<String, CompileError> {
         self.source
             .iter()
-            .map(|line| line.compile_with(code_blocks, &scope, blank_lines))
+            .map(|line| line.compile_with(code_blocks, &scope, settings))
             .try_collect()
             .map(|vec: Vec<_>| vec.join("\n"))
     }
@@ -170,8 +171,9 @@ impl Line {
         &self,
         code_blocks: &HashMap<Option<&str>, CodeBlock>,
         scope: &HashMap<String, String>,
-        blank_lines: bool,
+        settings: &Option<&LanguageSettings>,
     ) -> Result<String, CompileError> {
+        let blank_lines = settings.and_then(|s| Some(s.blank_lines)).unwrap_or(true);
         match &self.source {
             Source::Source(segments) => {
                 let code = segments
@@ -202,7 +204,7 @@ impl Line {
                 })?;
                 let scope = block.assign_vars(&scope[..]);
                 block
-                    .compile_with(code_blocks, scope, blank_lines)
+                    .compile_with(code_blocks, scope, settings)
                     .map(|code| {
                         code.split("\n")
                             .map(|line| {

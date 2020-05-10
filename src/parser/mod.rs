@@ -41,8 +41,8 @@ pub trait ParserConfig {
     fn variable_sep(&self) -> &str;
     /// Prefix for file-specific entry points.
     fn file_prefix(&self) -> &str;
-    /// Determines if code lines containing only whitespace characters are printed as blank lines.
-    fn blank_lines(&self) -> bool;
+    // /// Determines if code lines containing only whitespace characters are printed as blank lines.
+    //fn blank_lines(&self) -> bool;
 }
 
 /// A `Parser` determines which lines are code and which are text, and may use its `Config` to
