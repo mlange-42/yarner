@@ -392,12 +392,24 @@ fn create_project(file: &str, style: &str) -> Result<(), Box<dyn Error>> {
     Ok(())
 }
 
-fn transclude<P>(parser: &P, file_name: &PathBuf) -> Result<Document, Box<dyn std::error::Error>>
+fn transclude<P>(
+    parser: &P,
+    file_name: &PathBuf,
+    into: Option<&PathBuf>,
+) -> Result<Document, Box<dyn std::error::Error>>
 where
     P: Parser + Printer,
     P::Error: 'static,
 {
-    let source_main = fs::read_to_string(&file_name)?;
+    let file = match into {
+        Some(into) => {
+            let mut path = into.parent().unwrap().to_path_buf();
+            path.push(file_name);
+            path
+        }
+        None => file_name.to_owned(),
+    };
+    let source_main = fs::read_to_string(&file)?;
     let mut document = parser.parse(&source_main)?;
 
     let transclusions = document.tree().transclusions();
@@ -405,7 +417,7 @@ where
     let mut trans_so_far = HashSet::new();
     for trans in transclusions {
         if !trans_so_far.contains(trans.file()) {
-            let doc = transclude(parser, trans.file())?;
+            let doc = transclude(parser, trans.file(), Some(&file))?;
 
             // TODO: handle unwrap as error
             let ext = trans.file().extension().unwrap().to_str().unwrap();
@@ -442,7 +454,7 @@ where
     P::Error: 'static,
 {
     if !all_files.contains(file_name) {
-        let mut document = transclude(parser, file_name)?;
+        let mut document = transclude(parser, file_name, None)?;
         let links = parser.find_links(&document)?;
 
         let file_str = file_name.to_str().unwrap();
@@ -542,9 +554,9 @@ where
                     None => None,
                 };
 
-                println!("--> {:?}", file_path);
                 match document.print_code(entrypoint, language, &settings) {
                     Ok(code) => {
+                        eprintln!("  --> Writing file {:?}", file_path);
                         fs::create_dir_all(file_path.parent().unwrap()).unwrap();
                         let mut code_file = File::create(file_path).unwrap();
                         write!(code_file, "{}", code).unwrap()
@@ -556,7 +568,7 @@ where
                         } => match kind {
                             CompileErrorKind::MissingEntrypoint => {
                                 eprintln!(
-                                    "WARNING: No entrypoint for file {:?}, skipping code output.",
+                                    "  --> WARNING: No entrypoint for file {:?}, skipping code output.",
                                     sub_file_name
                                 );
                             }

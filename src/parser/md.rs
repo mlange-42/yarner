@@ -167,14 +167,15 @@ impl MdParser {
                 let target = path.get(0).unwrap_or(&trans);
 
                 let path = PathBuf::from(target);
-                if path.is_relative() && File::open(&path).is_ok() {
-                    Ok(Some(Node::Transclusion(Transclusion::new(path))))
-                } else {
-                    Err(ParseError::InvalidTransclusionError(format!(
-                        "Not a relative path, of file not found: {}",
-                        line.to_owned()
-                    )))
-                }
+                Ok(Some(Node::Transclusion(Transclusion::new(path))))
+            /*if path.is_relative() && File::open(&path).is_ok() {
+                Ok(Some(Node::Transclusion(Transclusion::new(path))))
+            } else {
+                Err(ParseError::InvalidTransclusionError(format!(
+                    "Not a relative path, of file not found: {}",
+                    line.to_owned()
+                )))
+            }*/
             } else {
                 Err(ParseError::UnclosedTransclusionError(line.to_owned()))
             }
