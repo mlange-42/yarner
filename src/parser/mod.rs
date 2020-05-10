@@ -168,10 +168,10 @@ pub trait Parser: ParserConfig {
     }
 
     /// Finds all file-specific entry points
-    fn get_entry_points(&self, doc: &Document) -> Vec<(String, String)> {
+    fn get_entry_points(&self, doc: &Document, language: Option<&str>) -> Vec<(String, String)> {
         let mut entries = vec![];
         let pref = self.file_prefix();
-        for (name, _block) in doc.tree().code_blocks(None) {
+        for (name, _block) in doc.tree().code_blocks(language) {
             if let Some(name) = name {
                 if name.starts_with(pref) {
                     entries.push((name.to_owned(), (&name[pref.len()..]).to_owned()))

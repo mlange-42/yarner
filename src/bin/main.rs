@@ -481,7 +481,7 @@ where
     eprintln!("Compiling file {:?}", file_name);
 
     let mut entries = vec![(entrypoint, file_name.clone())];
-    let extra_entries = parser.get_entry_points(&document);
+    let extra_entries = parser.get_entry_points(&document, language);
 
     entries.extend(
         extra_entries
