@@ -86,7 +86,7 @@ impl CodeBlock {
     /// "Compiles" this code block into its output code
     pub fn compile(
         &self,
-        code_blocks: &HashMap<Option<&str>, CodeBlock>,
+        code_blocks: &HashMap<Option<&str>, Vec<CodeBlock>>,
         settings: &Option<&LanguageSettings>,
     ) -> Result<String, CompileError> {
         self.compile_with(code_blocks, HashMap::default(), settings)
@@ -99,7 +99,7 @@ impl CodeBlock {
 
     fn compile_with(
         &self,
-        code_blocks: &HashMap<Option<&str>, CodeBlock>,
+        code_blocks: &HashMap<Option<&str>, Vec<CodeBlock>>,
         scope: HashMap<String, String>,
         settings: &Option<&LanguageSettings>,
     ) -> Result<String, CompileError> {
@@ -169,7 +169,7 @@ pub struct Line {
 impl Line {
     fn compile_with(
         &self,
-        code_blocks: &HashMap<Option<&str>, CodeBlock>,
+        code_blocks: &HashMap<Option<&str>, Vec<CodeBlock>>,
         scope: &HashMap<String, String>,
         settings: &Option<&LanguageSettings>,
     ) -> Result<String, CompileError> {
@@ -198,10 +198,33 @@ impl Line {
                 }
             }
             Source::Macro { name, scope } => {
-                let block = code_blocks.get(&Some(name)).ok_or(CompileError::Single {
+                let blocks = code_blocks.get(&Some(name)).ok_or(CompileError::Single {
                     line_number: self.line_number,
                     kind: CompileErrorKind::UnknownMacro(name.to_string()),
                 })?;
+
+                let mut result = vec![];
+                for block in blocks {
+                    let scope = block.assign_vars(&scope[..]);
+                    result.push(
+                        block
+                            .compile_with(code_blocks, scope, settings)
+                            .map(|code| {
+                                code.split("\n")
+                                    .map(|line| {
+                                        if blank_lines && line.trim().is_empty() {
+                                            "".to_string()
+                                        } else {
+                                            format!("{}{}", self.indent, line)
+                                        }
+                                    })
+                                    .collect::<Vec<_>>()
+                                    .join("\n")
+                            })?,
+                    );
+                }
+                Ok(result.join("\n"))
+                /*
                 let scope = block.assign_vars(&scope[..]);
                 block
                     .compile_with(code_blocks, scope, settings)
@@ -213,11 +236,10 @@ impl Line {
                                 } else {
                                     format!("{}{}", self.indent, line)
                                 }
-                                //format!("{}{}", self.indent, line)
                             })
                             .collect::<Vec<_>>()
                             .join("\n")
-                    })
+                    })*/
             }
         }
     }

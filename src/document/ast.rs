@@ -36,7 +36,10 @@ impl Ast {
     }
 
     /// Gets all the code blocks of this AST, concatenating blocks of the same name
-    pub(crate) fn code_blocks(&self, language: Option<&str>) -> HashMap<Option<&str>, CodeBlock> {
+    pub(crate) fn code_blocks(
+        &self,
+        language: Option<&str>,
+    ) -> HashMap<Option<&str>, Vec<CodeBlock>> {
         let mut code_blocks = HashMap::new();
         for node in &self.nodes {
             if let Node::Code(block) = node {
@@ -49,10 +52,14 @@ impl Ast {
                         }
                     }
                 }
+                /*code_blocks
+                .entry(block.name.as_ref().map(|x| &x[..])) // TODO: any nicer way to write this
+                .and_modify(|existing: &mut CodeBlock| existing.append(block))
+                .or_insert_with(|| block.clone());*/
                 code_blocks
                     .entry(block.name.as_ref().map(|x| &x[..])) // TODO: any nicer way to write this
-                    .and_modify(|existing: &mut CodeBlock| existing.append(block))
-                    .or_insert_with(|| block.clone());
+                    .and_modify(|existing: &mut Vec<CodeBlock>| existing.push(block.clone()))
+                    .or_insert_with(|| vec![block.clone()]);
             }
         }
         code_blocks
@@ -121,13 +128,35 @@ impl Ast {
         settings: &Option<&LanguageSettings>,
     ) -> Result<String, CompileError> {
         let code_blocks = self.code_blocks(language);
-        code_blocks
-            .get(&entrypoint)
-            .map(|entrypoint| entrypoint.compile(&code_blocks, settings))
-            .unwrap_or(Err(CompileError::Single {
-                line_number: 0,
-                kind: CompileErrorKind::MissingEntrypoint,
-            }))
+        /*code_blocks
+        .get(&entrypoint)
+        .map(|entrypoint| {
+            let code = entrypoint
+                .iter()
+                .map(|block| block.compile(&code_blocks, settings))
+                .collect::<Vec<_>>()
+                .join("");
+            //entrypoint.compile(&code_blocks, settings);
+        })
+        .unwrap_or(Err(CompileError::Single {
+            line_number: 0,
+            kind: CompileErrorKind::MissingEntrypoint,
+        }))*/
+        let mut result = String::new();
+        match code_blocks.get(&entrypoint) {
+            Some(blocks) => {
+                for block in blocks {
+                    result.push_str(&block.compile(&code_blocks, settings)?);
+                }
+            }
+            None => {
+                return Err(CompileError::Single {
+                    line_number: 0,
+                    kind: CompileErrorKind::MissingEntrypoint,
+                })
+            }
+        }
+        Ok(result)
     }
 
     /// Renders the program this AST is representing in the documentation format
