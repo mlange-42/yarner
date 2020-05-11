@@ -13,9 +13,15 @@ transclusion_end = "}}"
 variable_sep = ":"
 file_prefix = "file:"
 hidden_prefix = "hidden:"
-blank_lines = true
 
 [paths]
 code = "__code/"
 docs = "__docs/"
 files = ["README.md.md"]
+
+[language.rs]
+comment_start = "//"
+block_start = "<@"
+block_end = "@>"
+clear_blank_lines = true
+eof_newline = true

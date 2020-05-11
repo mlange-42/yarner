@@ -6,6 +6,7 @@ use std::iter::FromIterator;
 use super::code::CodeBlock;
 use super::text::TextBlock;
 use super::{CompileError, CompileErrorKind};
+use crate::config::LanguageSettings;
 use crate::document::tranclusion::Transclusion;
 use crate::parser::Printer;
 
@@ -34,8 +35,22 @@ impl Ast {
         Ast { nodes }
     }
 
+    /// Sets the source file for all code blocks that have none
+    pub fn set_source(&mut self, source: &str) {
+        for node in &mut self.nodes {
+            if let Node::Code(block) = node {
+                if block.source_file.is_none() {
+                    block.source_file = Some(source.to_owned());
+                }
+            }
+        }
+    }
+
     /// Gets all the code blocks of this AST, concatenating blocks of the same name
-    pub(crate) fn code_blocks(&self, language: Option<&str>) -> HashMap<Option<&str>, CodeBlock> {
+    pub(crate) fn code_blocks(
+        &self,
+        language: Option<&str>,
+    ) -> HashMap<Option<&str>, Vec<CodeBlock>> {
         let mut code_blocks = HashMap::new();
         for node in &self.nodes {
             if let Node::Code(block) = node {
@@ -48,10 +63,14 @@ impl Ast {
                         }
                     }
                 }
+                /*code_blocks
+                .entry(block.name.as_ref().map(|x| &x[..])) // TODO: any nicer way to write this
+                .and_modify(|existing: &mut CodeBlock| existing.append(block))
+                .or_insert_with(|| block.clone());*/
                 code_blocks
                     .entry(block.name.as_ref().map(|x| &x[..])) // TODO: any nicer way to write this
-                    .and_modify(|existing: &mut CodeBlock| existing.append(block))
-                    .or_insert_with(|| block.clone());
+                    .and_modify(|existing: &mut Vec<CodeBlock>| existing.push(block.clone()))
+                    .or_insert_with(|| vec![block.clone()]);
             }
         }
         code_blocks
@@ -117,20 +136,45 @@ impl Ast {
         &self,
         entrypoint: Option<&str>,
         language: Option<&str>,
-        blank_lines: bool,
+        settings: &Option<&LanguageSettings>,
     ) -> Result<String, CompileError> {
         let code_blocks = self.code_blocks(language);
-        code_blocks
-            .get(&entrypoint)
-            .map(|entrypoint| entrypoint.compile(&code_blocks, blank_lines))
-            .unwrap_or(Err(CompileError::Single {
-                line_number: 0,
-                kind: CompileErrorKind::MissingEntrypoint,
-            }))
+        /*code_blocks
+        .get(&entrypoint)
+        .map(|entrypoint| {
+            let code = entrypoint
+                .iter()
+                .map(|block| block.compile(&code_blocks, settings))
+                .collect::<Vec<_>>()
+                .join("");
+            //entrypoint.compile(&code_blocks, settings);
+        })
+        .unwrap_or(Err(CompileError::Single {
+            line_number: 0,
+            kind: CompileErrorKind::MissingEntrypoint,
+        }))*/
+        let mut result = String::new();
+        match code_blocks.get(&entrypoint) {
+            Some(blocks) => {
+                for block in blocks {
+                    result.push_str(&block.compile(&code_blocks, settings)?);
+                }
+            }
+            None => {
+                return Err(CompileError::Single {
+                    line_number: 0,
+                    kind: CompileErrorKind::MissingEntrypoint,
+                })
+            }
+        }
+        if settings.and_then(|s| Some(s.eof_newline)).unwrap_or(true) && !result.ends_with("\n\n") {
+            result.push('\n');
+        }
+        Ok(result)
     }
 
     /// Renders the program this AST is representing in the documentation format
-    pub fn transclude(&mut self, replace: &Transclusion, with: Ast, from: &String) {
+    pub fn transclude(&mut self, replace: &Transclusion, with: Ast, from_source: &str, from: &str) {
         let mut index = 0;
         while index < self.nodes.len() {
             if let Node::Transclusion(trans) = &self.nodes[index] {
@@ -139,7 +183,11 @@ impl Ast {
                     for (i, mut node) in with.nodes.into_iter().enumerate() {
                         if let Node::Code(code) = &mut node {
                             if code.name.is_none() {
-                                code.name = Some(from.clone());
+                                code.name = Some(from.to_string());
+                            }
+                            // TODO: move to parser?
+                            if code.source_file.is_none() {
+                                code.source_file = Some(from_source.to_string());
                             }
                         };
                         self.nodes.insert(index + i, node);

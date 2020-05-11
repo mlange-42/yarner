@@ -41,8 +41,8 @@ pub trait ParserConfig {
     fn variable_sep(&self) -> &str;
     /// Prefix for file-specific entry points.
     fn file_prefix(&self) -> &str;
-    /// Determines if code lines containing only whitespace characters are printed as blank lines.
-    fn blank_lines(&self) -> bool;
+    // /// Determines if code lines containing only whitespace characters are printed as blank lines.
+    //fn blank_lines(&self) -> bool;
 }
 
 /// A `Parser` determines which lines are code and which are text, and may use its `Config` to
@@ -56,7 +56,7 @@ pub trait Parser: ParserConfig {
     fn parse(&self, input: &str) -> Result<Document, Self::Error>;
 
     /// Find all files linked into the document for later compilation and/or transclusion.
-    fn find_links(&self, input: &Document) -> Result<Vec<PathBuf>, Self::Error>;
+    fn find_links(&self, input: &Document, from: &PathBuf) -> Result<Vec<PathBuf>, Self::Error>;
 
     /// Parses a macro name, returning the name and the extracted variables
     fn parse_name(
@@ -168,10 +168,10 @@ pub trait Parser: ParserConfig {
     }
 
     /// Finds all file-specific entry points
-    fn get_entry_points(&self, doc: &Document) -> Vec<(String, String)> {
+    fn get_entry_points(&self, doc: &Document, language: Option<&str>) -> Vec<(String, String)> {
         let mut entries = vec![];
         let pref = self.file_prefix();
-        for (name, _block) in doc.tree().code_blocks(None) {
+        for (name, _block) in doc.tree().code_blocks(language) {
             if let Some(name) = name {
                 if name.starts_with(pref) {
                     entries.push((name.to_owned(), (&name[pref.len()..]).to_owned()))
