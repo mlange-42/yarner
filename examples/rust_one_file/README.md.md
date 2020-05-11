@@ -115,7 +115,7 @@ Here, we include a code block that will not appear in the documentation
 ```rust
 // file:src/lib.rs
 pub fn secret() {
-    ==> hidden:Secret code.
+    ==> Secret code.
 }
 ```
 

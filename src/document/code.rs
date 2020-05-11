@@ -1,6 +1,7 @@
 //! Representation of the code parts of the AST
 
 use super::{CompileError, CompileErrorKind};
+use crate::config::LanguageSettings;
 use crate::util::try_collect::TryCollectExt;
 use std::collections::HashMap;
 
@@ -85,10 +86,10 @@ impl CodeBlock {
     /// "Compiles" this code block into its output code
     pub fn compile(
         &self,
-        code_blocks: &HashMap<Option<&str>, CodeBlock>,
-        blank_lines: bool,
+        code_blocks: &HashMap<Option<&str>, Vec<CodeBlock>>,
+        settings: &Option<&LanguageSettings>,
     ) -> Result<String, CompileError> {
-        self.compile_with(code_blocks, HashMap::default(), blank_lines)
+        self.compile_with(code_blocks, HashMap::default(), settings)
     }
 
     /// Returns the line number of the first line in this code block
@@ -98,15 +99,43 @@ impl CodeBlock {
 
     fn compile_with(
         &self,
-        code_blocks: &HashMap<Option<&str>, CodeBlock>,
+        code_blocks: &HashMap<Option<&str>, Vec<CodeBlock>>,
         scope: HashMap<String, String>,
-        blank_lines: bool,
+        settings: &Option<&LanguageSettings>,
     ) -> Result<String, CompileError> {
-        self.source
+        let name = self.name.to_owned().unwrap_or_else(|| "".to_string());
+        let comment_end = settings
+            .and_then(|s| Some(s.comment_end.to_owned().unwrap_or_else(|| "".to_string())))
+            .unwrap_or_else(|| "".to_string());
+        let path = self.source_file.to_owned().unwrap_or_default();
+        let result = self
+            .source
             .iter()
-            .map(|line| line.compile_with(code_blocks, &scope, blank_lines))
+            .map(|line| line.compile_with(code_blocks, &scope, settings))
             .try_collect()
             .map(|vec: Vec<_>| vec.join("\n"))
+            .map(|block: String| {
+                if let Some(s) = *settings {
+                    format!(
+                        "{} {}{}#{}{}\n{}\n{} {}{}#{}{}",
+                        s.comment_start,
+                        s.block_start,
+                        path,
+                        name,
+                        comment_end,
+                        block,
+                        s.comment_start,
+                        s.block_end,
+                        path,
+                        name,
+                        comment_end,
+                    )
+                } else {
+                    block
+                }
+            });
+
+        result
     }
 
     fn assign_vars(&self, scope: &[String]) -> HashMap<String, String> {
@@ -168,10 +197,13 @@ pub struct Line {
 impl Line {
     fn compile_with(
         &self,
-        code_blocks: &HashMap<Option<&str>, CodeBlock>,
+        code_blocks: &HashMap<Option<&str>, Vec<CodeBlock>>,
         scope: &HashMap<String, String>,
-        blank_lines: bool,
+        settings: &Option<&LanguageSettings>,
     ) -> Result<String, CompileError> {
+        let blank_lines = settings
+            .and_then(|s| Some(s.clear_blank_lines))
+            .unwrap_or(true);
         match &self.source {
             Source::Source(segments) => {
                 let code = segments
@@ -196,13 +228,36 @@ impl Line {
                 }
             }
             Source::Macro { name, scope } => {
-                let block = code_blocks.get(&Some(name)).ok_or(CompileError::Single {
+                let blocks = code_blocks.get(&Some(name)).ok_or(CompileError::Single {
                     line_number: self.line_number,
                     kind: CompileErrorKind::UnknownMacro(name.to_string()),
                 })?;
+
+                let mut result = vec![];
+                for block in blocks {
+                    let scope = block.assign_vars(&scope[..]);
+                    result.push(
+                        block
+                            .compile_with(code_blocks, scope, settings)
+                            .map(|code| {
+                                code.split("\n")
+                                    .map(|line| {
+                                        if blank_lines && line.trim().is_empty() {
+                                            "".to_string()
+                                        } else {
+                                            format!("{}{}", self.indent, line)
+                                        }
+                                    })
+                                    .collect::<Vec<_>>()
+                                    .join("\n")
+                            })?,
+                    );
+                }
+                Ok(result.join("\n"))
+                /*
                 let scope = block.assign_vars(&scope[..]);
                 block
-                    .compile_with(code_blocks, scope, blank_lines)
+                    .compile_with(code_blocks, scope, settings)
                     .map(|code| {
                         code.split("\n")
                             .map(|line| {
@@ -211,11 +266,10 @@ impl Line {
                                 } else {
                                     format!("{}{}", self.indent, line)
                                 }
-                                //format!("{}{}", self.indent, line)
                             })
                             .collect::<Vec<_>>()
                             .join("\n")
-                    })
+                    })*/
             }
         }
     }

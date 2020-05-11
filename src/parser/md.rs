@@ -104,10 +104,6 @@ pub struct MdParser {
     ///
     /// Default: `hidden:`
     pub hidden_prefix: String,
-    /// Determines if code lines containing only whitespace characters are printed as blank lines.
-    ///
-    /// Default: true
-    pub blank_lines: bool,
 }
 
 impl Default for MdParser {
@@ -129,7 +125,6 @@ impl Default for MdParser {
             variable_sep: String::from(":"),
             file_prefix: String::from("file:"),
             hidden_prefix: String::from("hidden:"),
-            blank_lines: true,
         }
     }
 }
@@ -172,14 +167,15 @@ impl MdParser {
                 let target = path.get(0).unwrap_or(&trans);
 
                 let path = PathBuf::from(target);
-                if path.is_relative() && File::open(&path).is_ok() {
-                    Ok(Some(Node::Transclusion(Transclusion::new(path))))
-                } else {
-                    Err(ParseError::InvalidTransclusionError(format!(
-                        "Not a relative path, of file not found: {}",
-                        line.to_owned()
-                    )))
-                }
+                Ok(Some(Node::Transclusion(Transclusion::new(path))))
+            /*if path.is_relative() && File::open(&path).is_ok() {
+                Ok(Some(Node::Transclusion(Transclusion::new(path))))
+            } else {
+                Err(ParseError::InvalidTransclusionError(format!(
+                    "Not a relative path, of file not found: {}",
+                    line.to_owned()
+                )))
+            }*/
             } else {
                 Err(ParseError::UnclosedTransclusionError(line.to_owned()))
             }
@@ -210,9 +206,6 @@ impl ParserConfig for MdParser {
     }
     fn file_prefix(&self) -> &str {
         &self.file_prefix
-    }
-    fn blank_lines(&self) -> bool {
-        self.blank_lines
     }
 }
 
@@ -448,7 +441,7 @@ impl Parser for MdParser {
         Ok(Document::from_iter(document))
     }
 
-    fn find_links(&self, input: &Document) -> Result<Vec<PathBuf>, Self::Error> {
+    fn find_links(&self, input: &Document, from: &PathBuf) -> Result<Vec<PathBuf>, Self::Error> {
         let regex = Regex::new(Self::LINK_PATTERN).unwrap();
         let paths = input
             .tree()
@@ -460,8 +453,19 @@ impl Parser for MdParser {
                         .captures_iter(line)
                         .map(|m| m.get(2).unwrap().as_str())
                         .filter_map(|p| {
-                            let path = PathBuf::from(p);
-                            if path.is_relative() && !p.starts_with("#") {
+                            // Correct links for the case that the linking file is not in the project base directory
+                            let mut path = from.parent().unwrap().to_path_buf();
+                            path.push(p);
+                            let path = PathBuf::from(path_clean::clean(
+                                &path.to_str().unwrap().replace("\\", "/"),
+                            ));
+                            //let path = PathBuf::from(p);
+                            if path.is_relative()
+                                && !p.starts_with("#")
+                                && !p.starts_with("http://")
+                                && !p.starts_with("https://")
+                                && !p.starts_with("ftp://")
+                            {
                                 if File::open(&path).is_ok() {
                                     Some(path)
                                 } else {

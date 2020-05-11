@@ -18,7 +18,7 @@ here: [../README.md.md](../README.md.md).
 
 Line 1 before transclusion
 
-@{{[Transclude](transclude1.md.md)}}
+@{{[transclude/transclude1.md.md](transclude/transclude1.md.md)}}
 
 Here comes a transclusion with entypoint (`main.rs`)
 
