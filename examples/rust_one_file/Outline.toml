@@ -13,7 +13,6 @@ transclusion_end = "}}"
 variable_sep = ":"
 file_prefix = "file:"
 hidden_prefix = "hidden:"
-blank_lines = true
 
 [paths]
 code = "__code/"
