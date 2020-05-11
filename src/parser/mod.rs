@@ -56,7 +56,7 @@ pub trait Parser: ParserConfig {
     fn parse(&self, input: &str) -> Result<Document, Self::Error>;
 
     /// Find all files linked into the document for later compilation and/or transclusion.
-    fn find_links(&self, input: &Document) -> Result<Vec<PathBuf>, Self::Error>;
+    fn find_links(&self, input: &Document, from: &PathBuf) -> Result<Vec<PathBuf>, Self::Error>;
 
     /// Parses a macro name, returning the name and the extracted variables
     fn parse_name(

@@ -455,7 +455,7 @@ where
 {
     if !all_files.contains(file_name) {
         let mut document = transclude(parser, file_name, None)?;
-        let links = parser.find_links(&document)?;
+        let links = parser.find_links(&document, file_name)?;
 
         let file_str = file_name.to_str().unwrap();
         document.tree_mut().set_source(file_str);

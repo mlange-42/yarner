@@ -441,7 +441,7 @@ impl Parser for MdParser {
         Ok(Document::from_iter(document))
     }
 
-    fn find_links(&self, input: &Document) -> Result<Vec<PathBuf>, Self::Error> {
+    fn find_links(&self, input: &Document, from: &PathBuf) -> Result<Vec<PathBuf>, Self::Error> {
         let regex = Regex::new(Self::LINK_PATTERN).unwrap();
         let paths = input
             .tree()
@@ -453,7 +453,13 @@ impl Parser for MdParser {
                         .captures_iter(line)
                         .map(|m| m.get(2).unwrap().as_str())
                         .filter_map(|p| {
-                            let path = PathBuf::from(p);
+                            // Correct links for the case that the linking file is not in the project base directory
+                            let mut path = from.parent().unwrap().to_path_buf();
+                            path.push(p);
+                            let path = PathBuf::from(path_clean::clean(
+                                &path.to_str().unwrap().replace("\\", "/"),
+                            ));
+                            //let path = PathBuf::from(p);
                             if path.is_relative()
                                 && !p.starts_with("#")
                                 && !p.starts_with("http://")

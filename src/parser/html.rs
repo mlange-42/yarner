@@ -357,7 +357,7 @@ impl Parser for HtmlParser {
         Ok(Document::from_iter(document))
     }
 
-    fn find_links(&self, _input: &Document) -> Result<Vec<PathBuf>, Self::Error> {
+    fn find_links(&self, _input: &Document, _from: &PathBuf) -> Result<Vec<PathBuf>, Self::Error> {
         Ok(vec![])
     }
 }
