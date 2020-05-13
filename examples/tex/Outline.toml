@@ -8,3 +8,8 @@ macro_end = "."
 variable_sep = ":"
 file_prefix = "file:"
 hidden_prefix = "hidden:"
+
+[paths]
+code = "__code/"
+docs = "__docs/"
+files = ["wc.c.tex"]

@@ -1,0 +1,2 @@
+..\..\target\debug\outline
+pause

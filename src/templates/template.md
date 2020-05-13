@@ -39,12 +39,11 @@ This template uses the alternative block name syntax using comments,
 where blocks in the rendered source file look exactly like in the rendered docs output.
 
 Alternatively, use this syntax, where block names are not visible in the rendered sources:
-```md - Code block syntax
-~~~rust - More code in main
-println!("Have fun with outline!");
-~~~
-```
 
-(Replace ` ~~~ ` with ` ``` `.)
+~~~md - Code block syntax
+```rust - More code in main
+println!("Have fun with outline!");
+```
+~~~
 
 When using this syntax, the comment syntax used above is ignored and treated as normal code.

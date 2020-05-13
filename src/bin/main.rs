@@ -2,7 +2,7 @@ use clap::{crate_authors, crate_version, App, Arg, SubCommand};
 use either::Either::{self, *};
 use outline::config::{AnyConfig, LanguageSettings, Paths};
 use outline::document::{CompileError, CompileErrorKind, Document};
-use outline::parser::{BirdParser, HtmlParser, MdParser, Parser, Printer, TexParser};
+use outline::parser::{BirdParser, HtmlParser, MdParser, Parser, ParserConfig, Printer, TexParser};
 use outline::{templates, MultipleTransclusionError, ProjectCreationError};
 use std::collections::{HashMap, HashSet};
 use std::error::Error;
@@ -398,7 +398,7 @@ fn transclude<P>(
     into: Option<&PathBuf>,
 ) -> Result<Document, Box<dyn std::error::Error>>
 where
-    P: Parser + Printer,
+    P: Parser + Printer + ParserConfig,
     P::Error: 'static,
 {
     let file = match into {
@@ -531,7 +531,7 @@ where
                     None => None,
                 };
 
-                let code = document.print_code(entrypoint, language, &settings)?;
+                let code = document.print_code(entrypoint, language, settings)?;
                 println!("{}", code);
             }
             Right(Some(code_dir)) => {
@@ -554,7 +554,7 @@ where
                     None => None,
                 };
 
-                match document.print_code(entrypoint, language, &settings) {
+                match document.print_code(entrypoint, language, settings) {
                     Ok(code) => {
                         eprintln!("  --> Writing file {:?}", file_path);
                         fs::create_dir_all(file_path.parent().unwrap()).unwrap();

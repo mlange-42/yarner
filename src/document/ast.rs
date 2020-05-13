@@ -88,15 +88,13 @@ impl Ast {
 
     /// Gets all the transclusions of this AST
     pub fn transclusions(&self) -> Vec<Transclusion> {
-        let vec = self
-            .nodes
+        self.nodes
             .iter()
             .filter_map(|node| match node {
                 Node::Transclusion(trans) => Some((*trans).clone()),
                 _ => None,
             })
-            .collect();
-        vec
+            .collect()
     }
 
     /// Renders the program this AST is representing in the documentation format
@@ -113,7 +111,7 @@ impl Ast {
                         output.push_str(
                             &printer
                                 .print_code_block(code_block)
-                                .split("\n")
+                                .split('\n')
                                 .map(|line| {
                                     if line.is_empty() {
                                         line.to_string()
@@ -136,7 +134,7 @@ impl Ast {
         &self,
         entrypoint: Option<&str>,
         language: Option<&str>,
-        settings: &Option<&LanguageSettings>,
+        settings: Option<&LanguageSettings>,
     ) -> Result<String, CompileError> {
         let code_blocks = self.code_blocks(language);
         /*code_blocks
@@ -167,7 +165,7 @@ impl Ast {
                 })
             }
         }
-        if settings.and_then(|s| Some(s.eof_newline)).unwrap_or(true) && !result.ends_with("\n\n") {
+        if settings.map(|s| s.eof_newline).unwrap_or(true) && !result.ends_with("\n\n") {
             result.push('\n');
         }
         Ok(result)
