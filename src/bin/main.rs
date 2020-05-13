@@ -531,7 +531,7 @@ where
                     None => None,
                 };
 
-                let code = document.print_code(entrypoint, language, &settings)?;
+                let code = document.print_code(entrypoint, language, settings)?;
                 println!("{}", code);
             }
             Right(Some(code_dir)) => {
@@ -554,7 +554,7 @@ where
                     None => None,
                 };
 
-                match document.print_code(entrypoint, language, &settings) {
+                match document.print_code(entrypoint, language, settings) {
                     Ok(code) => {
                         eprintln!("  --> Writing file {:?}", file_path);
                         fs::create_dir_all(file_path.parent().unwrap()).unwrap();

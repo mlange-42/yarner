@@ -331,9 +331,11 @@ impl Parser for HtmlParser {
                                 code_block = code_block.named(name, vars, defaults).hidden(hidden);
                             }
                             code_block = match args.get("language") {
-                                Some(language) => code_block.in_language(language.to_string()),
+                                Some(language) => code_block.in_language((*language).to_string()),
                                 None => match &self.default_language {
-                                    Some(language) => code_block.in_language(language.to_string()),
+                                    Some(language) => {
+                                        code_block.in_language((*language).to_string())
+                                    }
                                     None => code_block,
                                 },
                             };

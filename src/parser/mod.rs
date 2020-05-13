@@ -59,6 +59,7 @@ pub trait Parser: ParserConfig {
     fn find_links(&self, input: &Document, from: &PathBuf) -> Result<Vec<PathBuf>, Self::Error>;
 
     /// Parses a macro name, returning the name and the extracted variables
+    #[allow(clippy::type_complexity)]
     fn parse_name(
         &self,
         mut input: &str,
@@ -83,14 +84,12 @@ pub trait Parser: ParserConfig {
                     if is_call {
                         vars.push(var.to_owned());
                         optionals.push(None);
+                    } else if let Some(sep_index) = var.find(sep) {
+                        vars.push((&var[..sep_index]).to_owned());
+                        optionals.push(Some((&var[sep_index + sep_len..]).to_owned()));
                     } else {
-                        if let Some(sep_index) = var.find(sep) {
-                            vars.push((&var[..sep_index]).to_owned());
-                            optionals.push(Some((&var[sep_index + sep_len..]).to_owned()));
-                        } else {
-                            vars.push(var.to_owned());
-                            optionals.push(None);
-                        }
+                        vars.push(var.to_owned());
+                        optionals.push(None);
                     }
                     input = &input[start_index + start.len() + end_index + end.len()..];
                 } else {
@@ -101,7 +100,7 @@ pub trait Parser: ParserConfig {
                 break;
             }
         }
-        return Ok((name, vars, optionals));
+        Ok((name, vars, optionals))
     }
 
     /// Parses a line as code, returning the parsed `Line` object

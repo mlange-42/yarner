@@ -32,7 +32,7 @@ impl Document {
         &self,
         entrypoint: Option<&str>,
         language: Option<&str>,
-        settings: &Option<&LanguageSettings>,
+        settings: Option<&LanguageSettings>,
     ) -> Result<String, CompileError> {
         self.tree.print_code(entrypoint, language, settings)
     }

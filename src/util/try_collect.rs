@@ -10,9 +10,15 @@ pub(crate) trait TryCollectExt: Iterator + Sized {
         let result = self.fold(Ok(vec![]), |collection, node| match node {
             Err(error) => match collection {
                 Ok(..) => Err(vec![error]),
-                Err(mut errors) => { errors.push(error); Err(errors) }
+                Err(mut errors) => {
+                    errors.push(error);
+                    Err(errors)
+                }
             },
-            Ok(node) => collection.map(move |mut nodes| { nodes.push(node); nodes })
+            Ok(node) => collection.map(move |mut nodes| {
+                nodes.push(node);
+                nodes
+            }),
         });
         match result {
             Ok(ok) => Ok(ok.into_iter().collect()),
