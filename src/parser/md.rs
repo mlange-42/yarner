@@ -212,6 +212,7 @@ impl ParserConfig for MdParser {
 impl Parser for MdParser {
     type Error = MdError;
 
+    #[allow(clippy::nonminimal_bool)]
     fn parse(&self, input: &str) -> Result<Document, Self::Error> {
         #[derive(Default)]
         struct State {
@@ -242,7 +243,7 @@ impl Parser for MdParser {
                     line.trim_start().starts_with(&self.fence_sequence)
                 };
 
-                if ((!is_code) && (starts_fenced || starts_fenced_alt))
+                if (!is_code && (starts_fenced || starts_fenced_alt))
                     || (is_code && starts_fenced && !is_alt_fenced_code)
                     || (is_code && starts_fenced_alt && is_alt_fenced_code)
                 {
@@ -281,14 +282,14 @@ impl Parser for MdParser {
                                         .map(|name_end| {
                                             self.block_name_start.len() + name_end + name_start
                                         })
-                                        .unwrap_or(rest.len());
+                                        .unwrap_or_else(|| rest.len());
                                     let name = &rest[name_start..name_end];
                                     self.parse_name(name, false)
                                 });
 
                             let mut code_block = CodeBlock::new().indented(indent);
 
-                            let language = rest[..name_start.unwrap_or(rest.len())].trim();
+                            let language = rest[..name_start.unwrap_or_else(|| rest.len())].trim();
                             let language = if language.is_empty() {
                                 match &self.default_language {
                                     Some(language) => Some(language.to_owned()),
@@ -461,7 +462,7 @@ impl Parser for MdParser {
                             ));
                             //let path = PathBuf::from(p);
                             if path.is_relative()
-                                && !p.starts_with("#")
+                                && !p.starts_with('#')
                                 && !p.starts_with("http://")
                                 && !p.starts_with("https://")
                                 && !p.starts_with("ftp://")

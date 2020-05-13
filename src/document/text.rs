@@ -1,5 +1,8 @@
 //! Representation of the text parts of the AST
 
+use serde::export::Formatter;
+use std::fmt::Display;
+
 /// A `TextBlock` is just text that will be copied verbatim into the output documentation file
 #[derive(Debug, Default)]
 pub struct TextBlock {
@@ -19,12 +22,13 @@ impl TextBlock {
     }
 
     /// Renders this `TextBlock` as the text it represents
-    pub fn to_string(&self) -> String {
-        self.text.join("\n")
-    }
-
-    /// Renders this `TextBlock` as the text it represents
     pub fn lines(&self) -> &Vec<String> {
         &self.text
+    }
+}
+
+impl Display for TextBlock {
+    fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
+        write!(f, "{}", self.text.join("\n"))
     }
 }
