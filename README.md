@@ -3,47 +3,53 @@
 [![Build Status](https://travis-ci.com/mlange-42/outline.svg?branch=master)](https://travis-ci.com/mlange-42/outline)
 
 Generic literate programming transpiler. This project aims to provide a modern, developer friendly
-literate programming tool. After a brief search online, other options claiming to be "modern" are
-years old, and have some pretty ugly syntax (in my opinion). If I am wrong in this regard, please
-open an issue to correct me!
+literate programming tool.
 
-In contrast, Outline works with familiar syntax, which can be further customized to suit your needs
+Outline works with familiar syntax, which can be further customized to suit your needs
 exactly. It uses pluggable, configurable input formats, with out-of-the-box support for:
-*   Markdown;
-*   Latex;
-*   HTML; and
+*   Markdown
+*   Latex
+*   HTML
 *   (some approximation of) Bird style
 
 See the examples directory for full working examples in each style.
 
-This is a fork of the original [outline](https://github.com/foxfriends/outline)
-by foxfriends with some additional features.
-
 ## Installation
 
-The provided binary (honestly a quick hack to get things working) can be installed via Cargo. If you
-do not have Cargo (and Rust) installed, you can use [rustup](https://rustup.rs) to get started.
+* Download the [latest binaries](https://github.com/mlange-42/outline/releases) [TODO: provide binaries].
+* Unzip somewhere with write privileges (only required for running examples in place).
 
-```bash
-cargo install outline --features bin
+## Getting started
+
+To set up a new project, use the `create` subcommand.
+To create a Markdown project, run:
+
+```
+outline create README.md md
 ```
 
-The `outline` crate is also available to allow you to write your own parser:
+Or simply, as Markdown is the default:
 
-```toml
-outline = "0.1.2"
+```
+outline create README.md
 ```
 
-If you write your own parser, feel free to continue hacking on the provided `src/bin/main.rs` to
-support your new parser.
+This creates a file `Outline.toml` with default settings,
+and a file `README.md` as starting point for Literate Programming.
+
+To "compile" the project (extract code and create documentation),
+simply run:
+```
+outline
+```
 
 ## Features
 
 In all styles, the code sections are handled the same way, supporting:
-*   macros;
-*   meta variable interpolation;
-*   comment extraction;
-*   named entrypoints; and
+*   macros
+*   meta variable interpolation
+*   comment extraction
+*   named entrypoints
 *   multiple languages in one file
 
 The text sections are also handled the same way in all styles - just copied in and written out with
@@ -53,6 +59,10 @@ this the weaved documentation file will look very similar to the original litera
 slight changes to the code block syntax to ensure that they are valid in the true documentation
 language. Given this, note that any post-processing or format changes you wish to apply to the
 documentation should be performed on the generated document.
+
+Some advanced features are currently only supported for **Markdown**:
+* File transclusions (e.g. "draw" sub-documents into the main document)
+* Automatic inclusion of linked files
 
 ### Macros
 
@@ -117,8 +127,6 @@ Now, to say things to many people:
 ==> Say @{I am good!} to @{Angela}.
 ```
 ~~~
-
-**Modification:**
 
 Meta variables can have default values:
 
@@ -377,3 +385,8 @@ starting point, and then looking to `src/bin/main.rs` for an example of how to u
 parser.
 
 Additionally, the API documentation is another good place to look.
+
+## Acknowledgement
+
+This tool is derived from work of [foxfriends](https://github.com/foxfriends),
+named [outline](https://github.com/foxfriends/outline).
