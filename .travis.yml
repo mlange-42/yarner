@@ -22,7 +22,7 @@ script:
   - cargo fmt -- --check
   - cargo clippy --all-targets -- --deny warnings
   - cargo test --verbose
-  - cargo build --release
+  - cargo build --release --features="bin"
 
 # Need to cache the whole `.cargo` directory to keep .crates.toml for
 # cargo-update to work
