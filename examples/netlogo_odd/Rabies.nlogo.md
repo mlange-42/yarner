@@ -2,7 +2,7 @@
 
 This document explores the creation of a [NetLogo](https://ccl.northwestern.edu/netlogo/) model
 from it's own ODD model description (Grimm et al. 2006, 2010).
-Processed with `outline`, the document produces a runnable file of the described model
+Processed with `yarner`, the document produces a runnable file of the described model
 for the famous NetLogo modelling environment.
 
 All (!) code of the model is in this document, including some NetLogo-specific boilerplate code,
@@ -379,7 +379,7 @@ Here, we just insert a short description in NetLogo's Markdown syntax:
 A simple individual-based model of rabies in fox populations.
 
 The speciality of this model is that it was created from it's own ODD model description,
-using Literate Programming and the tool `outline`.
+using Literate Programming and the tool `yarner`.
 
 ## HOW IT WORKS
 
@@ -395,7 +395,7 @@ Just play with the model. But also read the documentation which is the base of t
 Setting up the user interface in NetLogo programmatically is a bit inconvenient.
 
 We add two buttons, some sliders, and set up the world and graphics window,
-using `outline`'s "meta variables" feature:
+using `yarner`'s "meta variables" feature:
 
 ```
 // Interface tab

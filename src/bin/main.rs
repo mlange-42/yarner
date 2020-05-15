@@ -1,17 +1,17 @@
 use clap::{crate_authors, crate_version, App, Arg, SubCommand};
 use either::Either::{self, *};
-use outline::config::{AnyConfig, LanguageSettings, Paths};
-use outline::document::{CompileError, CompileErrorKind, Document};
-use outline::parser::{BirdParser, HtmlParser, MdParser, Parser, ParserConfig, Printer, TexParser};
-use outline::{templates, MultipleTransclusionError, ProjectCreationError};
 use std::collections::{HashMap, HashSet};
 use std::error::Error;
 use std::fs::{self, File};
 use std::io::Write;
 use std::path::PathBuf;
+use yarner::config::{AnyConfig, LanguageSettings, Paths};
+use yarner::document::{CompileError, CompileErrorKind, Document};
+use yarner::parser::{BirdParser, HtmlParser, MdParser, Parser, ParserConfig, Printer, TexParser};
+use yarner::{templates, MultipleTransclusionError, ProjectCreationError};
 
 fn main() {
-    let matches = App::new("Outline")
+    let matches = App::new("Yarner")
         .version(crate_version!())
         .author(crate_authors!())
         .about("Literate programming compiler")
@@ -21,7 +21,7 @@ fn main() {
             .value_name("config_file")
             .help("Sets the config file name")
             .takes_value(true)
-            .default_value("Outline.toml"))
+            .default_value("Yarner.toml"))
         .arg(Arg::with_name("style")
             .short("s")
             .long("style")
@@ -73,7 +73,7 @@ fn main() {
                 .multiple(true)
                 .index(1)))*/
         .subcommand(SubCommand::with_name("create")
-            .about("Creates an outline project in the current directory")
+            .about("Creates a yarner project in the current directory")
             .arg(Arg::with_name("file")
                 .help("The base file for the doc sources, with normal file extension, but without additional style extension.")
                 .value_name("file")
@@ -95,7 +95,7 @@ fn main() {
 
         match create_project(file, style) {
             Ok(_) => eprintln!(
-                "Successfully created project for {}.\nTo compile the project, run `outline` from the project directory.",
+                "Successfully created project for {}.\nTo compile the project, run `yarner` from the project directory.",
                 file
             ),
             Err(err) => eprintln!("Creating project failed for {}: {}", file, err),
@@ -340,7 +340,7 @@ fn main() {
 fn create_project(file: &str, style: &str) -> Result<(), Box<dyn Error>> {
     let file_name = format!("{}.{}", file, style);
     let base_path = PathBuf::from(&file_name);
-    let toml_path = PathBuf::from("Outline.toml");
+    let toml_path = PathBuf::from("Yarner.toml");
 
     if base_path.exists() {
         return Err(Box::new(ProjectCreationError(format!(

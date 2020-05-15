@@ -1,4 +1,4 @@
-//! Config objects, to be read from Outline.toml
+//! Config objects, to be read from Yarner.toml
 
 use crate::parser::*;
 use serde_derive::{Deserialize, Serialize};

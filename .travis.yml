@@ -1,7 +1,7 @@
 language: rust
 env:
   global:
-    - REPO=outline
+    - REPO=yarner
 
 os:
   - linux
@@ -37,9 +37,9 @@ before_cache:
 before_deploy:
   - rm -rf ${REPO} || exit 0
   - mkdir ${REPO}
-  - if [[ "$TRAVIS_OS_NAME" == "osx" ]]; then cp -f target/release/outline ${REPO} > /dev/null; fi
-  - if [[ "$TRAVIS_OS_NAME" == "linux" ]]; then cp -f target/release/outline ${REPO} > /dev/null; fi
-  - if [[ "$TRAVIS_OS_NAME" == "windows" ]]; then cp -f target/release/outline.exe ${REPO} > /dev/null; fi
+  - if [[ "$TRAVIS_OS_NAME" == "osx" ]]; then cp -f target/release/yarner ${REPO} > /dev/null; fi
+  - if [[ "$TRAVIS_OS_NAME" == "linux" ]]; then cp -f target/release/yarner ${REPO} > /dev/null; fi
+  - if [[ "$TRAVIS_OS_NAME" == "windows" ]]; then cp -f target/release/yarner.exe ${REPO} > /dev/null; fi
   - tar -czf ${REPO}-${TRAVIS_TAG}-${TRAVIS_OS_NAME}.tar.gz ${REPO}
 
 deploy:

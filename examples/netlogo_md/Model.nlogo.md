@@ -1,7 +1,7 @@
 # Setting up a NetLogo file
 
 This document explains the setup of a minimal NetLogo model file,
-and, processed with `outline`, produces the described file from the documentation.
+and, processed with `yarner`, produces the described file from the documentation.
 
 First, we explain the actual [NetLogo code](#code). 
 Next, we see the [file structure](#file-structure) of a `.nlogo` file. 
