@@ -16,7 +16,7 @@ See the examples directory for full working examples in each style.
 
 ## Installation
 
-* Download the [latest binaries](https://github.com/mlange-42/yarner/releases) [TODO: provide binaries].
+* Download the [latest binaries](https://github.com/mlange-42/yarner/releases).
 * Unzip somewhere with write privileges (only required for running examples in place).
 
 ## Getting started
