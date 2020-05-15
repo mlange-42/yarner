@@ -1,4 +1,4 @@
-# Markdown outline template
+# Markdown yarner template
 
 The following code goes to the base file of code output:
 
@@ -12,7 +12,7 @@ In the code output, `==> More code.` will be replaced by the following code:
 
 ```
 // More code
-Have fun with outline!
+Have fun with yarner!
 ```
 
 To create code in other files, use `file:<path/to/file>` as block name.
@@ -30,7 +30,7 @@ Pulling code together works as usual:
 
 ```rust
 // More code in main
-println!("Have fun with outline!");
+println!("Have fun with yarner!");
 ```
 
 ## Alternative block name syntax
@@ -42,7 +42,7 @@ Alternatively, use this syntax, where block names are not visible in the rendere
 
 ~~~md - Code block syntax
 ```rust - More code in main
-println!("Have fun with outline!");
+println!("Have fun with yarner!");
 ```
 ~~~
 

@@ -2,7 +2,7 @@
 <html lang="en" dir="ltr">
 <head>
     <meta charset="utf-8">
-    <title>HTML Outline template</title>
+    <title>HTML yarner template</title>
     <style>
     :root {
       --font--body: 14pt 'Alegreya', serif;
@@ -77,11 +77,11 @@
 
     pre code span { overflow: visible; }
 
-    pre code .outline.interpolation {
+    pre code .yarner.interpolation {
       color: var(--color--code-interpolation);
     }
 
-    pre code .outline.macro {
+    pre code .yarner.macro {
       color: var(--color--code-macro);
     }
 
@@ -117,7 +117,7 @@
 <body>
 <main>
 
-    <h1>Markdown outline template</h1>
+    <h1>Markdown yarner template</h1>
 
     <p>The following code goes to the base file of code output:</p>
 
@@ -129,7 +129,7 @@
     <p>In the code output, <code>==> More code.</code> will be replaced by the following code:</p>
 
     <code name="More code">
-    Have fun with outline!
+    Have fun with yarner!
     </code>
 
     <p>To create code in other files, use <code>file:&lt;path/to/file&gt;</code> as block name.
@@ -145,7 +145,7 @@
     <p>Pulling code together works as usual:</p>
 
     <code language="rust" name="More code in main">
-    println!("Have fun with outline!");
+    println!("Have fun with yarner!");
     </code>
 
 </main>
@@ -157,14 +157,14 @@
 <script>
     const interpolation = {
       pattern: /@\{.*\}/g,
-      name: 'outline.interpolation',
+      name: 'yarner.interpolation',
     };
 
     Rainbow.extend([
       interpolation,
       {
         pattern: /\=\=(>|&gt;) [^.]*\./g,
-        name: 'outline.macro',
+        name: 'yarner.macro',
         matches: {
           0: interpolation
         }

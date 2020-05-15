@@ -1,6 +1,6 @@
 # Modular ODD with Literate Programming
 
-For help on the Literate Programming syntax, see the [README](https://github.com/mlange-42/outline/blob/master/README.md) on GitHub.
+For help on the Literate Programming syntax, see the [README](https://github.com/mlange-42/yarner/blob/master/README.md) on GitHub.
 
 **Content**
 

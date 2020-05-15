@@ -1,10 +1,10 @@
 [package]
-name = "outline"
-version = "0.2.1"
-authors = ["Cameron Eldridge <cameldridge@gmail.com>", "Martin Lange <martin_lange_@gmx.net>"]
-description = "\"Good enough\" literate programming tool"
-homepage = "https://github.com/foxfriends/outline"
-repository = "https://github.com/foxfriends/outline"
+name = "yarner"
+version = "0.1.0"
+authors = ["Martin Lange <martin_lange_@gmx.net>", "Cameron Eldridge <cameldridge@gmail.com>"]
+description = "Literate programming tool"
+homepage = "https://github.com/mlange-42/yarner"
+repository = "https://github.com/mlange-42/yarner"
 license = "MIT"
 exclude = ["examples/*"]
 edition = "2018"
@@ -18,14 +18,14 @@ debug-assertions = false
 overflow-checks = false
 
 [lib]
-name = "outline"
+name = "yarner"
 path = "src/lib.rs"
 
 [features]
 bin = ["clap", "toml", "either"]
 
 [[bin]]
-name = "outline"
+name = "yarner"
 path = "src/bin/main.rs"
 required-features = ["bin"]
 edition = "2018"
