@@ -1,4 +1,4 @@
-//! Outline is a general purpose compiler for literate programming, supporting pluggable input and
+//! Yarner is a general purpose compiler for literate programming, supporting pluggable input and
 //! output formats.
 
 #![warn(missing_docs)]

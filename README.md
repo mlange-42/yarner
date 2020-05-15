@@ -1,11 +1,11 @@
-# Outline
+# Yarner
 
-[![Build Status](https://travis-ci.com/mlange-42/outline.svg?branch=master)](https://travis-ci.com/mlange-42/outline)
+[![Build Status](https://travis-ci.com/mlange-42/yarner.svg?branch=master)](https://travis-ci.com/mlange-42/yarner)
 
 Generic literate programming transpiler. This project aims to provide a modern, developer friendly
 literate programming tool.
 
-Outline works with familiar syntax, which can be further customized to suit your needs
+Yarner works with familiar syntax, which can be further customized to suit your needs
 exactly. It uses pluggable, configurable input formats, with out-of-the-box support for:
 *   Markdown
 *   Latex
@@ -16,7 +16,7 @@ See the examples directory for full working examples in each style.
 
 ## Installation
 
-* Download the [latest binaries](https://github.com/mlange-42/outline/releases) [TODO: provide binaries].
+* Download the [latest binaries](https://github.com/mlange-42/yarner/releases) [TODO: provide binaries].
 * Unzip somewhere with write privileges (only required for running examples in place).
 
 ## Getting started
@@ -25,22 +25,22 @@ To set up a new project, use the `create` subcommand.
 To create a Markdown project, run:
 
 ```
-outline create README.md md
+yarner create README.md md
 ```
 
 Or simply, as Markdown is the default:
 
 ```
-outline create README.md
+yarner create README.md
 ```
 
-This creates a file `Outline.toml` with default settings,
+This creates a file `Yarner.toml` with default settings,
 and a file `README.md` as starting point for Literate Programming.
 
 To "compile" the project (extract code and create documentation),
 simply run:
 ```
-outline
+yarner
 ```
 
 ## Features
@@ -67,7 +67,7 @@ Some advanced features are currently only supported for **Markdown**:
 ### Macros
 
 Macros are what enables the literate program to be written in logical order for the human reader.
-Using Outline, this is accomplished by naming the code blocks, and then referencing them later by
+Using yarner, this is accomplished by naming the code blocks, and then referencing them later by
 "invoking" the macro. While the syntax for naming a code block is specific to the documentation
 style, macro invocation is the same.
 
@@ -172,7 +172,7 @@ By default, the entrypoint of the program is always the unnamed code block. Howe
 output of one input file to always be the same source code. It also means that you can't have a name
 on the entrypoint in the documentation, which could be useful.
 
-To get around this, an entrypoint name can be passed to Outline on the command line. Then, instead
+To get around this, an entrypoint name can be passed to yarner on the command line. Then, instead
 of starting at the unnamed code block, it will start at the code block with this name.
 
 Note that if you use a named entrypoint, there is no way to reference the unnamed code blocks as
@@ -194,7 +194,7 @@ fn say_hello() {
 
 ### File transclusion
 
-Outline supports file transclusion to allow for more structured or modular project sources.
+Yarner supports file transclusion to allow for more structured or modular project sources.
 *This feature is currently only supported for Markdown.*
 
 Here, the content of file `src/main.rs.md` would be pulled into the document
@@ -220,7 +220,7 @@ as well as from other transcluded files.
 Files linked from the main source document are included in the compilation process.
 *This feature is currently only supported for Markdown.*
 
-As an example, Outline would also compile the file `src/main.rs.md` here:
+As an example, yarner would also compile the file `src/main.rs.md` here:
 
 ```md
 * [src/main.rs](src/main.rs.md)
@@ -257,7 +257,7 @@ fn main() {
 ~~~
 
 Compiling this with no language supplied with just ignore language information, so a single output
-will be generated containing both languages. However, supplying the `--language rb` flag to Outline
+will be generated containing both languages. However, supplying the `--language rb` flag to yarner
 will cause only the code blocks tagged with `rb` will be used to generate code.
 
 ## Usage
@@ -266,7 +266,7 @@ will cause only the code blocks tagged with `rb` will be used to generate code.
 Literate programming compiler
 
 USAGE:
-    outline [OPTIONS] [input]... [SUBCOMMAND]
+    yarner [OPTIONS] [input]... [SUBCOMMAND]
 
 FLAGS:
     -h, --help       Prints help information
@@ -275,7 +275,7 @@ FLAGS:
 OPTIONS:
     -o, --output <code_dir>          Output tangled code files to this directory. If none is specified, uses 'path' ->
                                      'code' from config file.
-    -c, --config <config_file>       Sets the config file name [default: Outline.toml]
+    -c, --config <config_file>       Sets the config file name [default: Yarner.toml]
     -d, --docs <doc_dir>             Directory to output weaved documentation files to. If none is specified, uses
                                      'path' -> 'docs' from config file.
     -e, --entrypoint <entrypoint>    The named entrypoint to use when tangling code. Defaults to the unnamed code block.
@@ -288,18 +288,16 @@ ARGS:
     <input>...    The input source file(s). If none are specified, uses 'path' -> 'files' from config file.
 
 SUBCOMMANDS:
-    create    Creates an outline project in the current directory
+    create    Creates a yarner project in the current directory
     help      Prints this message or the help of the given subcommand(s)
 ```
 
 ### Configuration
 
 Each style supports some additional configuration, which is provided via a toml configuration file
-(default: Outline.toml). Multiple styles can be configured at once in the configuration file. Note
+(default: Yarner.toml). Multiple styles can be configured at once in the configuration file. Note
 that if a style appears in the configuration file, its full set of options is required (all defaults
 will be discarded).
-
-For more information on these options, see the [API documentation](https://docs.rs/outline).
 
 ```toml
 [md]
@@ -366,7 +364,7 @@ blank_lines = true
 
 ### Extending
 
-It is possible to write your own Outline parsers for more formats, or to extend the existing
+It is possible to write your own yarner parsers for more formats, or to extend the existing
 formats.
 
 To do this, you need to implement three traits - `Parser`, `Printer`, and `ParserConfig`.

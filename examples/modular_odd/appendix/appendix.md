@@ -56,7 +56,7 @@ Here, we just insert a short description in NetLogo's Markdown syntax:
 Setting up the user interface in NetLogo programmatically is a bit inconvenient.
 
 We add two buttons, some sliders, and set up the world and graphics window,
-using `outline`'s "meta variables" feature:
+using `yarner`'s "meta variables" feature:
 
 ```
 // Interface tab

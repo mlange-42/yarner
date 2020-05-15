@@ -77,11 +77,11 @@
 
     pre code span { overflow: visible; }
 
-    pre code .outline.interpolation {
+    pre code .yarner.interpolation {
       color: var(--color--code-interpolation);
     }
 
-    pre code .outline.macro {
+    pre code .yarner.macro {
       color: var(--color--code-macro);
     }
 
@@ -386,14 +386,14 @@
     <script>
     const interpolation = {
       pattern: /@\{.*\}/g,
-      name: 'outline.interpolation',
+      name: 'yarner.interpolation',
     };
 
     Rainbow.extend([
       interpolation,
       {
         pattern: /\=\=(>|&gt;) [^.]*\./g,
-        name: 'outline.macro',
+        name: 'yarner.macro',
         matches: {
           0: interpolation
         }

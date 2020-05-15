@@ -1,2 +1,2 @@
-..\..\target\debug\outline
+..\..\target\debug\yarner
 pause

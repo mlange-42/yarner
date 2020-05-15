@@ -1,9 +1,9 @@
-use std::env;
-use std::io::Write;
-use std::fs::{copy, File, read_to_string, create_dir_all};
-use std::path::PathBuf;
 use glob::glob;
-use outline::parser::{Parser, MdParser};
+use std::env;
+use std::fs::{copy, create_dir_all, read_to_string, File};
+use std::io::Write;
+use std::path::PathBuf;
+use yarner::parser::{MdParser, Parser};
 
 fn main() {
     let out_dir: PathBuf = env::var("OUT_DIR").unwrap().into();
@@ -22,11 +22,11 @@ fn main() {
         let result = MdParser::default()
             .parse(&source)
             .map_err(|error| format!("{}", error))
-            .and_then(|document|
+            .and_then(|document| {
                 document
                     .print_code(None, Some("rs"))
                     .map_err(|error| format!("{}", error))
-            );
+            });
         match result {
             Ok(code) => {
                 let mut out_file = out_dir.clone();
@@ -37,7 +37,10 @@ fn main() {
                 write!(file, "{}", code).unwrap();
             }
             Err(error) => {
-                println!("cargo:warning=Failed to compile {:?}. Reason: {}", input_file_name, error);
+                println!(
+                    "cargo:warning=Failed to compile {:?}. Reason: {}",
+                    input_file_name, error
+                );
             }
         }
     }
