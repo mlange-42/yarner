@@ -1,7 +1,7 @@
 [package]
 name = "yarner"
-version = "0.2.1"
-authors = ["Cameron Eldridge <cameldridge@gmail.com>", "Martin Lange <martin_lange_@gmx.net>"]
+version = "0.1.0"
+authors = ["Martin Lange <martin_lange_@gmx.net>", "Cameron Eldridge <cameldridge@gmail.com>"]
 description = "Literate programming tool"
 homepage = "https://github.com/mlange-42/yarner"
 repository = "https://github.com/mlange-42/yarner"
