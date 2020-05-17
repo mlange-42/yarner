@@ -22,7 +22,8 @@ See the examples directory for full working examples in each style.
 ## Getting started
 
 To set up a new project, use the `create` subcommand.
-To create a Markdown project, run:
+To create a Markdown project, run the following
+in your project's base directory:
 
 ```
 yarner create README.md md
@@ -36,12 +37,18 @@ yarner create README.md
 
 This creates a file `Yarner.toml` with default settings,
 and a file `README.md` as starting point for Literate Programming.
+The generated file already contains some content to get started with yarner's
+basic features. For details, read the following sections.
 
 To "compile" the project (extract code and create documentation),
 simply run:
+
 ```
 yarner
 ```
+
+This will create two sub-directories, one containing the extracted code,
+and one for the final documentation.
 
 ## Features
 
