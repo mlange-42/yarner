@@ -391,7 +391,7 @@ parser.
 
 Additionally, the API documentation is another good place to look.
 
-## Acknowledgement
+## Acknowledgements
 
 This tool is derived from work of [foxfriends](https://github.com/foxfriends),
 named [outline](https://github.com/foxfriends/outline).
