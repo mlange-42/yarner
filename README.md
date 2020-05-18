@@ -154,7 +154,8 @@ By naming code blocks with prefix `file:` followed by a relative path, multiple 
 from one source file. Each code block with the `file:` prefix is treated as a separate entry point.
 
 ~~~md
-```rust - file:src/lib.rs
+```rust
+// file:src/lib.rs
 fn say_hello() {
     println!("Hello Literate Programmer!");
 }
