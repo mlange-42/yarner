@@ -70,7 +70,8 @@ An example:
 ~~~md
 Here is our macro with meta variables:
 
-```rust - Say @{something} to @{someone}
+```rust
+// Say @{something} to @{someone}
 println!("Hey, @{someone}! I was told to tell you \"@{something}\"");
 ```
 
@@ -88,7 +89,8 @@ Meta variables can have default values:
 ~~~md
 Here is our macro with default meta variables:
 
-```rust - Say @{something:Hello} to @{someone}
+```rust
+// Say @{something:Hello} to @{someone}
 println!("Hey, @{someone}! I was told to tell you \"@{something}\"");
 ```
 
@@ -143,7 +145,8 @@ By naming code blocks with prefix `file:` followed by a relative path, multiple 
 from one source file. Each code block with the `file:` prefix is treated as a separate entry point.
 
 ~~~md
-```rust - file:src/lib.rs
+```rust
+// file:src/lib.rs
 fn say_hello() {
     println!("Hello Literate Programmer!");
 }
