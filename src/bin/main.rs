@@ -58,20 +58,6 @@ fn main() {
             .value_name("input")
             .multiple(true)
             .index(1))
-        /*.subcommand(SubCommand::with_name("tangle")
-            .about("Tangle input and print to STDOUT")
-            .arg(Arg::with_name("input")
-                .help("The input source file(s). If none are specified, read from STDIN")
-                .value_name("input")
-                .multiple(true)
-                .index(1)))
-        .subcommand(SubCommand::with_name("weave")
-            .about("Weave input and print to STDOUT")
-            .arg(Arg::with_name("input")
-                .help("The input source file(s). If none are specified, read from STDIN")
-                .value_name("input")
-                .multiple(true)
-                .index(1)))*/
         .subcommand(SubCommand::with_name("create")
             .about("Creates a yarner project in the current directory")
             .arg(Arg::with_name("file")
@@ -155,17 +141,12 @@ fn main() {
         //Stdin,
     }
 
-    let inputs = matches
-        /*.subcommand_matches("weave")
-        .or(matches.subcommand_matches("tangle"))
-        .unwrap_or(&matches)*/
-        .values_of("input")
-        .map(|files| {
-            files
-                .into_iter()
-                .map(|file| Input::File(file.to_string()))
-                .collect()
-        });
+    let inputs = matches.values_of("input").map(|files| {
+        files
+            .into_iter()
+            .map(|file| Input::File(file.to_string()))
+            .collect()
+    });
 
     let inputs: Vec<_> = match inputs.or_else(|| {
         paths
@@ -179,24 +160,11 @@ fn main() {
             return;
         }
     };
-    //.unwrap_or_else(|| vec![Input::Stdin]);
 
     for input in inputs {
         let (file_name, style_type, code_type) = match input {
             Input::File(file_name) => {
                 let file_name = PathBuf::from(file_name);
-
-                /*let contents = match fs::read_to_string(&file_name) {
-                    Ok(contents) => contents,
-                    Err(error) => {
-                        eprintln!(
-                            "Could not read source file \"{}\": {}",
-                            file_name.to_str().unwrap(),
-                            error
-                        );
-                        return;
-                    }
-                };*/
 
                 let style_type = file_name
                     .extension()
@@ -210,17 +178,7 @@ fn main() {
                         .map(|s| s.to_owned())
                 });
                 (file_name, style_type, code_type)
-            } /*Input::Stdin => {
-                  let mut input = String::new();
-                  match stdin().read_to_string(&mut input) {
-                      Ok(..) => (),
-                      Err(error) => {
-                          eprintln!("Could not read STDIN as string: {}", error);
-                          return;
-                      }
-                  }
-                  (None, input, None, None)
-              }*/
+            }
         };
 
         let language = matches.value_of("language");
@@ -334,30 +292,13 @@ fn create_project(file: &str, style: &str) -> Result<(), Box<dyn Error>> {
         ))));
     }
 
-    /*let mut config = AnyConfig::default();
-    config.paths = Some(Paths {
-        code: Some("code/".to_string()),
-        docs: Some("docs/".to_string()),
-        files: Some(vec![file_name]),
-    });*/
-
     let (template, toml) = match style {
-        "md" => {
-            //config.md = Some(MdParser::default());
-            (templates::MD, templates::MD_CONFIG)
-        }
-        "tex" => {
-            //config.tex = Some(TexParser::default());
-            (templates::TEX, templates::TEX_CONFIG)
-        }
-        "html" => {
-            //config.html = Some(HtmlParser::default());
-            (templates::HTML, templates::HTML_CONFIG)
-        }
+        "md" => (templates::MD, templates::MD_CONFIG),
+        "tex" => (templates::TEX, templates::TEX_CONFIG),
+        "html" => (templates::HTML, templates::HTML_CONFIG),
         _ => ("", ""),
     };
 
-    //let toml = toml::to_string(&config).unwrap();
     let toml = toml.replace("%%MAIN_FILE%%", &file_name);
     let mut toml_file = File::create(&toml_path)?;
     toml_file.write_all(&toml.as_bytes())?;

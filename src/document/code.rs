@@ -249,22 +249,6 @@ impl Line {
                     );
                 }
                 Ok(result.join("\n"))
-                /*
-                let scope = block.assign_vars(&scope[..]);
-                block
-                    .compile_with(code_blocks, scope, settings)
-                    .map(|code| {
-                        code.split("\n")
-                            .map(|line| {
-                                if blank_lines && line.trim().is_empty() {
-                                    "".to_string()
-                                } else {
-                                    format!("{}{}", self.indent, line)
-                                }
-                            })
-                            .collect::<Vec<_>>()
-                            .join("\n")
-                    })*/
             }
         }
     }
