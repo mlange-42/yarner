@@ -136,8 +136,8 @@ readers of the documentation, so they are still useful.
 
 ## Multiple Files, Multiple Entrypoints
 
-By naming code blocks with prefix 'file:' followed by a relative path, multiple code files can be created
-from one source file. Each code block with the 'file:' prefix is treated as a separate entry point.
+By naming code blocks with prefix `file:` followed by a relative path, multiple code files can be created
+from one source file. Each code block with the `file:` prefix is treated as a separate entry point.
 
 ~~~md
 ```rust - file:src/lib.rs
