@@ -28,6 +28,8 @@ pub struct Paths {
     pub docs: Option<String>,
     /// Input file(s).
     pub files: Option<Vec<String>>,
+    /// Entrypoint block name. Optional. If not supplied, unnamed code blocks are used.
+    pub entrypoint: Option<String>,
 }
 
 /// Config for a programming language

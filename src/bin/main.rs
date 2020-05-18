@@ -135,6 +135,10 @@ fn main() {
                 .map(PathBuf::from),
         ),
     };
+    let entrypoint = matches
+        .value_of("entrypoint")
+        .map(|ep| ep)
+        .or_else(|| paths.entrypoint.as_deref());
 
     enum Input {
         File(String),
@@ -182,7 +186,6 @@ fn main() {
         };
 
         let language = matches.value_of("language");
-        let entrypoint = matches.value_of("entrypoint");
 
         match matches
             .value_of("style")

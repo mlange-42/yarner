@@ -162,6 +162,7 @@ impl Ast {
                     self.nodes.remove(index);
                     for (i, mut node) in with.nodes.into_iter().enumerate() {
                         if let Node::Code(code) = &mut node {
+                            // TODO use entrypoint option here, too? Currently, only in main file.
                             if code.name.is_none() {
                                 code.name = Some(from.to_string());
                             }
