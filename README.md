@@ -192,7 +192,7 @@ OPTIONS:
     -l, --language <language>        The language to output the tangled code in. Only code blocks in this language will
                                      be used.
     -s, --style <style>              Sets the style to use. If not specified, it is inferred from the file extension.
-                                     [possible values: bird, md, tex, html]
+                                     [possible values: md, tex, html]
 
 ARGS:
     <input>...    The input source file(s). If none are specified, uses 'path' -> 'files' from config file.

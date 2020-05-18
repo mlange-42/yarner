@@ -6,12 +6,10 @@
 //! Additionally, for each parser, a `Printer` is needed to be able to write the code back
 //! out correctly.
 
-pub mod bird;
 pub mod html;
 pub mod md;
 pub mod tex;
 
-pub use self::bird::BirdParser;
 pub use self::html::HtmlParser;
 pub use self::md::MdParser;
 pub use self::tex::TexParser;

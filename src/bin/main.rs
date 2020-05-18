@@ -5,9 +5,9 @@ use std::error::Error;
 use std::fs::{self, File};
 use std::io::Write;
 use std::path::PathBuf;
-use yarner::config::{AnyConfig, LanguageSettings, Paths};
+use yarner::config::{AnyConfig, LanguageSettings};
 use yarner::document::{CompileError, CompileErrorKind, Document};
-use yarner::parser::{BirdParser, HtmlParser, MdParser, Parser, ParserConfig, Printer, TexParser};
+use yarner::parser::{HtmlParser, MdParser, Parser, ParserConfig, Printer, TexParser};
 use yarner::{templates, MultipleTransclusionError, ProjectCreationError};
 
 fn main() {
@@ -28,7 +28,7 @@ fn main() {
             .value_name("style")
             .help("Sets the style to use. If not specified, it is inferred from the file extension.")
             .takes_value(true)
-            .possible_values(&["bird", "md", "tex", "html"]))
+            .possible_values(&["md", "tex", "html"]))
         .arg(Arg::with_name("doc_dir")
             .short("d")
             .long("docs")
@@ -84,7 +84,7 @@ fn main() {
                 .short("s")
                 .help("Sets the style to use.")
                 .takes_value(true)
-                .possible_values(&["bird", "md", "tex", "html"])
+                .possible_values(&["md", "tex", "html"])
                 .default_value("md")
                 .index(2)))
         .get_matches();
@@ -233,27 +233,6 @@ fn main() {
             .unwrap_or("md".to_string())
             .as_str()
         {
-            "bird" => {
-                let default = BirdParser::default();
-                let parser = any_config.bird.as_ref().unwrap_or(&default);
-                if let Err(error) = compile_all(
-                    parser,
-                    &doc_dir,
-                    &code_dir,
-                    &file_name,
-                    entrypoint,
-                    language,
-                    &any_config.language,
-                    &mut HashSet::new(),
-                ) {
-                    eprintln!(
-                        "Failed to compile source file \"{}\": {}",
-                        file_name.to_str().unwrap(),
-                        error
-                    );
-                    continue;
-                }
-            }
             "md" => {
                 let default = MdParser::default();
                 let parser = any_config
@@ -355,34 +334,31 @@ fn create_project(file: &str, style: &str) -> Result<(), Box<dyn Error>> {
         ))));
     }
 
-    let mut config = AnyConfig::default();
+    /*let mut config = AnyConfig::default();
     config.paths = Some(Paths {
         code: Some("code/".to_string()),
         docs: Some("docs/".to_string()),
         files: Some(vec![file_name]),
-    });
+    });*/
 
-    let template = match style {
+    let (template, toml) = match style {
         "md" => {
-            config.md = Some(MdParser::default());
-            templates::MD
+            //config.md = Some(MdParser::default());
+            (templates::MD, templates::MD_CONFIG)
         }
         "tex" => {
-            config.tex = Some(TexParser::default());
-            templates::TEX
+            //config.tex = Some(TexParser::default());
+            (templates::TEX, templates::TEX_CONFIG)
         }
         "html" => {
-            config.html = Some(HtmlParser::default());
-            templates::HTML
+            //config.html = Some(HtmlParser::default());
+            (templates::HTML, templates::HTML_CONFIG)
         }
-        "bird" => {
-            config.bird = Some(BirdParser::default());
-            templates::BIRD
-        }
-        _ => "",
+        _ => ("", ""),
     };
 
-    let toml = toml::to_string(&config).unwrap();
+    //let toml = toml::to_string(&config).unwrap();
+    let toml = toml.replace("%%MAIN_FILE%%", &file_name);
     let mut toml_file = File::create(&toml_path)?;
     toml_file.write_all(&toml.as_bytes())?;
 
