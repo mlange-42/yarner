@@ -51,14 +51,25 @@ yarner
 This creates two sub-directories, one containing the extracted code,
 and the other containing the final documentation.
 
+Note that the contents of these directories can then be treated as usual,
+i.e. compiling the code with the normal compiler,
+or rendering Markdown to HTML or TeX to PDF.
+
+> Note: You can move or copy the Yarner executable into your project directory for convenience.
+> Otherwise, you need to specify the path to Yarner in the command, or add it to the PATH environmental variable.
+
 ## Features
 
 In all styles, the code sections are handled the same way, supporting:
-*   macros
-*   meta variable interpolation
-*   comment extraction
-*   named entrypoints
-*   multiple languages in one file
+* macros
+* meta variable interpolation
+* comment extraction
+* named entrypoints
+* multiple files, multiple entrypoints
+* multiple languages in one file
+* file transclusions
+
+For a complete list and detailed explanation of each feature, see [docs/Features.md](docs/Features.md).
 
 The text sections are also handled the same way in all styles - just copied in and written out with
 no processing. This allows you to write your documentation however you like. Currently the only
@@ -67,13 +78,6 @@ this the weaved documentation file will look very similar to the original litera
 slight changes to the code block syntax to ensure that they are valid in the true documentation
 language. Given this, note that any post-processing or format changes you wish to apply to the
 documentation should be performed on the generated document.
-
-Some advanced features are currently only supported for **Markdown**:
-* File transclusions (e.g. "draw" sub-documents into the main document)
-* Automatic inclusion of linked files
-
-The most important features to get started are explained in the following sections.
-For detailed explanatio of all features, see [docs/Features.md](docs/Features.md).
 
 ### Macros
 
