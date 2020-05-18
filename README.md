@@ -36,7 +36,9 @@ yarner create README.md
 ```
 
 This creates a file `Yarner.toml` with default settings,
-and a file `README.md` as starting point for Literate Programming.
+and a file `README.md.md` as starting point for Literate Programming
+(don't care for the double extension for now).
+
 The generated file already contains some content to get started with yarner's
 basic features. For details, read the following sections.
 
@@ -47,8 +49,8 @@ simply run:
 yarner
 ```
 
-This will create two sub-directories, one containing the extracted code,
-and one for the final documentation.
+This creates two sub-directories, one containing the extracted code,
+and the other containing the final documentation.
 
 ## Features
 
