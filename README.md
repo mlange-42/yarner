@@ -69,7 +69,7 @@ In all styles, the code sections are handled the same way, supporting:
 * multiple languages in one file
 * file transclusions
 
-See [docs/Features.md](docs/Features.md) for a complete list and detailed explanation of all features.
+See [docs/Features.md](docs/Features.md) for a complete list and detailed explanation of all features.
 
 Text sections are also handled the same way in all styles - just copied in and written out with
 no processing. This allows you to write your documentation however you like.
@@ -163,7 +163,7 @@ fn say_hello() {
 
 [File transclusions](docs/Features.md#file-transclusions) and [Links](docs/Features.md##include-linked-files) are further features that allow for projects with multiple code, documentation and/or source files.
 
-### Configuration
+## Configuration
 
 Each style supports some additional configuration, which is provided via a toml configuration file
 (default: Yarner.toml). A file with default configurations is generated through the `create` sub-command.
