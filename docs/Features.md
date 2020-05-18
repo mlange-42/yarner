@@ -101,8 +101,11 @@ Now, to say the default "Hello" to many people:
 ```
 ~~~
 
-These features allows for more flexibility when writing macros, as well as possibly making the intent
+These features allow for more flexibility when writing macros, as well as possibly making the intent
 clearer.
+
+However, macros and variables should not be abused to replace the mechanisms of abstraction provided by the target language. 
+These are preferable as they enforce semantic in addition to purely syntactic structure.
 
 ## Extracted comments
 
@@ -165,10 +168,31 @@ which would render as a link in the sources file. Or simply:
 which would not render as a link.
 
 Unnamed entrypoints are renamed to file entrypoints during transclusion.
-It is not required that transcluded files have their own entrypoints.
+As an example, including a file `main.rs.md` with the following content:
 
-All code blocks from transcluded files are accessible from the *transcluding* file,
-as well as from other transcluded files.
+~~~md
+Main function:
+```rust
+fn main() {
+    println!("Hello Literate Programmer!");
+}
+```
+~~~
+
+produces in the following content in the including document:
+
+~~~md
+Main function:
+```rust
+// file:main.rs
+fn main() {
+    println!("Hello Literate Programmer!");
+}
+```
+~~~
+
+It is not required that transcluded files have their own entrypoints. All code blocks from transcluded files are accessible from the *transcluding* file,
+as well as from other *transcluded* files.
 
 ## Include linked files
 
@@ -190,8 +214,7 @@ fact, it is recommended that you always include the language when you write a co
 particularly if multiple programming languages are used within the same document.
 
 By properly labelling all code blocks, it is then possible to write a program in multiple
-programming languages at once. Whether this is practical or not remains to be seen, but it is
-supported nonetheless. By then supplying a language name on the command line, only code blocks in
+programming languages at once. By then supplying a language name on the command line, only code blocks in
 that language are used when generating the tangled source. For example, here is a trivial program
 written in two languages:
 
