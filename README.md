@@ -173,6 +173,9 @@ This is also the place to modify Yarner's syntax to suite your needs and prefere
 
 ## Usage
 
+Most command line options can be specified in the project's `Yarner.toml` config file for convenience.
+Command line options override options from the config file.
+
 ```
 Literate programming compiler
 
