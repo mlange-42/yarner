@@ -122,7 +122,7 @@ comments back into the code, some are able to provide special rendering. In part
 Markdown and HTML styles are able to render extracted comments in `<aside>` tags, which can then be
 rendered nicely using CSS.
 
-See the HTML example for an example of one way to render the extracted comments.
+See the HTML example for one way to render the extracted comments.
 
 ## Named entrypoints
 
