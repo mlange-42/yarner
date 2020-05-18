@@ -161,7 +161,7 @@ fn say_hello() {
 ```
 ~~~
 
-[File transclusions](docs/Features.md#file-transclusions) and [Links](docs/Features.md##include-linked-files) are further features that allow for projects with multiple code, documentation and/or source files.
+[File transclusions](docs/Features.md#file-transclusions) and [Links](docs/Features.md#include-linked-files) are further features that allow for projects with multiple code, documentation and/or source files.
 
 ## Configuration
 
