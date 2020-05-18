@@ -7,8 +7,6 @@ use std::collections::HashMap;
 /// Top-leven config
 #[derive(Serialize, Deserialize, Default, Debug)]
 pub struct AnyConfig {
-    /// Config for Bird parser
-    pub bird: Option<BirdParser>,
     /// Config for Markdown parser
     pub md: Option<MdParser>,
     /// Config for TeX parser
@@ -24,11 +22,11 @@ pub struct AnyConfig {
 /// Config for paths
 #[derive(Serialize, Deserialize, Default, Debug)]
 pub struct Paths {
-    /// Code output path
+    /// Code output path.
     pub code: Option<String>,
-    /// Docs output path
+    /// Docs output path.
     pub docs: Option<String>,
-    /// Input files
+    /// Input file(s).
     pub files: Option<Vec<String>>,
 }
 

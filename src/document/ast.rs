@@ -63,10 +63,6 @@ impl Ast {
                         }
                     }
                 }
-                /*code_blocks
-                .entry(block.name.as_ref().map(|x| &x[..])) // TODO: any nicer way to write this
-                .and_modify(|existing: &mut CodeBlock| existing.append(block))
-                .or_insert_with(|| block.clone());*/
                 code_blocks
                     .entry(block.name.as_ref().map(|x| &x[..])) // TODO: any nicer way to write this
                     .and_modify(|existing: &mut Vec<CodeBlock>| existing.push(block.clone()))
@@ -137,20 +133,6 @@ impl Ast {
         settings: Option<&LanguageSettings>,
     ) -> Result<String, CompileError> {
         let code_blocks = self.code_blocks(language);
-        /*code_blocks
-        .get(&entrypoint)
-        .map(|entrypoint| {
-            let code = entrypoint
-                .iter()
-                .map(|block| block.compile(&code_blocks, settings))
-                .collect::<Vec<_>>()
-                .join("");
-            //entrypoint.compile(&code_blocks, settings);
-        })
-        .unwrap_or(Err(CompileError::Single {
-            line_number: 0,
-            kind: CompileErrorKind::MissingEntrypoint,
-        }))*/
         let mut result = String::new();
         match code_blocks.get(&entrypoint) {
             Some(blocks) => {

@@ -5,9 +5,9 @@ use std::error::Error;
 use std::fs::{self, File};
 use std::io::Write;
 use std::path::PathBuf;
-use yarner::config::{AnyConfig, LanguageSettings, Paths};
+use yarner::config::{AnyConfig, LanguageSettings};
 use yarner::document::{CompileError, CompileErrorKind, Document};
-use yarner::parser::{BirdParser, HtmlParser, MdParser, Parser, ParserConfig, Printer, TexParser};
+use yarner::parser::{HtmlParser, MdParser, Parser, ParserConfig, Printer, TexParser};
 use yarner::{templates, MultipleTransclusionError, ProjectCreationError};
 
 fn main() {
@@ -28,7 +28,7 @@ fn main() {
             .value_name("style")
             .help("Sets the style to use. If not specified, it is inferred from the file extension.")
             .takes_value(true)
-            .possible_values(&["bird", "md", "tex", "html"]))
+            .possible_values(&["md", "tex", "html"]))
         .arg(Arg::with_name("doc_dir")
             .short("d")
             .long("docs")
@@ -58,20 +58,6 @@ fn main() {
             .value_name("input")
             .multiple(true)
             .index(1))
-        /*.subcommand(SubCommand::with_name("tangle")
-            .about("Tangle input and print to STDOUT")
-            .arg(Arg::with_name("input")
-                .help("The input source file(s). If none are specified, read from STDIN")
-                .value_name("input")
-                .multiple(true)
-                .index(1)))
-        .subcommand(SubCommand::with_name("weave")
-            .about("Weave input and print to STDOUT")
-            .arg(Arg::with_name("input")
-                .help("The input source file(s). If none are specified, read from STDIN")
-                .value_name("input")
-                .multiple(true)
-                .index(1)))*/
         .subcommand(SubCommand::with_name("create")
             .about("Creates a yarner project in the current directory")
             .arg(Arg::with_name("file")
@@ -84,7 +70,7 @@ fn main() {
                 .short("s")
                 .help("Sets the style to use.")
                 .takes_value(true)
-                .possible_values(&["bird", "md", "tex", "html"])
+                .possible_values(&["md", "tex", "html"])
                 .default_value("md")
                 .index(2)))
         .get_matches();
@@ -155,17 +141,12 @@ fn main() {
         //Stdin,
     }
 
-    let inputs = matches
-        /*.subcommand_matches("weave")
-        .or(matches.subcommand_matches("tangle"))
-        .unwrap_or(&matches)*/
-        .values_of("input")
-        .map(|files| {
-            files
-                .into_iter()
-                .map(|file| Input::File(file.to_string()))
-                .collect()
-        });
+    let inputs = matches.values_of("input").map(|files| {
+        files
+            .into_iter()
+            .map(|file| Input::File(file.to_string()))
+            .collect()
+    });
 
     let inputs: Vec<_> = match inputs.or_else(|| {
         paths
@@ -179,24 +160,11 @@ fn main() {
             return;
         }
     };
-    //.unwrap_or_else(|| vec![Input::Stdin]);
 
     for input in inputs {
         let (file_name, style_type, code_type) = match input {
             Input::File(file_name) => {
                 let file_name = PathBuf::from(file_name);
-
-                /*let contents = match fs::read_to_string(&file_name) {
-                    Ok(contents) => contents,
-                    Err(error) => {
-                        eprintln!(
-                            "Could not read source file \"{}\": {}",
-                            file_name.to_str().unwrap(),
-                            error
-                        );
-                        return;
-                    }
-                };*/
 
                 let style_type = file_name
                     .extension()
@@ -210,17 +178,7 @@ fn main() {
                         .map(|s| s.to_owned())
                 });
                 (file_name, style_type, code_type)
-            } /*Input::Stdin => {
-                  let mut input = String::new();
-                  match stdin().read_to_string(&mut input) {
-                      Ok(..) => (),
-                      Err(error) => {
-                          eprintln!("Could not read STDIN as string: {}", error);
-                          return;
-                      }
-                  }
-                  (None, input, None, None)
-              }*/
+            }
         };
 
         let language = matches.value_of("language");
@@ -233,27 +191,6 @@ fn main() {
             .unwrap_or("md".to_string())
             .as_str()
         {
-            "bird" => {
-                let default = BirdParser::default();
-                let parser = any_config.bird.as_ref().unwrap_or(&default);
-                if let Err(error) = compile_all(
-                    parser,
-                    &doc_dir,
-                    &code_dir,
-                    &file_name,
-                    entrypoint,
-                    language,
-                    &any_config.language,
-                    &mut HashSet::new(),
-                ) {
-                    eprintln!(
-                        "Failed to compile source file \"{}\": {}",
-                        file_name.to_str().unwrap(),
-                        error
-                    );
-                    continue;
-                }
-            }
             "md" => {
                 let default = MdParser::default();
                 let parser = any_config
@@ -355,34 +292,14 @@ fn create_project(file: &str, style: &str) -> Result<(), Box<dyn Error>> {
         ))));
     }
 
-    let mut config = AnyConfig::default();
-    config.paths = Some(Paths {
-        code: Some("code/".to_string()),
-        docs: Some("docs/".to_string()),
-        files: Some(vec![file_name]),
-    });
-
-    let template = match style {
-        "md" => {
-            config.md = Some(MdParser::default());
-            templates::MD
-        }
-        "tex" => {
-            config.tex = Some(TexParser::default());
-            templates::TEX
-        }
-        "html" => {
-            config.html = Some(HtmlParser::default());
-            templates::HTML
-        }
-        "bird" => {
-            config.bird = Some(BirdParser::default());
-            templates::BIRD
-        }
-        _ => "",
+    let (template, toml) = match style {
+        "md" => (templates::MD, templates::MD_CONFIG),
+        "tex" => (templates::TEX, templates::TEX_CONFIG),
+        "html" => (templates::HTML, templates::HTML_CONFIG),
+        _ => ("", ""),
     };
 
-    let toml = toml::to_string(&config).unwrap();
+    let toml = toml.replace("%%MAIN_FILE%%", &file_name);
     let mut toml_file = File::create(&toml_path)?;
     toml_file.write_all(&toml.as_bytes())?;
 
