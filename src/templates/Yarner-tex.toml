@@ -26,14 +26,18 @@ file_prefix = "file:"
 hidden_prefix = "hidden:"
 
 # The language to set if there was no automatically detected language. Optional.
-# default_language = "c"
+## default_language = "c"
 
 [paths]
 # Code output path.
 code = "code/"
 # Docs output path.
 docs = "docs/"
-# Input file(s).
+# The input source file(s) as glob pattern(s).
 files = ["%%MAIN_FILE%%"]
+# File(s) to include in code output (unprocessed), as glob pattern(s).
+## code_files = ["**/*.rs"]
+# File(s) to include in docs output (unprocessed), as glob pattern(s).
+## doc_files = ["**/*.png", "**/*.jpg"]
 # Entrypoint block name. Optional. If not supplied, unnamed code blocks are used.
-# entrypoint = "Main"
+## entrypoint = "Main"

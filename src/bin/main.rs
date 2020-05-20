@@ -1,5 +1,4 @@
 use clap::{crate_authors, crate_version, App, Arg, SubCommand};
-use either::Either::{self, *};
 use std::collections::{HashMap, HashSet};
 use std::error::Error;
 use std::fs::{self, File};
@@ -8,6 +7,7 @@ use std::path::PathBuf;
 use yarner::config::{AnyConfig, LanguageSettings};
 use yarner::document::{CompileError, CompileErrorKind, Document};
 use yarner::parser::{HtmlParser, MdParser, Parser, ParserConfig, Printer, TexParser};
+use yarner::util::PathUtil;
 use yarner::{templates, MultipleTransclusionError, ProjectCreationError};
 
 fn main() {
@@ -54,7 +54,7 @@ fn main() {
             .help("The language to output the tangled code in. Only code blocks in this language will be used.")
             .takes_value(true))
         .arg(Arg::with_name("input")
-            .help("The input source file(s). If none are specified, uses 'path' -> 'files' from config file.")
+            .help("The input source file(s) as glob pattern(s). If none are specified, uses 'path' -> 'files' from config file.")
             .value_name("input")
             .multiple(true)
             .index(1))
@@ -115,48 +115,39 @@ fn main() {
 
     let paths = any_config.paths.unwrap_or_default();
 
-    let doc_dir = match matches.subcommand_matches("weave") {
-        Some(..) => Left(()),
-        None => Right(
-            matches
-                .value_of("doc_dir")
-                .map(|s| s.to_string())
-                .or_else(|| paths.docs.as_ref().map(|s| s.to_string()))
-                .map(PathBuf::from),
-        ),
-    };
-    let code_dir = match matches.subcommand_matches("tangle") {
-        Some(..) => Left(()),
-        None => Right(
-            matches
-                .value_of("code_dir")
-                .map(|s| s.to_string())
-                .or_else(|| paths.code.as_ref().map(|s| s.to_string()))
-                .map(PathBuf::from),
-        ),
-    };
+    let doc_dir = matches
+        .value_of("doc_dir")
+        .map(|s| s.to_string())
+        .or_else(|| paths.docs.as_ref().map(|s| s.to_string()))
+        .map(PathBuf::from);
+
+    let code_dir = matches
+        .value_of("code_dir")
+        .map(|s| s.to_string())
+        .or_else(|| paths.code.as_ref().map(|s| s.to_string()))
+        .map(PathBuf::from);
+
     let entrypoint = matches
         .value_of("entrypoint")
         .map(|ep| ep)
         .or_else(|| paths.entrypoint.as_deref());
 
-    enum Input {
-        File(String),
-        //Stdin,
-    }
-
     let inputs = matches.values_of("input").map(|files| {
-        files
+        PathUtil::list_all_files_str(&files.into_iter().collect::<Vec<_>>()[..])
+            .unwrap()
             .into_iter()
-            .map(|file| Input::File(file.to_string()))
+            .map(|file| file.clone())
             .collect()
     });
 
     let inputs: Vec<_> = match inputs.or_else(|| {
-        paths
-            .files
-            .as_ref()
-            .map(|files| files.iter().map(|file| Input::File(file.clone())).collect())
+        paths.files.as_ref().map(|files| {
+            PathUtil::list_all_files(&files[..])
+                .unwrap()
+                .into_iter()
+                .map(|file| file.clone())
+                .collect()
+        })
     }) {
         Some(inputs) => inputs,
         None => {
@@ -165,24 +156,36 @@ fn main() {
         }
     };
 
-    for input in inputs {
-        let (file_name, style_type, code_type) = match input {
-            Input::File(file_name) => {
-                let file_name = PathBuf::from(file_name);
+    let code_files = paths.code_files.as_ref().map(|files| {
+        PathUtil::list_all_files(&files[..])
+            .unwrap()
+            .into_iter()
+            .collect::<Vec<_>>()
+    });
 
-                let style_type = file_name
+    let doc_files = paths.doc_files.as_ref().map(|files| {
+        PathUtil::list_all_files(&files[..])
+            .unwrap()
+            .into_iter()
+            .collect::<Vec<_>>()
+    });
+
+    for input in inputs {
+        let (file_name, style_type, code_type) = {
+            let file_name = PathBuf::from(&input);
+
+            let style_type = input
+                .extension()
+                .and_then(|osstr| osstr.to_str())
+                .map(|s| s.to_owned());
+
+            let code_type = input.file_stem().and_then(|stem| {
+                PathBuf::from(stem)
                     .extension()
                     .and_then(|osstr| osstr.to_str())
-                    .map(|s| s.to_owned());
-
-                let code_type = file_name.file_stem().and_then(|stem| {
-                    PathBuf::from(stem)
-                        .extension()
-                        .and_then(|osstr| osstr.to_str())
-                        .map(|s| s.to_owned())
-                });
-                (file_name, style_type, code_type)
-            }
+                    .map(|s| s.to_owned())
+            });
+            (file_name, style_type, code_type)
         };
 
         let language = matches.value_of("language");
@@ -275,6 +278,35 @@ fn main() {
             }
         };
     }
+
+    if let Some(code_dir) = code_dir {
+        if let Some(code_files) = code_files {
+            for code_file in &code_files {
+                eprintln!("Copying code file {:?}", code_file);
+                let mut file_path = code_dir.clone();
+                file_path.push(code_file);
+                fs::create_dir_all(file_path.parent().unwrap()).unwrap();
+                match fs::copy(&code_file, &file_path) {
+                    Ok(_) => {}
+                    Err(err) => eprintln!("  --> Error copying code file {:?}: {}", code_file, err),
+                }
+            }
+        }
+    }
+    if let Some(doc_dir) = doc_dir {
+        if let Some(doc_files) = doc_files {
+            for doc_file in &doc_files {
+                eprintln!("Copying doc file {:?}", doc_file);
+                let mut file_path = doc_dir.clone();
+                file_path.push(doc_file);
+                fs::create_dir_all(file_path.parent().unwrap()).unwrap();
+                match fs::copy(&doc_file, &file_path) {
+                    Ok(_) => {}
+                    Err(err) => eprintln!("  --> Error copying doc file {:?}: {}", doc_file, err),
+                }
+            }
+        }
+    }
 }
 
 fn create_project(file: &str, style: &str) -> Result<(), Box<dyn Error>> {
@@ -361,8 +393,8 @@ where
 
 fn compile_all<P>(
     parser: &P,
-    doc_dir: &Either<(), Option<PathBuf>>,
-    code_dir: &Either<(), Option<PathBuf>>,
+    doc_dir: &Option<PathBuf>,
+    code_dir: &Option<PathBuf>,
     file_name: &PathBuf,
     entrypoint: Option<&str>,
     language: Option<&str>,
@@ -400,8 +432,8 @@ where
 fn compile<P>(
     parser: &P,
     document: &Document,
-    doc_dir: &Either<(), Option<PathBuf>>,
-    code_dir: &Either<(), Option<PathBuf>>,
+    doc_dir: &Option<PathBuf>,
+    code_dir: &Option<PathBuf>,
     file_name: &PathBuf,
     entrypoint: Option<&str>,
     language: Option<&str>,
@@ -423,11 +455,7 @@ where
     );
 
     match doc_dir {
-        Left(..) => {
-            let documentation = document.print_docs(parser);
-            print!("{}", documentation);
-        }
-        Right(Some(doc_dir)) => {
+        Some(doc_dir) => {
             let documentation = document.print_docs(parser);
             let mut file_path = doc_dir.clone();
             file_path.push(file_name);
@@ -435,26 +463,12 @@ where
             let mut doc_file = File::create(file_path).unwrap();
             write!(doc_file, "{}", documentation).unwrap();
         }
-        _ => {}
+        None => eprintln!("WARNING: Missing output location for docs, skipping docs output."),
     }
 
     for (entrypoint, sub_file_name) in entries {
         match code_dir {
-            Left(..) => {
-                let extension = sub_file_name
-                    .extension()
-                    .and_then(|ext| ext.to_str())
-                    .unwrap_or("")
-                    .to_string();
-                let settings = match settings {
-                    Some(set) => set.get(&extension),
-                    None => None,
-                };
-
-                let code = document.print_code(entrypoint, language, settings)?;
-                println!("{}", code);
-            }
-            Right(Some(code_dir)) => {
+            Some(code_dir) => {
                 let mut file_path = code_dir.clone();
                 if let Some(par) = sub_file_name.parent() {
                     file_path.push(par)
@@ -498,7 +512,7 @@ where
                     },
                 };
             }
-            _ => {}
+            None => eprintln!("WARNING: Missing output location for code, skipping code output."),
         }
     }
 
