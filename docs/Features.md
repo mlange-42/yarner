@@ -9,6 +9,7 @@ In all styles, the code sections are handled the same way, supporting:
 * [Multiple files, multiple entrypoints](#multiple-files-multiple-entrypoints)
 * [File transclusions](#file-transclusions) (Markdown)
 * [Include linked files](#include-linked-files) (Markdown)
+* [Dead and hidden code blocks](#dead-and-hidden-code-blocks)
 * [Multiple languages in one file](#multiple-languages)
 
 The text sections are also handled the same way in all styles - just copied in and written out with
@@ -209,6 +210,91 @@ As an example, Yarner would also compile the file `src/main.rs.md` here:
 ```
 
 However, files are only included in the compilation if they are referenced by a *relative path*, and the file exists in that location.
+
+## Dead and hidden code blocks
+
+Code bocks that are never referenced by a macro are not "compiled" into code.
+This fact can be use to create "dead" code blocks, e.g. to provide examples
+that are not part of the target sources. For an example, see below.
+
+To hide a code blocks in the documentation output, prefix the name with `hidden:` (by default).
+The `hidden:` prefix does, however, not become part of the name,
+so some of the blocks with the same name can be shown, while others are hidden.
+
+Example:
+
+~~~md
+There is a struct with uninteresting implementation:
+```rust
+==> Position.
+```
+
+The `Position` struct:
+```rust
+// Position
+struct Position {
+    pub x: f64,
+    pub y: f64
+}
+```
+
+Implementation details are omitted for the sake of brevity.
+```rust
+// hidden:Position
+impl Position {
+    fn zero() -> {
+        Position { x: 0, y: 0 }
+    }
+}
+```
+
+This usage example does not appear in the code:
+```rust
+// Example
+let p = Position { x: 100, y: 100 };
+```
+~~~
+
+Yarner produces the following code, not containing the example code block:
+```rust
+struct Position {
+    pub x: f64,
+    pub y: f64
+}
+impl Position {
+    fn zero() -> {
+        Position { x: 0, y: 0 }
+    }
+}
+```
+
+In the generated documentation, the implementation of struct `Position` is hidden:
+
+---
+
+There is a struct with uninteresting implementation:
+```rust
+==> Position.
+```
+
+The `Position` struct:
+```rust
+// Position
+struct Position {
+    pub x: f64,
+    pub y: f64
+}
+```
+
+Implementation details are omitted for the sake of brevity.
+
+This usage example does not appear in the code:
+```rust
+// Example
+let p = Position { x: 100, y: 100 };
+```
+
+---
 
 ## Multiple languages
 
