@@ -40,6 +40,26 @@ impl PathUtil {
             .collect();
         Ok(vec)
     }
+    /// List all files for multiple patterns
+    pub fn list_all_files(patterns: &[String]) -> Result<Vec<PathBuf>, glob::PatternError> {
+        let mut vec = vec![];
+        for files in patterns.iter().map(|pat| Self::list_files(pat)) {
+            for f in files? {
+                vec.push(f);
+            }
+        }
+        Ok(vec)
+    }
+    /// List all files for multiple patterns
+    pub fn list_all_files_str(patterns: &[&str]) -> Result<Vec<PathBuf>, glob::PatternError> {
+        let mut vec = vec![];
+        for files in patterns.iter().map(|pat| Self::list_files(pat)) {
+            for f in files? {
+                vec.push(f);
+            }
+        }
+        Ok(vec)
+    }
     /// List all directories for a pattern
     pub fn list_dirs(pattern: &str) -> Result<Vec<PathBuf>, glob::PatternError> {
         let paths: glob::Paths = glob::glob(pattern)?;

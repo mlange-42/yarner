@@ -28,6 +28,10 @@ pub struct Paths {
     pub docs: Option<String>,
     /// The input source file(s) as glob pattern(s).
     pub files: Option<Vec<String>>,
+    /// File(s) to include in code output (unprocessed), as glob pattern(s).
+    pub code_files: Option<Vec<String>>,
+    /// File(s) to include in docs output (unprocessed), as glob pattern(s).
+    pub doc_files: Option<Vec<String>>,
     /// Entrypoint block name. Optional. If not supplied, unnamed code blocks are used.
     pub entrypoint: Option<String>,
 }
