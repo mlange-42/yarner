@@ -11,7 +11,7 @@ exactly. It uses pluggable, configurable input formats, with out-of-the-box supp
 *   Latex
 *   HTML
 
-See the examples directory for full working examples in each style.
+See the [examples](examples) directory for full working examples in each style.
 
 ## Installation
 
@@ -56,7 +56,7 @@ i.e. compiling the code with the normal compiler,
 or rendering Markdown to HTML or TeX to PDF.
 
 > Note: You can move or copy the Yarner executable into your project directory for convenience.
-> Otherwise, you need to specify the path to Yarner in the command, or add it to the PATH environmental variable.
+> Otherwise, you need to specify the path to Yarner in the command, or add it to the PATH environment variable.
 
 ## Features
 
