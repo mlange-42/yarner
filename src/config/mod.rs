@@ -26,7 +26,7 @@ pub struct Paths {
     pub code: Option<String>,
     /// Docs output path.
     pub docs: Option<String>,
-    /// Input file(s).
+    /// The input source file(s) as glob pattern(s).
     pub files: Option<Vec<String>>,
     /// Entrypoint block name. Optional. If not supplied, unnamed code blocks are used.
     pub entrypoint: Option<String>,

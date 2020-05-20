@@ -8,6 +8,7 @@ use std::path::PathBuf;
 use yarner::config::{AnyConfig, LanguageSettings};
 use yarner::document::{CompileError, CompileErrorKind, Document};
 use yarner::parser::{HtmlParser, MdParser, Parser, ParserConfig, Printer, TexParser};
+use yarner::util::PathUtil;
 use yarner::{templates, MultipleTransclusionError, ProjectCreationError};
 
 fn main() {
@@ -54,7 +55,7 @@ fn main() {
             .help("The language to output the tangled code in. Only code blocks in this language will be used.")
             .takes_value(true))
         .arg(Arg::with_name("input")
-            .help("The input source file(s). If none are specified, uses 'path' -> 'files' from config file.")
+            .help("The input source file(s) as glob pattern(s). If none are specified, uses 'path' -> 'files' from config file.")
             .value_name("input")
             .multiple(true)
             .index(1))
@@ -141,22 +142,34 @@ fn main() {
         .or_else(|| paths.entrypoint.as_deref());
 
     enum Input {
-        File(String),
+        File(PathBuf),
         //Stdin,
     }
 
     let inputs = matches.values_of("input").map(|files| {
         files
             .into_iter()
-            .map(|file| Input::File(file.to_string()))
+            .flat_map(|file| {
+                PathUtil::list_files(file)
+                    .unwrap()
+                    .into_iter()
+                    .map(|file| Input::File(file.clone()))
+            })
             .collect()
     });
 
     let inputs: Vec<_> = match inputs.or_else(|| {
-        paths
-            .files
-            .as_ref()
-            .map(|files| files.iter().map(|file| Input::File(file.clone())).collect())
+        paths.files.as_ref().map(|files| {
+            files
+                .iter()
+                .flat_map(|file| {
+                    PathUtil::list_files(file)
+                        .unwrap()
+                        .into_iter()
+                        .map(|file| Input::File(file.clone()))
+                })
+                .collect()
+        })
     }) {
         Some(inputs) => inputs,
         None => {

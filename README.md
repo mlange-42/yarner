@@ -199,7 +199,8 @@ OPTIONS:
                                      [possible values: md, tex, html]
 
 ARGS:
-    <input>...    The input source file(s). If none are specified, uses 'path' -> 'files' from config file.
+    <input>...    The input source file(s) as glob pattern(s). If none are specified, uses 'path' -> 'files' from
+                  config file.
 
 SUBCOMMANDS:
     create    Creates a yarner project in the current directory

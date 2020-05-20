@@ -50,7 +50,7 @@ hidden_prefix = "hidden:"
 code = "code/"
 # Docs output path.
 docs = "docs/"
-# Input file(s).
+# The input source file(s) as glob pattern(s).
 files = ["%%MAIN_FILE%%"]
 # Entrypoint block name. Optional. If not supplied, unnamed code blocks are used.
 # entrypoint = "Main"
