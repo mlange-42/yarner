@@ -11,7 +11,7 @@ use yarner::util::PathUtil;
 use yarner::{templates, MultipleTransclusionError, ProjectCreationError};
 
 fn main() {
-    let matches = App::new("Yarner")
+    let app = App::new("Yarner")
         .version(crate_version!())
         .about("Literate programming compiler\n  \
                   https://github.com/mlange-42/yarner\n\
@@ -84,8 +84,9 @@ fn main() {
                 .takes_value(true)
                 .possible_values(&["md", "tex", "html"])
                 .default_value("md")
-                .index(2)))
-        .get_matches();
+                .index(2)));
+
+    let matches = app.clone().get_matches();
 
     if let Some(matches) = matches.subcommand_matches("create") {
         let file = matches.value_of("file").unwrap();
@@ -170,7 +171,10 @@ fn main() {
     }) {
         Some(inputs) => inputs,
         None => {
-            eprintln!("No inputs provided via arguments or toml file.",);
+            eprintln!(
+                "No inputs provided via arguments or toml file. For help, use:\n\
+                 > yarner -h",
+            );
             return;
         }
     };
