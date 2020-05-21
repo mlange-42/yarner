@@ -115,20 +115,24 @@ impl CodeBlock {
             .map(|vec: Vec<_>| vec.join("\n"))
             .map(|block: String| {
                 if let Some(s) = settings {
-                    format!(
-                        "{} {}{}#{}{}\n{}\n{} {}{}#{}{}",
-                        s.comment_start,
-                        s.block_start,
-                        path,
-                        name,
-                        comment_end,
-                        block,
-                        s.comment_start,
-                        s.block_end,
-                        path,
-                        name,
-                        comment_end,
-                    )
+                    if !s.clean_code {
+                        format!(
+                            "{} {}{}#{}{}\n{}\n{} {}{}#{}{}",
+                            s.comment_start,
+                            s.block_start,
+                            path,
+                            name,
+                            comment_end,
+                            block,
+                            s.comment_start,
+                            s.block_end,
+                            path,
+                            name,
+                            comment_end,
+                        )
+                    } else {
+                        block
+                    }
                 } else {
                     block
                 }

@@ -51,4 +51,7 @@ pub struct LanguageSettings {
     pub clear_blank_lines: bool,
     /// Determines if code files should end with a blank line. Default: true.
     pub eof_newline: bool,
+    /// Print code without block labels.
+    #[serde(skip)]
+    pub clean_code: bool,
 }

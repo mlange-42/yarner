@@ -1,4 +1,4 @@
-use clap::{crate_authors, crate_version, App, Arg, SubCommand};
+use clap::{crate_version, App, Arg, SubCommand};
 use std::collections::{HashMap, HashSet};
 use std::error::Error;
 use std::fs::{self, File};
@@ -13,8 +13,14 @@ use yarner::{templates, MultipleTransclusionError, ProjectCreationError};
 fn main() {
     let matches = App::new("Yarner")
         .version(crate_version!())
-        .author(crate_authors!())
-        .about("Literate programming compiler")
+        .about("Literate programming compiler\n  \
+                  https://github.com/mlange-42/yarner\n\
+                \n\
+                The normal workflow is:\n \
+                1) Create a project with\n    \
+                  > yarner create README.md\n \
+                2) Process the project by running\n    \
+                  > yarner")
         .arg(Arg::with_name("config")
             .short("c")
             .long("config")
@@ -58,6 +64,12 @@ fn main() {
             .value_name("input")
             .multiple(true)
             .index(1))
+        .arg(Arg::with_name("clean")
+            .long("clean")
+            .short("C")
+            .help("Produces clean code output, without block label comments.")
+            .required(false)
+            .takes_value(false))
         .subcommand(SubCommand::with_name("create")
             .about("Creates a yarner project in the current directory")
             .arg(Arg::with_name("file")
@@ -90,7 +102,7 @@ fn main() {
         return;
     }
 
-    let any_config: AnyConfig = match matches.value_of("config") {
+    let mut any_config: AnyConfig = match matches.value_of("config") {
         None => AnyConfig::default(),
         Some(file_name) => {
             if matches.occurrences_of("config") == 0 && !PathBuf::from(file_name).exists() {
@@ -114,6 +126,13 @@ fn main() {
     };
 
     let paths = any_config.paths.unwrap_or_default();
+
+    let clean_code = matches.is_present("clean");
+    if let Some(languages) = &mut any_config.language {
+        for lang in languages.values_mut() {
+            lang.clean_code = clean_code;
+        }
+    }
 
     let doc_dir = matches
         .value_of("doc_dir")
