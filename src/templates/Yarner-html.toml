@@ -42,7 +42,7 @@ file_prefix = "file:"
 # Name prefix for code blocks not shown in the docs.
 hidden_prefix = "hidden:"
 
-# The language to set if there was no automatically detected language. Optional.
+## The language to set if there was no automatically detected language. Optional.
 # default_language = "c"
 
 [paths]
@@ -50,7 +50,28 @@ hidden_prefix = "hidden:"
 code = "code/"
 # Docs output path.
 docs = "docs/"
-# Input file(s).
+# The input source file(s) as glob pattern(s).
 files = ["%%MAIN_FILE%%"]
-# Entrypoint block name. Optional. If not supplied, unnamed code blocks are used.
+## File(s) to include in code output (unprocessed), as glob pattern(s).
+# code_files = ["**/*.rs"]
+## File(s) to include in docs output (unprocessed), as glob pattern(s).
+# doc_files = ["**/*.png", "**/*.jpg"]
+## Entrypoint block name. Optional. If not supplied, unnamed code blocks are used.
 # entrypoint = "Main"
+
+## Language-sprcific settings. Optional. Required for reverse mode.
+## The language is determined by the extension of code output files.
+## Example language settings for Rust:
+# [language.rs]
+## Start of comments. Can be start of line or block comments.
+# comment_start = "//"
+### End of comments. Optional, only for block comments
+## comment_end = "*/"
+## Start of block labels.
+# block_start = "<@"
+## End of block labels.
+# block_end = "@>"
+## Replaces lines containing only whitespaces by blank lines, in code output. Defaults to true.
+# clear_blank_lines = true
+## Enforces code files to always end with a blank line. Defaults to true.
+# eof_newline = true

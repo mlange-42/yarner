@@ -11,7 +11,7 @@ pub mod config;
 pub mod document;
 pub mod parser;
 pub mod templates;
-mod util;
+pub mod util;
 
 /// Error type for failed project creation.
 #[derive(Debug, Clone, PartialEq, Eq)]

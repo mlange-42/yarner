@@ -57,6 +57,12 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "bb1f6b1ce1c140482ea30ddd3335fc0024ac7ee112895426e0a629a6c20adfe3"
 
 [[package]]
+name = "glob"
+version = "0.3.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "9b919933a397b79c37e33b77bb2aa3dc8eb6e165ad809e58ff75bc7db2e34574"
+
+[[package]]
 name = "hermit-abi"
 version = "0.1.12"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -234,10 +240,11 @@ checksum = "712e227841d057c1ee1cd2fb22fa7e5a5461ae8e48fa2ca79ec42cfc1931183f"
 
 [[package]]
 name = "yarner"
-version = "0.1.1"
+version = "0.1.2"
 dependencies = [
  "clap",
  "either",
+ "glob",
  "path-clean",
  "pathdiff",
  "regex",

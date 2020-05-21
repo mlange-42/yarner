@@ -11,7 +11,7 @@ exactly. It uses pluggable, configurable input formats, with out-of-the-box supp
 *   Latex
 *   HTML
 
-See the examples directory for full working examples in each style.
+See the [examples](examples) directory for full working examples in each style.
 
 ## Installation
 
@@ -56,7 +56,7 @@ i.e. compiling the code with the normal compiler,
 or rendering Markdown to HTML or TeX to PDF.
 
 > Note: You can move or copy the Yarner executable into your project directory for convenience.
-> Otherwise, you need to specify the path to Yarner in the command, or add it to the PATH environmental variable.
+> Otherwise, you need to specify the path to Yarner in the command, or add it to the PATH environment variable.
 
 ## Features
 
@@ -178,11 +178,19 @@ Command line options override options from the config file.
 
 ```
 Literate programming compiler
+  https://github.com/mlange-42/yarner
+
+The normal workflow is:
+ 1) Create a project with
+    > yarner create README.md
+ 2) Process the project by running
+    > yarner
 
 USAGE:
-    yarner [OPTIONS] [input]... [SUBCOMMAND]
+    yarner [FLAGS] [OPTIONS] [input]... [SUBCOMMAND]
 
 FLAGS:
+    -C, --clean      Produces clean code output, without block label comments.
     -h, --help       Prints help information
     -V, --version    Prints version information
 
@@ -199,7 +207,8 @@ OPTIONS:
                                      [possible values: md, tex, html]
 
 ARGS:
-    <input>...    The input source file(s). If none are specified, uses 'path' -> 'files' from config file.
+    <input>...    The input source file(s) as glob pattern(s). If none are specified, uses 'path' -> 'files' from
+                  config file.
 
 SUBCOMMANDS:
     create    Creates a yarner project in the current directory

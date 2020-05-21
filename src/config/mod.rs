@@ -26,8 +26,12 @@ pub struct Paths {
     pub code: Option<String>,
     /// Docs output path.
     pub docs: Option<String>,
-    /// Input file(s).
+    /// The input source file(s) as glob pattern(s).
     pub files: Option<Vec<String>>,
+    /// File(s) to include in code output (unprocessed), as glob pattern(s).
+    pub code_files: Option<Vec<String>>,
+    /// File(s) to include in docs output (unprocessed), as glob pattern(s).
+    pub doc_files: Option<Vec<String>>,
     /// Entrypoint block name. Optional. If not supplied, unnamed code blocks are used.
     pub entrypoint: Option<String>,
 }
@@ -47,4 +51,7 @@ pub struct LanguageSettings {
     pub clear_blank_lines: bool,
     /// Determines if code files should end with a blank line. Default: true.
     pub eof_newline: bool,
+    /// Print code without block labels.
+    #[serde(skip)]
+    pub clean_code: bool,
 }
