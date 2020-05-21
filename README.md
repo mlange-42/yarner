@@ -178,11 +178,19 @@ Command line options override options from the config file.
 
 ```
 Literate programming compiler
+  https://github.com/mlange-42/yarner
+
+The normal workflow is:
+ 1) Create a project with
+    > yarner create README.md
+ 2) Process the project by running
+    > yarner
 
 USAGE:
-    yarner [OPTIONS] [input]... [SUBCOMMAND]
+    yarner [FLAGS] [OPTIONS] [input]... [SUBCOMMAND]
 
 FLAGS:
+    -C, --clean      Produces clean code output, without block label comments.
     -h, --help       Prints help information
     -V, --version    Prints version information
 
