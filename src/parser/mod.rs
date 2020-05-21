@@ -18,6 +18,8 @@ use crate::document::code::{CodeBlock, Line, Segment, Source};
 use crate::document::text::TextBlock;
 use crate::document::tranclusion::Transclusion;
 use crate::document::Document;
+use std::error::Error;
+use std::fmt;
 use std::path::PathBuf;
 
 /// A `ParserConfig` can be used to customize the built in parsing methods
@@ -186,7 +188,31 @@ pub enum ParseError {
     UnclosedTransclusionError(String),
     /// Error for invalid transclusions, e.g. if the file is not found
     InvalidTransclusionError(String),
+    /// Error for multiple locations with entrypoints to the same code file
+    MultipleCodeFileAccessError(String),
 } // is there even such a thing as a parse error? who knows.
+
+impl ParseError {
+    fn message(&self) -> &str {
+        match self {
+            ParseError::UnclosedVariableError(s) => s,
+            ParseError::UnclosedTransclusionError(s) => s,
+            ParseError::InvalidTransclusionError(s) => s,
+            ParseError::MultipleCodeFileAccessError(s) => s,
+        }
+    }
+}
+
+impl Error for ParseError {
+    fn source(&self) -> Option<&(dyn Error + 'static)> {
+        None
+    }
+}
+impl fmt::Display for ParseError {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        write!(f, "{}", self.message())
+    }
+}
 
 /// A `Printer` can invert the parsing process, printing the code blocks how they should be
 /// rendered in the documentation text.
