@@ -170,8 +170,8 @@ pub trait Parser: ParserConfig {
         let pref = self.file_prefix();
         for (name, _block) in doc.tree().code_blocks(language) {
             if let Some(name) = name {
-                if name.starts_with(pref) {
-                    entries.push((name.to_owned(), (&name[pref.len()..]).to_owned()))
+                if let Some(rest) = name.strip_prefix(pref) {
+                    entries.push((name.to_owned(), rest.to_owned()))
                 }
             }
         }
