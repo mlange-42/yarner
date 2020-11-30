@@ -6,7 +6,7 @@ use std::io::Write;
 use std::path::PathBuf;
 use yarner::config::{AnyConfig, LanguageSettings};
 use yarner::document::{CompileError, CompileErrorKind, Document};
-use yarner::parser::{HtmlParser, MdParser, Parser, ParserConfig, Printer, TexParser};
+use yarner::parser::{HtmlParser, MdParser, ParseError, Parser, ParserConfig, Printer, TexParser};
 use yarner::util::PathUtil;
 use yarner::{templates, MultipleTransclusionError, ProjectCreationError};
 
@@ -236,6 +236,7 @@ fn main() {
                     language,
                     &any_config.language,
                     &mut HashSet::new(),
+                    &mut HashSet::new(),
                 ) {
                     eprintln!(
                         "Failed to compile source file \"{}\": {}",
@@ -261,6 +262,7 @@ fn main() {
                     language,
                     &any_config.language,
                     &mut HashSet::new(),
+                    &mut HashSet::new(),
                 ) {
                     eprintln!(
                         "Failed to compile source file \"{}\": {}",
@@ -285,6 +287,7 @@ fn main() {
                     entrypoint,
                     language,
                     &any_config.language,
+                    &mut HashSet::new(),
                     &mut HashSet::new(),
                 ) {
                     eprintln!(
@@ -422,13 +425,14 @@ fn compile_all<P>(
     entrypoint: Option<&str>,
     language: Option<&str>,
     settings: &Option<HashMap<String, LanguageSettings>>,
-    all_files: &mut HashSet<PathBuf>,
+    track_input_files: &mut HashSet<PathBuf>,
+    track_code_files: &mut HashSet<PathBuf>,
 ) -> Result<(), Box<dyn std::error::Error>>
 where
     P: Parser + Printer,
     P::Error: 'static,
 {
-    if !all_files.contains(file_name) {
+    if !track_input_files.contains(file_name) {
         let mut document = transclude(parser, file_name, None)?;
         let links = parser.find_links(&document, file_name)?;
 
@@ -436,14 +440,30 @@ where
         document.tree_mut().set_source(file_str);
 
         compile(
-            parser, &document, doc_dir, code_dir, &file_name, entrypoint, language, settings,
+            parser,
+            &document,
+            doc_dir,
+            code_dir,
+            &file_name,
+            entrypoint,
+            language,
+            settings,
+            track_code_files,
         )?;
-        all_files.insert(file_name.clone());
+        track_input_files.insert(file_name.clone());
 
         for file in links {
-            if !all_files.contains(&file) {
+            if !track_input_files.contains(&file) {
                 compile_all(
-                    parser, doc_dir, code_dir, &file, entrypoint, language, settings, all_files,
+                    parser,
+                    doc_dir,
+                    code_dir,
+                    &file,
+                    entrypoint,
+                    language,
+                    settings,
+                    track_input_files,
+                    track_code_files,
                 )?;
             }
         }
@@ -461,6 +481,7 @@ fn compile<P>(
     entrypoint: Option<&str>,
     language: Option<&str>,
     settings: &Option<HashMap<String, LanguageSettings>>,
+    track_code_files: &mut HashSet<PathBuf>,
 ) -> Result<(), Box<dyn std::error::Error>>
 where
     P: Parser + Printer,
@@ -510,6 +531,15 @@ where
                     Some(set) => set.get(&extension),
                     None => None,
                 };
+
+                if track_code_files.contains(&file_path) {
+                    return Err(Box::new(ParseError::MultipleCodeFileAccessError(format!(
+                        "Multiple locations point to code file {:?}",
+                        file_path
+                    ))));
+                } else {
+                    track_code_files.insert(file_path.clone());
+                }
 
                 match document.print_code(entrypoint, language, settings) {
                     Ok(code) => {

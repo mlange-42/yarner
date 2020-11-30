@@ -164,8 +164,8 @@ impl TexParser {
                 };
                 let (name, rest) = arg_string.split_at(equal);
                 let rest = &rest[1..];
-                let (value, rest) = if rest.starts_with('{') {
-                    let rest = &rest[1..];
+
+                let (value, rest) = if let Some(rest) = rest.strip_prefix('{') {
                     let value_len = rest
                         .chars()
                         .scan((1, '{'), |state, ch| {

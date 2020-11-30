@@ -205,8 +205,8 @@ impl HtmlParser {
             let rest = if rest.trim_start().starts_with('=') {
                 let equals = rest.find('=').unwrap();
                 let rest = rest[equals + 1..].trim_start();
-                let (value, rest) = if rest.starts_with('"') {
-                    let rest = &rest[1..];
+
+                let (value, rest) = if let Some(rest) = rest.strip_prefix('"') {
                     let value_len = rest
                         .chars()
                         .scan('"', |state, ch| {
