@@ -179,10 +179,31 @@ fn main() {
         }
     };
 
-    let code_files = paths.code_files.as_ref().map(|files| {
-        PathUtil::list_all_files(&files[..])
-            .unwrap()
-            .into_iter()
+    if let Some(code_files) = &paths.code_files {
+        if let Some(code_paths) = &paths.code_paths {
+            if code_files.len() != code_paths.len() {
+                eprintln!(
+                    "If argument code_paths is given in the toml file, it must have as many elements as argument code_files",
+                );
+                return;
+            }
+        }
+    }
+    let code_files = paths.code_files.as_ref().map(|patterns| {
+        patterns
+            .iter()
+            .zip(
+                paths
+                    .code_paths
+                    .as_ref()
+                    .unwrap_or(&vec!["".to_string(); patterns.len()]),
+            )
+            .flat_map(|(pattern, replacement)| {
+                PathUtil::list_files(pattern)
+                    .unwrap()
+                    .into_iter()
+                    .map(move |path| (path.to_owned(), modify_path(&path, &replacement[..])))
+            })
             .collect::<Vec<_>>()
     });
 
@@ -307,10 +328,10 @@ fn main() {
 
     if let Some(code_dir) = code_dir {
         if let Some(code_files) = code_files {
-            for code_file in &code_files {
-                eprintln!("Copying code file {:?}", code_file);
+            for (code_file, code_out_path) in &code_files {
                 let mut file_path = code_dir.clone();
-                file_path.push(code_file);
+                file_path.push(code_out_path);
+                eprintln!("Copying code file {:?} to {:?}", code_file, code_out_path);
                 fs::create_dir_all(file_path.parent().unwrap()).unwrap();
                 match fs::copy(&code_file, &file_path) {
                     Ok(_) => {}
@@ -333,6 +354,21 @@ fn main() {
             }
         }
     }
+}
+
+fn modify_path(path: &PathBuf, replace: &str) -> PathBuf {
+    let mut new_path = PathBuf::new();
+    let repl_parts: Vec<_> = replace.split('/').filter(|&x| !x.is_empty()).collect();
+    for (i, comp) in path.components().enumerate() {
+        if repl_parts.len() > i && repl_parts[i] != "*" {
+            if repl_parts[i] != "." {
+                new_path.push(repl_parts[i]);
+            }
+        } else {
+            new_path.push(comp);
+        }
+    }
+    new_path
 }
 
 fn create_project(file: &str, style: &str) -> Result<(), Box<dyn Error>> {

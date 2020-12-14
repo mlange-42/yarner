@@ -37,6 +37,11 @@ docs = "docs/"
 files = ["%%MAIN_FILE%%"]
 ## File(s) to include in code output (unprocessed), as glob pattern(s).
 # code_files = ["**/*.rs"]
+## Allows to modify paths of copied code files. Replaces path components. Optional.
+## When given, must have as many elements as code_files.
+## E.g., use "foo/bar" to replace the first two path component by foo and bar.
+## Use "." to ommit, and "*" to preserve a component. Use "" if no change is intended at all.
+# code_paths = ["."]
 ## File(s) to include in docs output (unprocessed), as glob pattern(s).
 # doc_files = ["**/*.png", "**/*.jpg"]
 ## Entrypoint block name. Optional. If not supplied, unnamed code blocks are used.

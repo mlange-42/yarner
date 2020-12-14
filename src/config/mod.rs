@@ -30,6 +30,8 @@ pub struct Paths {
     pub files: Option<Vec<String>>,
     /// File(s) to include in code output (unprocessed), as glob pattern(s).
     pub code_files: Option<Vec<String>>,
+    /// Replacement of path components to modify code paths.
+    pub code_paths: Option<Vec<String>>,
     /// File(s) to include in docs output (unprocessed), as glob pattern(s).
     pub doc_files: Option<Vec<String>>,
     /// Entrypoint block name. Optional. If not supplied, unnamed code blocks are used.
