@@ -97,7 +97,7 @@ fn main() {
                 "Successfully created project for {}.\nTo compile the project, run `yarner` from the project directory.",
                 file
             ),
-            Err(err) => eprintln!("Creating project failed for {}: {}", file, err),
+            Err(err) => eprintln!("ERROR: Creating project failed for {}: {}", file, err),
         }
 
         return;
@@ -113,12 +113,18 @@ fn main() {
                     Ok(config) => match toml::from_str(&config) {
                         Ok(config) => config,
                         Err(error) => {
-                            eprintln!("Could not parse config file \"{}\": {}", file_name, error);
+                            eprintln!(
+                                "ERROR: Could not parse config file \"{}\": {}",
+                                file_name, error
+                            );
                             return;
                         }
                     },
                     Err(error) => {
-                        eprintln!("Could not read config file \"{}\": {}", file_name, error);
+                        eprintln!(
+                            "ERROR: Could not read config file \"{}\": {}",
+                            file_name, error
+                        );
                         return;
                     }
                 }
@@ -260,7 +266,7 @@ fn main() {
                     &mut HashSet::new(),
                 ) {
                     eprintln!(
-                        "Failed to compile source file \"{}\": {}",
+                        "ERROR: Failed to compile source file \"{}\": {}",
                         file_name.to_str().unwrap(),
                         error
                     );
@@ -286,7 +292,7 @@ fn main() {
                     &mut HashSet::new(),
                 ) {
                     eprintln!(
-                        "Failed to compile source file \"{}\": {}",
+                        "ERROR: Failed to compile source file \"{}\": {}",
                         file_name.to_str().unwrap(),
                         error
                     );
@@ -312,7 +318,7 @@ fn main() {
                     &mut HashSet::new(),
                 ) {
                     eprintln!(
-                        "Failed to compile source file \"{}\": {}",
+                        "ERROR: Failed to compile source file \"{}\": {}",
                         file_name.to_str().unwrap(),
                         error
                     );
@@ -326,20 +332,35 @@ fn main() {
         };
     }
 
+    let mut track_copy_dest = HashMap::new();
     if let Some(code_dir) = code_dir {
         if let Some(code_files) = code_files {
             for (code_file, code_out_path) in &code_files {
+                if track_copy_dest.contains_key(code_out_path) {
+                    eprintln!(
+                        "ERROR: Attempted to copy multiple code files to {:?}: from {:?} and {:?}",
+                        code_out_path, track_copy_dest[code_out_path], code_file
+                    );
+                    return;
+                }
+                track_copy_dest.insert(code_out_path, code_file);
+
                 let mut file_path = code_dir.clone();
                 file_path.push(code_out_path);
+
                 eprintln!("Copying code file {:?} to {:?}", code_file, code_out_path);
                 fs::create_dir_all(file_path.parent().unwrap()).unwrap();
                 match fs::copy(&code_file, &file_path) {
                     Ok(_) => {}
-                    Err(err) => eprintln!("  --> Error copying code file {:?}: {}", code_file, err),
+                    Err(err) => eprintln!(
+                        "ERROR: --> Error copying code file {:?}: {}",
+                        code_file, err
+                    ),
                 }
             }
         }
     }
+
     if let Some(doc_dir) = doc_dir {
         if let Some(doc_files) = doc_files {
             for doc_file in &doc_files {
@@ -349,7 +370,10 @@ fn main() {
                 fs::create_dir_all(file_path.parent().unwrap()).unwrap();
                 match fs::copy(&doc_file, &file_path) {
                     Ok(_) => {}
-                    Err(err) => eprintln!("  --> Error copying doc file {:?}: {}", doc_file, err),
+                    Err(err) => eprintln!(
+                        "ERROR: --> Problem copying doc file {:?}: {}",
+                        doc_file, err
+                    ),
                 }
             }
         }
@@ -378,13 +402,13 @@ fn create_project(file: &str, style: &str) -> Result<(), Box<dyn Error>> {
 
     if base_path.exists() {
         return Err(Box::new(ProjectCreationError(format!(
-            "File {:?} already exists.",
+            "ERROR: File {:?} already exists.",
             base_path
         ))));
     }
     if toml_path.exists() {
         return Err(Box::new(ProjectCreationError(format!(
-            "File {:?} already exists.",
+            "ERROR: File {:?} already exists.",
             toml_path
         ))));
     }
@@ -570,7 +594,7 @@ where
 
                 if track_code_files.contains(&file_path) {
                     return Err(Box::new(ParseError::MultipleCodeFileAccessError(format!(
-                        "Multiple locations point to code file {:?}",
+                        "ERROR: Multiple locations point to code file {:?}",
                         file_path
                     ))));
                 } else {
