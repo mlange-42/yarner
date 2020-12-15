@@ -463,7 +463,10 @@ impl Parser for MdParser {
                                     Some(path)
                                 } else {
                                     // TODO: move out of function?
-                                    eprintln!("WARNING: link target not found for {:?}", path);
+                                    eprintln!(
+                                        "WARNING: link target not found for {}",
+                                        path.display()
+                                    );
                                     None
                                 }
                             } else {
