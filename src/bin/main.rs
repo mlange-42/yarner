@@ -233,7 +233,7 @@ fn main() {
                 ) {
                     eprintln!(
                         "ERROR: Failed to compile source file \"{}\": {}",
-                        file_name.to_str().unwrap(),
+                        file_name.display(),
                         error
                     );
                     continue;
@@ -259,7 +259,7 @@ fn main() {
                 ) {
                     eprintln!(
                         "ERROR: Failed to compile source file \"{}\": {}",
-                        file_name.to_str().unwrap(),
+                        file_name.display(),
                         error
                     );
                     continue;
@@ -285,7 +285,7 @@ fn main() {
                 ) {
                     eprintln!(
                         "ERROR: Failed to compile source file \"{}\": {}",
-                        file_name.to_str().unwrap(),
+                        file_name.display(),
                         error
                     );
                     continue;
@@ -308,9 +308,9 @@ fn main() {
         _ => (),
     }
 
-    let mut track_copy_dest = HashMap::new();
+    let mut track_copy_dest: HashMap<PathBuf, PathBuf> = HashMap::new();
     if let Some(code_dir) = code_dir {
-        if let Some(code_file_patterns) = paths.code_files {
+        if let Some(code_file_patterns) = &paths.code_files {
             for (idx, code_file_pattern) in code_file_patterns.iter().enumerate() {
                 let code_path = paths.code_paths.as_ref().map(|code_paths| &code_paths[idx]);
                 for code_file in PathUtil::list_files(code_file_pattern).unwrap() {
@@ -320,8 +320,8 @@ fn main() {
                     match track_copy_dest.entry(out_path.clone()) {
                         Occupied(entry) => {
                             eprintln!(
-                                "ERROR: Attempted to copy multiple code files to {:?}: from {:?} and {:?}",
-                                out_path, entry.get(), code_file
+                                "ERROR: Attempted to copy multiple code files to {}: from {} and {}",
+                                out_path.display(), entry.get().display(), code_file.display()
                             );
                             return;
                         }
@@ -329,16 +329,22 @@ fn main() {
                             entry.insert(code_file.clone());
                         }
                     }
-                    let mut file_path = code_dir.clone();
-                    file_path.push(out_path.clone());
+                    eprintln!(
+                        "Copying code file {} to {}",
+                        code_file.display(),
+                        out_path.display()
+                    );
 
-                    eprintln!("Copying code file {:?} to {:?}", code_file, out_path);
+                    let mut file_path = code_dir.clone();
+                    file_path.push(out_path);
+
                     fs::create_dir_all(file_path.parent().unwrap()).unwrap();
                     match fs::copy(&code_file, &file_path) {
                         Ok(_) => {}
                         Err(err) => eprintln!(
-                            "ERROR: --> Error copying code file {:?}: {}",
-                            code_file, err
+                            "ERROR: --> Error copying code file {}: {}",
+                            code_file.display(),
+                            err
                         ),
                     }
                 }
@@ -347,17 +353,18 @@ fn main() {
     }
 
     if let Some(doc_dir) = doc_dir {
-        if let Some(doc_files) = paths.doc_files {
-            for doc_file in PathUtil::list_all_files(&doc_files[..]).unwrap() {
-                eprintln!("Copying doc file {:?}", doc_file);
+        if let Some(doc_files) = &paths.doc_files {
+            for doc_file in PathUtil::list_all_files(doc_files).unwrap() {
+                eprintln!("Copying doc file {}", doc_file.display());
                 let mut file_path = doc_dir.clone();
                 file_path.push(&doc_file);
                 fs::create_dir_all(file_path.parent().unwrap()).unwrap();
                 match fs::copy(&doc_file, &file_path) {
                     Ok(_) => {}
                     Err(err) => eprintln!(
-                        "ERROR: --> Problem copying doc file {:?}: {}",
-                        doc_file, err
+                        "ERROR: --> Problem copying doc file {}: {}",
+                        doc_file.display(),
+                        err
                     ),
                 }
             }
@@ -393,14 +400,14 @@ fn create_project(file: &str, style: &str) -> Result<(), Box<dyn Error>> {
 
     if base_path.exists() {
         return Err(Box::new(ProjectCreationError(format!(
-            "ERROR: File {:?} already exists.",
-            base_path
+            "ERROR: File {} already exists.",
+            base_path.display()
         ))));
     }
     if toml_path.exists() {
         return Err(Box::new(ProjectCreationError(format!(
-            "ERROR: File {:?} already exists.",
-            toml_path
+            "ERROR: File {} already exists.",
+            toml_path.display()
         ))));
     }
 
@@ -538,7 +545,7 @@ where
     P: Parser + Printer,
     P::Error: 'static,
 {
-    eprintln!("Compiling file {:?}", file_name);
+    eprintln!("Compiling file {}", file_name.display());
 
     let mut entries = vec![(entrypoint, file_name.clone())];
     let extra_entries = parser.get_entry_points(&document, language);
@@ -585,8 +592,8 @@ where
 
                 if track_code_files.contains(&file_path) {
                     return Err(Box::new(ParseError::MultipleCodeFileAccessError(format!(
-                        "ERROR: Multiple locations point to code file {:?}",
-                        file_path
+                        "ERROR: Multiple locations point to code file {}",
+                        file_path.display()
                     ))));
                 } else {
                     track_code_files.insert(file_path.clone());
@@ -594,7 +601,7 @@ where
 
                 match document.print_code(entrypoint, language, settings) {
                     Ok(code) => {
-                        eprintln!("  --> Writing file {:?}", file_path);
+                        eprintln!("  --> Writing file {}", file_path.display());
                         fs::create_dir_all(file_path.parent().unwrap()).unwrap();
                         let mut code_file = File::create(file_path).unwrap();
                         write!(code_file, "{}", code).unwrap()
@@ -606,8 +613,8 @@ where
                         } => match kind {
                             CompileErrorKind::MissingEntrypoint => {
                                 eprintln!(
-                                    "  --> WARNING: No entrypoint for file {:?}, skipping code output.",
-                                    sub_file_name
+                                    "  --> WARNING: No entrypoint for file {}, skipping code output.",
+                                    sub_file_name.display()
                                 );
                             }
                             _ => return Err(Box::new(err)),
