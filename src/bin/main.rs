@@ -186,42 +186,6 @@ fn main() {
         }
     };
 
-    match (&paths.code_files, &paths.code_paths) {
-        (Some(code_files), Some(code_paths)) if code_files.len() != code_paths.len() => {
-            eprintln!(
-            "If argument code_paths is given in the toml file, it must have as many elements as argument code_files",
-        );
-            return;
-        }
-        _ => (),
-    }
-
-    let code_files = match (&paths.code_files, &paths.code_paths) {
-        (Some(code_files), Some(code_paths)) => code_files
-            .iter()
-            .zip(code_paths)
-            .flat_map(|(file, replacement)| {
-                PathUtil::list_files(file)
-                    .unwrap()
-                    .into_iter()
-                    .map(move |path| (path.clone(), Some(modify_path(&path, &replacement[..]))))
-            })
-            .collect::<Vec<_>>(),
-        (Some(code_files), None) => PathUtil::list_all_files(&code_files[..])
-            .unwrap()
-            .into_iter()
-            .map(|path| (path, None))
-            .collect::<Vec<_>>(),
-        (None, _) => Vec::new(),
-    };
-
-    let doc_files = paths.doc_files.as_ref().map(|files| {
-        PathUtil::list_all_files(&files[..])
-            .unwrap()
-            .into_iter()
-            .collect::<Vec<_>>()
-    });
-
     for input in inputs {
         let (file_name, style_type, code_type) = {
             let file_name = PathBuf::from(&input);
@@ -334,47 +298,60 @@ fn main() {
         };
     }
 
+    match (&paths.code_files, &paths.code_paths) {
+        (Some(code_files), Some(code_paths)) if code_files.len() != code_paths.len() => {
+            eprintln!(
+                "If argument code_paths is given in the toml file, it must have as many elements as argument code_files",
+            );
+            return;
+        }
+        _ => (),
+    }
+
     let mut track_copy_dest = HashMap::new();
     if let Some(code_dir) = code_dir {
-        for (code_file, code_out_path) in &code_files {
-            let out_path = if let Some(out_path) = code_out_path {
-                match track_copy_dest.entry(out_path) {
-                    Occupied(entry) => {
-                        eprintln!(
-                            "ERROR: Attempted to copy multiple code files to {:?}: from {:?} and {:?}",
-                            out_path, entry.get(), code_file
-                        );
-                        return;
+        if let Some(code_file_patterns) = paths.code_files {
+            for (idx, code_file_pattern) in code_file_patterns.iter().enumerate() {
+                let code_path = paths.code_paths.as_ref().map(|code_paths| &code_paths[idx]);
+                for code_file in PathUtil::list_files(code_file_pattern).unwrap() {
+                    let out_path = code_path.map_or(code_file.clone(), |code_path| {
+                        modify_path(&code_file, &code_path)
+                    });
+                    match track_copy_dest.entry(out_path.clone()) {
+                        Occupied(entry) => {
+                            eprintln!(
+                                "ERROR: Attempted to copy multiple code files to {:?}: from {:?} and {:?}",
+                                out_path, entry.get(), code_file
+                            );
+                            return;
+                        }
+                        Vacant(entry) => {
+                            entry.insert(code_file.clone());
+                        }
                     }
-                    Vacant(entry) => {
-                        entry.insert(code_file);
-                        out_path
+                    let mut file_path = code_dir.clone();
+                    file_path.push(out_path.clone());
+
+                    eprintln!("Copying code file {:?} to {:?}", code_file, out_path);
+                    fs::create_dir_all(file_path.parent().unwrap()).unwrap();
+                    match fs::copy(&code_file, &file_path) {
+                        Ok(_) => {}
+                        Err(err) => eprintln!(
+                            "ERROR: --> Error copying code file {:?}: {}",
+                            code_file, err
+                        ),
                     }
                 }
-            } else {
-                code_file
-            };
-            let mut file_path = code_dir.clone();
-            file_path.push(out_path);
-
-            eprintln!("Copying code file {:?} to {:?}", code_file, out_path);
-            fs::create_dir_all(file_path.parent().unwrap()).unwrap();
-            match fs::copy(&code_file, &file_path) {
-                Ok(_) => {}
-                Err(err) => eprintln!(
-                    "ERROR: --> Error copying code file {:?}: {}",
-                    code_file, err
-                ),
             }
         }
     }
 
     if let Some(doc_dir) = doc_dir {
-        if let Some(doc_files) = doc_files {
-            for doc_file in &doc_files {
+        if let Some(doc_files) = paths.doc_files {
+            for doc_file in PathUtil::list_all_files(&doc_files[..]).unwrap() {
                 eprintln!("Copying doc file {:?}", doc_file);
                 let mut file_path = doc_dir.clone();
-                file_path.push(doc_file);
+                file_path.push(&doc_file);
                 fs::create_dir_all(file_path.parent().unwrap()).unwrap();
                 match fs::copy(&doc_file, &file_path) {
                     Ok(_) => {}
@@ -399,7 +376,7 @@ fn modify_path(path: &PathBuf, replace: &str) -> PathBuf {
         .collect();
     for (i, comp) in path.components().enumerate() {
         if repl_parts.len() > i && repl_parts[i] != "_" {
-            if repl_parts[i] != "." {
+            if repl_parts[i] != "-" {
                 new_path.push(repl_parts[i]);
             }
         } else {

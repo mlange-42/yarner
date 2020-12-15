@@ -57,7 +57,7 @@ files = ["%%MAIN_FILE%%"]
 ## Allows to modify paths of copied code files. Replaces path components. Optional.
 ## When given, must have as many elements as code_files.
 ## E.g., use "foo/bar" to replace the first two path component by foo and bar.
-## Use "." to ommit, and "_" to preserve a component. Use "_" if no change is intended at all.
+## Use "-" to ommit, and "_" to preserve a component. Use a single "_" if no change is intended at all.
 # code_paths = ["_"]
 ## File(s) to include in docs output (unprocessed), as glob pattern(s).
 # doc_files = ["**/*.png", "**/*.jpg"]
