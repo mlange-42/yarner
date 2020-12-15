@@ -138,6 +138,7 @@ impl Ast {
             Some(blocks) => {
                 for block in blocks {
                     result.push_str(&block.compile(&code_blocks, settings)?);
+                    result.push('\n');
                 }
             }
             None => {
