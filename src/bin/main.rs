@@ -1,9 +1,10 @@
 use clap::{crate_version, App, Arg, SubCommand};
+use std::collections::hash_map::Entry::{Occupied, Vacant};
 use std::collections::{HashMap, HashSet};
 use std::error::Error;
 use std::fs::{self, File};
 use std::io::Write;
-use std::path::PathBuf;
+use std::path::{Path, PathBuf};
 use yarner::config::{AnyConfig, LanguageSettings};
 use yarner::document::{CompileError, CompileErrorKind, Document};
 use yarner::parser::{HtmlParser, MdParser, ParseError, Parser, ParserConfig, Printer, TexParser};
@@ -185,33 +186,34 @@ fn main() {
         }
     };
 
-    if let Some(code_files) = &paths.code_files {
-        if let Some(code_paths) = &paths.code_paths {
-            if code_files.len() != code_paths.len() {
-                eprintln!(
-                    "If argument code_paths is given in the toml file, it must have as many elements as argument code_files",
-                );
-                return;
-            }
+    match (&paths.code_files, &paths.code_paths) {
+        (Some(code_files), Some(code_paths)) if code_files.len() != code_paths.len() => {
+            eprintln!(
+            "If argument code_paths is given in the toml file, it must have as many elements as argument code_files",
+        );
+            return;
         }
+        _ => (),
     }
-    let code_files = paths.code_files.as_ref().map(|patterns| {
-        patterns
+
+    let code_files = match (&paths.code_files, &paths.code_paths) {
+        (Some(code_files), Some(code_paths)) => code_files
             .iter()
-            .zip(
-                paths
-                    .code_paths
-                    .as_ref()
-                    .unwrap_or(&vec!["".to_string(); patterns.len()]),
-            )
-            .flat_map(|(pattern, replacement)| {
-                PathUtil::list_files(pattern)
+            .zip(code_paths)
+            .flat_map(|(file, replacement)| {
+                PathUtil::list_files(file)
                     .unwrap()
                     .into_iter()
-                    .map(move |path| (path.to_owned(), modify_path(&path, &replacement[..])))
+                    .map(move |path| (path.clone(), Some(modify_path(&path, &replacement[..]))))
             })
-            .collect::<Vec<_>>()
-    });
+            .collect::<Vec<_>>(),
+        (Some(code_files), None) => PathUtil::list_all_files(&code_files[..])
+            .unwrap()
+            .into_iter()
+            .map(|path| (path, None))
+            .collect::<Vec<_>>(),
+        (None, _) => Vec::new(),
+    };
 
     let doc_files = paths.doc_files.as_ref().map(|files| {
         PathUtil::list_all_files(&files[..])
@@ -334,29 +336,35 @@ fn main() {
 
     let mut track_copy_dest = HashMap::new();
     if let Some(code_dir) = code_dir {
-        if let Some(code_files) = code_files {
-            for (code_file, code_out_path) in &code_files {
-                if track_copy_dest.contains_key(code_out_path) {
-                    eprintln!(
-                        "ERROR: Attempted to copy multiple code files to {:?}: from {:?} and {:?}",
-                        code_out_path, track_copy_dest[code_out_path], code_file
-                    );
-                    return;
+        for (code_file, code_out_path) in &code_files {
+            let out_path = if let Some(out_path) = code_out_path {
+                match track_copy_dest.entry(out_path) {
+                    Occupied(entry) => {
+                        eprintln!(
+                            "ERROR: Attempted to copy multiple code files to {:?}: from {:?} and {:?}",
+                            out_path, entry.get(), code_file
+                        );
+                        return;
+                    }
+                    Vacant(entry) => {
+                        entry.insert(code_file);
+                        out_path
+                    }
                 }
-                track_copy_dest.insert(code_out_path, code_file);
+            } else {
+                code_file
+            };
+            let mut file_path = code_dir.clone();
+            file_path.push(out_path);
 
-                let mut file_path = code_dir.clone();
-                file_path.push(code_out_path);
-
-                eprintln!("Copying code file {:?} to {:?}", code_file, code_out_path);
-                fs::create_dir_all(file_path.parent().unwrap()).unwrap();
-                match fs::copy(&code_file, &file_path) {
-                    Ok(_) => {}
-                    Err(err) => eprintln!(
-                        "ERROR: --> Error copying code file {:?}: {}",
-                        code_file, err
-                    ),
-                }
+            eprintln!("Copying code file {:?} to {:?}", code_file, out_path);
+            fs::create_dir_all(file_path.parent().unwrap()).unwrap();
+            match fs::copy(&code_file, &file_path) {
+                Ok(_) => {}
+                Err(err) => eprintln!(
+                    "ERROR: --> Error copying code file {:?}: {}",
+                    code_file, err
+                ),
             }
         }
     }
@@ -381,10 +389,16 @@ fn main() {
 }
 
 fn modify_path(path: &PathBuf, replace: &str) -> PathBuf {
+    if replace.is_empty() || replace == "_" {
+        return path.clone();
+    }
     let mut new_path = PathBuf::new();
-    let repl_parts: Vec<_> = replace.split('/').filter(|&x| !x.is_empty()).collect();
+    let repl_parts: Vec<_> = Path::new(replace)
+        .components()
+        .map(|c| c.as_os_str())
+        .collect();
     for (i, comp) in path.components().enumerate() {
-        if repl_parts.len() > i && repl_parts[i] != "*" {
+        if repl_parts.len() > i && repl_parts[i] != "_" {
             if repl_parts[i] != "." {
                 new_path.push(repl_parts[i]);
             }
