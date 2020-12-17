@@ -29,6 +29,8 @@ hidden_prefix = "hidden:"
 # default_language = "c"
 
 [paths]
+# Root directory. All paths are relative to this.
+root = "."
 # Code output path.
 code = "code/"
 # Docs output path.

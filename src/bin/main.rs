@@ -11,7 +11,13 @@ use yarner::parser::{HtmlParser, MdParser, ParseError, Parser, ParserConfig, Pri
 use yarner::util::PathUtil;
 use yarner::{templates, MultipleTransclusionError, ProjectCreationError};
 
-fn main() -> Result<(), String> {
+fn main() {
+    if let Err(err) = run() {
+        eprintln!("{}", err);
+    }
+}
+
+fn run() -> Result<(), String> {
     let app = App::new("Yarner")
         .version(crate_version!())
         .about("Literate programming compiler\n  \
@@ -36,6 +42,12 @@ fn main() -> Result<(), String> {
             .help("Sets the style to use. If not specified, it is inferred from the file extension.")
             .takes_value(true)
             .possible_values(&["md", "tex", "html"]))
+        .arg(Arg::with_name("root")
+            .long("root")
+            .short("r")
+            .value_name("root")
+            .help("Root directory. If none is specified, uses 'path' -> 'root' from config file. Default current director.")
+            .takes_value(true))
         .arg(Arg::with_name("doc_dir")
             .short("d")
             .long("docs")
@@ -130,8 +142,21 @@ fn main() -> Result<(), String> {
             }
         }
     };
-
     let paths = any_config.paths.unwrap_or_default();
+
+    let root = matches
+        .value_of("root")
+        .map(|s| s.to_string())
+        .or_else(|| paths.root.as_ref().map(|s| s.to_string()))
+        .map_or_else(|| PathBuf::from("."), |r| PathBuf::from(r));
+
+    if let Err(err) = std::env::set_current_dir(&root) {
+        return Err(format!(
+            "ERROR: --> Unable to set root to \"{}\": {}",
+            root.display(),
+            err
+        ));
+    }
 
     let clean_code = matches.is_present("clean");
     if let Some(languages) = &mut any_config.language {
@@ -177,11 +202,18 @@ fn main() -> Result<(), String> {
         Some(inputs) => inputs,
         None => {
             return Err(format!(
-                "No inputs provided via arguments or toml file. For help, use:\n\
+                "ERROR: No inputs provided via arguments or toml file. For help, use:\n\
                  > yarner -h",
             ));
         }
     };
+
+    if inputs.is_empty() {
+        return Err(format!(
+            "ERROR: No input files found. For help, use:\n\
+                 > yarner -h",
+        ));
+    }
 
     for input in inputs {
         let (file_name, style_type, code_type) = {
@@ -353,15 +385,12 @@ fn copy_files(
             file_path.push(out_path);
 
             fs::create_dir_all(file_path.parent().unwrap()).unwrap();
-            match fs::copy(&code_file, &file_path) {
-                Ok(_) => {}
-                Err(err) => {
-                    return Err(format!(
-                        "ERROR: --> Error copying file {}: {}",
-                        code_file.display(),
-                        err
-                    ))
-                }
+            if let Err(err) = fs::copy(&code_file, &file_path) {
+                return Err(format!(
+                    "ERROR: --> Error copying file {}: {}",
+                    code_file.display(),
+                    err
+                ));
             }
         }
     }

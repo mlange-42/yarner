@@ -23,7 +23,7 @@ pub struct AnyConfig {
 #[derive(Serialize, Deserialize, Default, Debug)]
 pub struct Paths {
     /// Code output path.
-    pub source: Option<String>,
+    pub root: Option<String>,
     /// Code output path.
     pub code: Option<String>,
     /// Docs output path.
