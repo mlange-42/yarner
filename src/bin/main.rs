@@ -11,7 +11,7 @@ use yarner::parser::{HtmlParser, MdParser, ParseError, Parser, ParserConfig, Pri
 use yarner::util::PathUtil;
 use yarner::{templates, MultipleTransclusionError, ProjectCreationError};
 
-fn main() {
+fn main() -> Result<(), String> {
     let app = App::new("Yarner")
         .version(crate_version!())
         .about("Literate programming compiler\n  \
@@ -98,10 +98,10 @@ fn main() {
                 "Successfully created project for {}.\nTo compile the project, run `yarner` from the project directory.",
                 file
             ),
-            Err(err) => eprintln!("ERROR: Creating project failed for {}: {}", file, err),
+            Err(err) => return Err(format!("ERROR: Creating project failed for {}: {}", file, err)),
         }
 
-        return;
+        return Ok(());
     }
 
     let mut any_config: AnyConfig = match matches.value_of("config") {
@@ -114,19 +114,17 @@ fn main() {
                     Ok(config) => match toml::from_str(&config) {
                         Ok(config) => config,
                         Err(error) => {
-                            eprintln!(
+                            return Err(format!(
                                 "ERROR: Could not parse config file \"{}\": {}",
                                 file_name, error
-                            );
-                            return;
+                            ));
                         }
                     },
                     Err(error) => {
-                        eprintln!(
+                        return Err(format!(
                             "ERROR: Could not read config file \"{}\": {}",
                             file_name, error
-                        );
-                        return;
+                        ));
                     }
                 }
             }
@@ -178,11 +176,10 @@ fn main() {
     }) {
         Some(inputs) => inputs,
         None => {
-            eprintln!(
+            return Err(format!(
                 "No inputs provided via arguments or toml file. For help, use:\n\
                  > yarner -h",
-            );
-            return;
+            ));
         }
     };
 
@@ -298,78 +295,77 @@ fn main() {
         };
     }
 
-    match (&paths.code_files, &paths.code_paths) {
-        (Some(code_files), Some(code_paths)) if code_files.len() != code_paths.len() => {
-            eprintln!(
-                "If argument code_paths is given in the toml file, it must have as many elements as argument code_files",
-            );
-            return;
-        }
-        _ => (),
-    }
-
-    let mut track_copy_dest: HashMap<PathBuf, PathBuf> = HashMap::new();
     if let Some(code_dir) = code_dir {
         if let Some(code_file_patterns) = &paths.code_files {
-            for (idx, code_file_pattern) in code_file_patterns.iter().enumerate() {
-                let code_path = paths.code_paths.as_ref().map(|code_paths| &code_paths[idx]);
-                for code_file in PathUtil::list_files(code_file_pattern).unwrap() {
-                    let out_path = code_path.map_or(code_file.clone(), |code_path| {
-                        modify_path(&code_file, &code_path)
-                    });
-                    match track_copy_dest.entry(out_path.clone()) {
-                        Occupied(entry) => {
-                            eprintln!(
-                                "ERROR: Attempted to copy multiple code files to {}: from {} and {}",
-                                out_path.display(), entry.get().display(), code_file.display()
-                            );
-                            return;
-                        }
-                        Vacant(entry) => {
-                            entry.insert(code_file.clone());
-                        }
-                    }
-                    eprintln!(
-                        "Copying code file {} to {}",
-                        code_file.display(),
-                        out_path.display()
-                    );
-
-                    let mut file_path = code_dir.clone();
-                    file_path.push(out_path);
-
-                    fs::create_dir_all(file_path.parent().unwrap()).unwrap();
-                    match fs::copy(&code_file, &file_path) {
-                        Ok(_) => {}
-                        Err(err) => eprintln!(
-                            "ERROR: --> Error copying code file {}: {}",
-                            code_file.display(),
-                            err
-                        ),
-                    }
-                }
-            }
+            copy_files(code_file_patterns, &paths.code_paths, code_dir)?;
         }
     }
 
     if let Some(doc_dir) = doc_dir {
-        if let Some(doc_files) = &paths.doc_files {
-            for doc_file in PathUtil::list_all_files(doc_files).unwrap() {
-                eprintln!("Copying doc file {}", doc_file.display());
-                let mut file_path = doc_dir.clone();
-                file_path.push(&doc_file);
-                fs::create_dir_all(file_path.parent().unwrap()).unwrap();
-                match fs::copy(&doc_file, &file_path) {
-                    Ok(_) => {}
-                    Err(err) => eprintln!(
-                        "ERROR: --> Problem copying doc file {}: {}",
-                        doc_file.display(),
+        if let Some(doc_file_patterns) = &paths.doc_files {
+            copy_files(doc_file_patterns, &paths.doc_paths, doc_dir)?;
+        }
+    }
+
+    return Ok(());
+}
+
+fn copy_files(
+    patterns: &[String],
+    path_mod: &Option<Vec<String>>,
+    target_dir: PathBuf,
+) -> Result<(), String> {
+    match path_mod {
+        Some(path_mod) if patterns.len() != path_mod.len() => {
+            return Err(
+                "If argument code_paths/doc_paths is given in the toml file, it must have as many elements as argument code_files/doc_files".to_string()
+            );
+        }
+        _ => (),
+    }
+    let mut track_copy_dest: HashMap<PathBuf, PathBuf> = HashMap::new();
+    for (idx, file_pattern) in patterns.iter().enumerate() {
+        let code_path = path_mod.as_ref().map(|code_paths| &code_paths[idx]);
+        for code_file in PathUtil::list_files(file_pattern).unwrap() {
+            let out_path = code_path.map_or(code_file.clone(), |code_path| {
+                modify_path(&code_file, &code_path)
+            });
+            match track_copy_dest.entry(out_path.clone()) {
+                Occupied(entry) => {
+                    return Err(format!(
+                        "ERROR: Attempted to copy multiple code files to {}: from {} and {}",
+                        out_path.display(),
+                        entry.get().display(),
+                        code_file.display()
+                    ));
+                }
+                Vacant(entry) => {
+                    entry.insert(code_file.clone());
+                }
+            }
+            eprintln!(
+                "Copying file {} to {}",
+                code_file.display(),
+                out_path.display()
+            );
+
+            let mut file_path = target_dir.clone();
+            file_path.push(out_path);
+
+            fs::create_dir_all(file_path.parent().unwrap()).unwrap();
+            match fs::copy(&code_file, &file_path) {
+                Ok(_) => {}
+                Err(err) => {
+                    return Err(format!(
+                        "ERROR: --> Error copying file {}: {}",
+                        code_file.display(),
                         err
-                    ),
+                    ))
                 }
             }
         }
     }
+    Ok(())
 }
 
 fn modify_path(path: &PathBuf, replace: &str) -> PathBuf {

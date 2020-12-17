@@ -44,6 +44,8 @@ files = ["%%MAIN_FILE%%"]
 # code_paths = ["_"]
 ## File(s) to include in docs output (unprocessed), as glob pattern(s).
 # doc_files = ["**/*.png", "**/*.jpg"]
+## Allows to modify paths of copied code files. See code_paths for details. Optional.
+# doc_paths = ["_"]
 ## Entrypoint block name. Optional. If not supplied, unnamed code blocks are used.
 # entrypoint = "Main"
 
