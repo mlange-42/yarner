@@ -7,7 +7,10 @@ fence_sequence = "```"
 # Allows for normal Markdown fences in code blocks
 fence_sequence_alt = "~~~"
 
-# The sequence that separates the language from the name of the code block after the fence
+# The sequence that separates the language from the name of the code block after the fence.
+# Deprecated, will be removed in a future version.
+# Instead, write the block name after comment_start in the first line of the code block, like:
+# // Block name
 block_name_start = " - "
 
 # Parsed comments are stripped from the code and written to an `<aside></aside>` block after the code when printing.

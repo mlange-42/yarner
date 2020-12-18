@@ -200,7 +200,7 @@ fn run() -> Result<(), String> {
         Some(patterns) => patterns,
     };
 
-    let mut inputs: Vec<PathBuf> = Vec::new();
+    let mut any_input = false;
     for pattern in input_patterns {
         let paths = match glob::glob(&pattern) {
             Ok(p) => p,
@@ -212,7 +212,7 @@ fn run() -> Result<(), String> {
             }
         };
         for path in paths {
-            let p = match path {
+            let input = match path {
                 Ok(p) => p,
                 Err(err) => {
                     return Err(format!(
@@ -221,129 +221,126 @@ fn run() -> Result<(), String> {
                     ))
                 }
             };
-            if p.is_file() {
-                inputs.push(p);
+            if input.is_file() {
+                any_input = true;
+                let (file_name, style_type, code_type) = {
+                    let file_name = PathBuf::from(&input);
+
+                    let style_type = input
+                        .extension()
+                        .and_then(|osstr| osstr.to_str())
+                        .map(|s| s.to_owned());
+
+                    let code_type = input.file_stem().and_then(|stem| {
+                        PathBuf::from(stem)
+                            .extension()
+                            .and_then(|osstr| osstr.to_str())
+                            .map(|s| s.to_owned())
+                    });
+                    (file_name, style_type, code_type)
+                };
+
+                let language = matches.value_of("language");
+
+                match matches
+                    .value_of("style")
+                    .map(|s| s.to_string())
+                    .or(style_type)
+                    .unwrap_or("md".to_string())
+                    .as_str()
+                {
+                    "md" => {
+                        let default = MdParser::default();
+                        let parser = any_config
+                            .md
+                            .as_ref()
+                            .unwrap_or(&default)
+                            .default_language(code_type);
+                        if let Err(error) = compile_all(
+                            &parser,
+                            &doc_dir,
+                            &code_dir,
+                            &file_name,
+                            entrypoint,
+                            language,
+                            &any_config.language,
+                            &mut HashSet::new(),
+                            &mut HashSet::new(),
+                        ) {
+                            eprintln!(
+                                "ERROR: Failed to compile source file \"{}\": {}",
+                                file_name.display(),
+                                error
+                            );
+                            continue;
+                        }
+                    }
+                    "tex" => {
+                        let default = TexParser::default();
+                        let parser = any_config
+                            .tex
+                            .as_ref()
+                            .unwrap_or(&default)
+                            .default_language(code_type);
+                        if let Err(error) = compile_all(
+                            &parser,
+                            &doc_dir,
+                            &code_dir,
+                            &file_name,
+                            entrypoint,
+                            language,
+                            &any_config.language,
+                            &mut HashSet::new(),
+                            &mut HashSet::new(),
+                        ) {
+                            eprintln!(
+                                "ERROR: Failed to compile source file \"{}\": {}",
+                                file_name.display(),
+                                error
+                            );
+                            continue;
+                        }
+                    }
+                    "html" => {
+                        let default = HtmlParser::default();
+                        let parser = any_config
+                            .html
+                            .as_ref()
+                            .unwrap_or(&default)
+                            .default_language(code_type);
+                        if let Err(error) = compile_all(
+                            &parser,
+                            &doc_dir,
+                            &code_dir,
+                            &file_name,
+                            entrypoint,
+                            language,
+                            &any_config.language,
+                            &mut HashSet::new(),
+                            &mut HashSet::new(),
+                        ) {
+                            eprintln!(
+                                "ERROR: Failed to compile source file \"{}\": {}",
+                                file_name.display(),
+                                error
+                            );
+                            continue;
+                        }
+                    }
+                    other => {
+                        eprintln!("Unknown style {}", other);
+                        continue;
+                    }
+                };
             }
         }
     }
 
-    if inputs.is_empty() {
+    if !any_input {
         return Err(format!(
             "ERROR: No input files found. For help, use:\n\
                  > yarner -h",
         ));
-    }
-
-    for input in &inputs {
-        let (file_name, style_type, code_type) = {
-            let file_name = PathBuf::from(&input);
-
-            let style_type = input
-                .extension()
-                .and_then(|osstr| osstr.to_str())
-                .map(|s| s.to_owned());
-
-            let code_type = input.file_stem().and_then(|stem| {
-                PathBuf::from(stem)
-                    .extension()
-                    .and_then(|osstr| osstr.to_str())
-                    .map(|s| s.to_owned())
-            });
-            (file_name, style_type, code_type)
-        };
-
-        let language = matches.value_of("language");
-
-        match matches
-            .value_of("style")
-            .map(|s| s.to_string())
-            .or(style_type)
-            .unwrap_or("md".to_string())
-            .as_str()
-        {
-            "md" => {
-                let default = MdParser::default();
-                let parser = any_config
-                    .md
-                    .as_ref()
-                    .unwrap_or(&default)
-                    .default_language(code_type);
-                if let Err(error) = compile_all(
-                    &parser,
-                    &doc_dir,
-                    &code_dir,
-                    &file_name,
-                    entrypoint,
-                    language,
-                    &any_config.language,
-                    &mut HashSet::new(),
-                    &mut HashSet::new(),
-                ) {
-                    eprintln!(
-                        "ERROR: Failed to compile source file \"{}\": {}",
-                        file_name.display(),
-                        error
-                    );
-                    continue;
-                }
-            }
-            "tex" => {
-                let default = TexParser::default();
-                let parser = any_config
-                    .tex
-                    .as_ref()
-                    .unwrap_or(&default)
-                    .default_language(code_type);
-                if let Err(error) = compile_all(
-                    &parser,
-                    &doc_dir,
-                    &code_dir,
-                    &file_name,
-                    entrypoint,
-                    language,
-                    &any_config.language,
-                    &mut HashSet::new(),
-                    &mut HashSet::new(),
-                ) {
-                    eprintln!(
-                        "ERROR: Failed to compile source file \"{}\": {}",
-                        file_name.display(),
-                        error
-                    );
-                    continue;
-                }
-            }
-            "html" => {
-                let default = HtmlParser::default();
-                let parser = any_config
-                    .html
-                    .as_ref()
-                    .unwrap_or(&default)
-                    .default_language(code_type);
-                if let Err(error) = compile_all(
-                    &parser,
-                    &doc_dir,
-                    &code_dir,
-                    &file_name,
-                    entrypoint,
-                    language,
-                    &any_config.language,
-                    &mut HashSet::new(),
-                    &mut HashSet::new(),
-                ) {
-                    eprintln!(
-                        "ERROR: Failed to compile source file \"{}\": {}",
-                        file_name.display(),
-                        error
-                    );
-                    continue;
-                }
-            }
-            other => {
-                eprintln!("Unknown style {}", other);
-                continue;
-            }
-        };
     }
 
     if let Some(code_dir) = code_dir {
