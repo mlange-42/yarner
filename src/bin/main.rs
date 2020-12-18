@@ -8,13 +8,16 @@ use std::path::{Path, PathBuf};
 use yarner::config::{AnyConfig, LanguageSettings};
 use yarner::document::{CompileError, CompileErrorKind, Document};
 use yarner::parser::{HtmlParser, MdParser, ParseError, Parser, ParserConfig, Printer, TexParser};
-use yarner::util::PathUtil;
 use yarner::{templates, MultipleTransclusionError, ProjectCreationError};
 
 fn main() {
-    if let Err(err) = run() {
-        eprintln!("{}", err);
-    }
+    std::process::exit(match run() {
+        Ok(_) => 0,
+        Err(err) => {
+            eprintln!("{}", err);
+            1
+        }
+    });
 }
 
 fn run() -> Result<(), String> {
@@ -46,7 +49,7 @@ fn run() -> Result<(), String> {
             .long("root")
             .short("r")
             .value_name("root")
-            .help("Root directory. If none is specified, uses 'path' -> 'root' from config file. Default current director.")
+            .help("Root directory. If none is specified, uses 'path' -> 'root' from config file. Default: current directory.")
             .takes_value(true))
         .arg(Arg::with_name("doc_dir")
             .short("d")
@@ -182,31 +185,47 @@ fn run() -> Result<(), String> {
         .map(|ep| ep)
         .or_else(|| paths.entrypoint.as_deref());
 
-    let inputs = matches.values_of("input").map(|files| {
-        PathUtil::list_all_files_str(&files.into_iter().collect::<Vec<_>>()[..])
-            .unwrap()
-            .into_iter()
-            .map(|file| file.clone())
-            .collect()
-    });
+    let input_patterns: Option<Vec<_>> = matches
+        .values_of("input")
+        .map(|patterns| patterns.map(|pattern| pattern.to_string()).collect())
+        .or_else(|| paths.files.to_owned());
 
-    let inputs: Vec<_> = match inputs.or_else(|| {
-        paths.files.as_ref().map(|files| {
-            PathUtil::list_all_files(&files[..])
-                .unwrap()
-                .into_iter()
-                .map(|file| file.clone())
-                .collect()
-        })
-    }) {
-        Some(inputs) => inputs,
+    let input_patterns = match input_patterns {
         None => {
             return Err(format!(
                 "ERROR: No inputs provided via arguments or toml file. For help, use:\n\
                  > yarner -h",
-            ));
+            ))
         }
+        Some(patterns) => patterns,
     };
+
+    let mut inputs: Vec<PathBuf> = Vec::new();
+    for pattern in input_patterns {
+        let paths = match glob::glob(&pattern) {
+            Ok(p) => p,
+            Err(err) => {
+                return Err(format!(
+                    "ERROR: --> Unable to process glob pattern \"{}\": {}",
+                    pattern, err
+                ))
+            }
+        };
+        for path in paths {
+            let p = match path {
+                Ok(p) => p,
+                Err(err) => {
+                    return Err(format!(
+                        "ERROR: --> Unable to process glob pattern \"{}\": {}",
+                        pattern, err
+                    ))
+                }
+            };
+            if p.is_file() {
+                inputs.push(p);
+            }
+        }
+    }
 
     if inputs.is_empty() {
         return Err(format!(
@@ -215,7 +234,7 @@ fn run() -> Result<(), String> {
         ));
     }
 
-    for input in inputs {
+    for input in &inputs {
         let (file_name, style_type, code_type) = {
             let file_name = PathBuf::from(&input);
 
@@ -357,40 +376,56 @@ fn copy_files(
     }
     let mut track_copy_dest: HashMap<PathBuf, PathBuf> = HashMap::new();
     for (idx, file_pattern) in patterns.iter().enumerate() {
-        let code_path = path_mod.as_ref().map(|code_paths| &code_paths[idx]);
-        for code_file in PathUtil::list_files(file_pattern).unwrap() {
-            let out_path = code_path.map_or(code_file.clone(), |code_path| {
-                modify_path(&code_file, &code_path)
-            });
-            match track_copy_dest.entry(out_path.clone()) {
-                Occupied(entry) => {
+        let path = path_mod.as_ref().map(|paths| &paths[idx]);
+        let paths = match glob::glob(&file_pattern) {
+            Ok(p) => p,
+            Err(err) => {
+                return Err(format!(
+                    "ERROR: --> Unable to parse glob pattern \"{}\" (at index {}): {}",
+                    file_pattern, err.pos, err
+                ))
+            }
+        };
+        for p in paths {
+            let file = match p {
+                Ok(p) => p,
+                Err(err) => {
                     return Err(format!(
-                        "ERROR: Attempted to copy multiple code files to {}: from {} and {}",
-                        out_path.display(),
-                        entry.get().display(),
-                        code_file.display()
+                    "ERROR: --> Unable to access result found by glob pattern \"{}\" (at {}): {}",
+                    file_pattern,
+                    err.path().display(),
+                    err
+                ))
+                }
+            };
+            if file.is_file() {
+                let out_path = path.map_or(file.clone(), |path| modify_path(&file, &path));
+                match track_copy_dest.entry(out_path.clone()) {
+                    Occupied(entry) => {
+                        return Err(format!(
+                            "ERROR: Attempted to copy multiple code files to {}: from {} and {}",
+                            out_path.display(),
+                            entry.get().display(),
+                            file.display()
+                        ));
+                    }
+                    Vacant(entry) => {
+                        entry.insert(file.clone());
+                    }
+                }
+                eprintln!("Copying file {} to {}", file.display(), out_path.display());
+
+                let mut file_path = target_dir.clone();
+                file_path.push(out_path);
+
+                fs::create_dir_all(file_path.parent().unwrap()).unwrap();
+                if let Err(err) = fs::copy(&file, &file_path) {
+                    return Err(format!(
+                        "ERROR: --> Error copying file {}: {}",
+                        file.display(),
+                        err
                     ));
                 }
-                Vacant(entry) => {
-                    entry.insert(code_file.clone());
-                }
-            }
-            eprintln!(
-                "Copying file {} to {}",
-                code_file.display(),
-                out_path.display()
-            );
-
-            let mut file_path = target_dir.clone();
-            file_path.push(out_path);
-
-            fs::create_dir_all(file_path.parent().unwrap()).unwrap();
-            if let Err(err) = fs::copy(&code_file, &file_path) {
-                return Err(format!(
-                    "ERROR: --> Error copying file {}: {}",
-                    code_file.display(),
-                    err
-                ));
             }
         }
     }
