@@ -22,7 +22,6 @@ script:
   - cargo fmt -- --check
   - cargo clippy --all-targets -- --deny warnings
   - cargo test --verbose
-  - cargo build --release --features="bin"
 
 # Need to cache the whole `.cargo` directory to keep .crates.toml for
 # cargo-update to work
@@ -35,6 +34,7 @@ before_cache:
   - rm -rf /home/travis/.cargo/registry
 
 before_deploy:
+  - cargo build --release --features="bin"
   - rm -rf ${REPO} || exit 0
   - mkdir ${REPO}
   - if [[ "$TRAVIS_OS_NAME" == "osx" ]]; then cp -f target/release/yarner ${REPO} > /dev/null; fi

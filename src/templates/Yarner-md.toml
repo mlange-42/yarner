@@ -7,7 +7,10 @@ fence_sequence = "```"
 # Allows for normal Markdown fences in code blocks
 fence_sequence_alt = "~~~"
 
-# The sequence that separates the language from the name of the code block after the fence
+# The sequence that separates the language from the name of the code block after the fence.
+# Deprecated, will be removed in a future version.
+# Instead, write the block name after comment_start in the first line of the code block, like:
+# // Block name
 block_name_start = " - "
 
 # Parsed comments are stripped from the code and written to an `<aside></aside>` block after the code when printing.
@@ -45,6 +48,8 @@ hidden_prefix = "hidden:"
 # default_language = "c"
 
 [paths]
+# Root directory. All paths are relative to this.
+root = "."
 # Code output path.
 code = "code/"
 # Docs output path.
@@ -60,6 +65,8 @@ files = ["%%MAIN_FILE%%"]
 # code_paths = ["_"]
 ## File(s) to include in docs output (unprocessed), as glob pattern(s).
 # doc_files = ["**/*.png", "**/*.jpg"]
+## Allows to modify paths of copied code files. See code_paths for details. Optional.
+# doc_paths = ["_"]
 ## Entrypoint block name. Optional. If not supplied, unnamed code blocks are used.
 # entrypoint = "Main"
 

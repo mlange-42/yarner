@@ -15,8 +15,19 @@ See the [examples](examples) directory for full working examples in each style.
 
 ## Installation
 
-* Download the [latest binaries](https://github.com/mlange-42/yarner/releases).
-* Unzip somewhere.
+**Pre-compiled binaries**
+
+1. Download the [latest binaries](https://github.com/mlange-42/yarner/releases) for your platform
+2. Unzip somewhere
+3. *Optional:* add directory `yarner` to your `PATH` environmental variable
+
+**Using `cargo`**
+
+In case you have [Rust](https://www.rust-lang.org/) installed, you can install with `cargo`:
+
+```
+cargo install --git https://github.com/mlange-42/yarner
+```
 
 ## Getting started
 

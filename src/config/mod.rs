@@ -23,6 +23,8 @@ pub struct AnyConfig {
 #[derive(Serialize, Deserialize, Default, Debug)]
 pub struct Paths {
     /// Code output path.
+    pub root: Option<String>,
+    /// Code output path.
     pub code: Option<String>,
     /// Docs output path.
     pub docs: Option<String>,
@@ -34,6 +36,8 @@ pub struct Paths {
     pub code_paths: Option<Vec<String>>,
     /// File(s) to include in docs output (unprocessed), as glob pattern(s).
     pub doc_files: Option<Vec<String>>,
+    /// Replacement of path components to modify doc paths.
+    pub doc_paths: Option<Vec<String>>,
     /// Entrypoint block name. Optional. If not supplied, unnamed code blocks are used.
     pub entrypoint: Option<String>,
 }
