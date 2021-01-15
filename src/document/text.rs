@@ -1,6 +1,6 @@
 //! Representation of the text parts of the AST
 
-use serde::export::Formatter;
+use core::fmt::Formatter;
 use std::fmt::Display;
 
 /// A `TextBlock` is just text that will be copied verbatim into the output documentation file
