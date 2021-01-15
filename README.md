@@ -26,7 +26,7 @@ See the [examples](examples) directory for full working examples in each style.
 In case you have [Rust](https://www.rust-lang.org/) installed, you can install with `cargo`:
 
 ```
-cargo install --git https://github.com/mlange-42/yarner
+cargo install --git https://github.com/mlange-42/yarner yarner --features bin
 ```
 
 ## Getting started
