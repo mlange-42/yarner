@@ -7,18 +7,14 @@ fence_sequence = "```"
 # Allows for normal Markdown fences in code blocks
 fence_sequence_alt = "~~~"
 
-# The sequence that separates the language from the name of the code block after the fence.
-# Deprecated, will be removed in a future version.
-# Instead, write the block name after comment_start in the first line of the code block, like:
-# // Block name
-block_name_start = " - "
+# The sequence to identify a comment which should be omitted from the compiled code,
+# and may be rendered as an `<aside>` if `comments_as_aside` is set.
+# Text after a comment in the first line of a code block gives the block's name
+comment_start = "//-"
 
 # Parsed comments are stripped from the code and written to an `<aside></aside>` block after the code when printing.
 # If false, the comments are just written back into the code.
 comments_as_aside = false
-# The sequence to identify a comment which should be omitted from the compiled code,
-# and may be rendered as an `<aside>` if `comments_as_aside` is set.
-comment_start = "//"
 
 # The sequence to identify the start of a meta variable interpolation.
 interpolation_start = "@{"
