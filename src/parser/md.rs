@@ -148,7 +148,7 @@ impl MdParser {
         let trim = line.trim();
         if trim.starts_with(&self.transclusion_start) {
             if let Some(index) = line.find(&self.transclusion_end) {
-                let trans = &trim[..index];
+                let trans = &trim[self.transclusion_start.len()..index];
                 let regex = Regex::new(Self::LINK_PATTERN).unwrap();
 
                 let path: Vec<_> = regex
@@ -159,6 +159,7 @@ impl MdParser {
                 let target = path.get(0).unwrap_or(&trans);
 
                 let path = PathBuf::from(target);
+
                 Ok(Some(Node::Transclusion(Transclusion::new(path))))
             } else {
                 Err(ParseError::UnclosedTransclusionError(line.to_owned()))
