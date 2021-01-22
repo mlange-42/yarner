@@ -22,7 +22,7 @@ interpolation_start = "@{"
 interpolation_end = "}"
 
 # The sequence to identify the start of a macro invocation.
-macro_start = "==> "
+macro_start = "// ==>"
 # The sequence to identify the end of a macro invocation.
 macro_end = "."
 
@@ -41,7 +41,7 @@ file_prefix = "file:"
 hidden_prefix = "hidden:"
 
 ## The language to set if there was no automatically detected language. Optional.
-# default_language = "c"
+# default_language = "rust"
 
 [paths]
 # Root directory. All paths are relative to this.

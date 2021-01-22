@@ -119,7 +119,7 @@ pub trait Parser: ParserConfig {
         if rest.starts_with(self.macro_start()) {
             if let Some(end_index) = rest.find(self.macro_end()) {
                 let (name, scope, _names) =
-                    self.parse_name(&rest[self.macro_start().len()..end_index], true)?;
+                    self.parse_name(&rest[self.macro_start().len()..end_index].trim(), true)?;
                 return Ok(Line {
                     line_number,
                     indent: indent.to_owned(),

@@ -137,7 +137,7 @@ fn run() -> Result<(), String> {
         .value_of("root")
         .map(|s| s.to_string())
         .or_else(|| paths.root.as_ref().map(|s| s.to_string()))
-        .map_or_else(|| PathBuf::from("."), |r| PathBuf::from(r));
+        .map_or_else(|| PathBuf::from("."), PathBuf::from);
 
     if let Err(err) = std::env::set_current_dir(&root) {
         return Err(format!(
@@ -168,7 +168,6 @@ fn run() -> Result<(), String> {
 
     let entrypoint = matches
         .value_of("entrypoint")
-        .map(|ep| ep)
         .or_else(|| paths.entrypoint.as_deref());
 
     let input_patterns: Option<Vec<_>> = matches
@@ -178,10 +177,11 @@ fn run() -> Result<(), String> {
 
     let input_patterns = match input_patterns {
         None => {
-            return Err(format!(
+            return Err(
                 "ERROR: No inputs provided via arguments or toml file. For help, use:\n\
-                 > yarner -h",
-            ))
+                 > yarner -h"
+                    .to_string(),
+            )
         }
         Some(patterns) => patterns,
     };
@@ -248,10 +248,9 @@ fn run() -> Result<(), String> {
     }
 
     if !any_input {
-        return Err(format!(
-            "ERROR: No input files found. For help, use:\n\
-                 > yarner -h",
-        ));
+        return Err("ERROR: No input files found. For help, use:\n\
+                 > yarner -h"
+            .to_string());
     }
 
     if let Some(code_dir) = code_dir {
@@ -266,7 +265,7 @@ fn run() -> Result<(), String> {
         }
     }
 
-    return Ok(());
+    Ok(())
 }
 
 fn copy_files(
@@ -436,6 +435,7 @@ where
     Ok(document)
 }
 
+#[allow(clippy::too_many_arguments)]
 fn compile_all<P>(
     parser: &P,
     doc_dir: &Option<PathBuf>,
@@ -491,6 +491,7 @@ where
     Ok(())
 }
 
+#[allow(clippy::too_many_arguments)]
 fn compile<P>(
     parser: &P,
     document: &Document,
