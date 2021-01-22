@@ -11,8 +11,6 @@ pub struct AnyConfig {
     pub md: Option<MdParser>,
     /// Config for TeX parser
     pub tex: Option<TexParser>,
-    /// Config for Html parser
-    pub html: Option<HtmlParser>,
     /// Config for paths
     pub paths: Option<Paths>,
     /// Programming language specific settings

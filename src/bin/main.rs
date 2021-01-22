@@ -7,7 +7,7 @@ use std::io::Write;
 use std::path::{Path, PathBuf};
 use yarner::config::{AnyConfig, LanguageSettings};
 use yarner::document::{CompileError, CompileErrorKind, Document};
-use yarner::parser::{HtmlParser, MdParser, ParseError, Parser, ParserConfig, Printer, TexParser};
+use yarner::parser::{MdParser, ParseError, Parser, ParserConfig, Printer, TexParser};
 use yarner::{templates, MultipleTransclusionError, ProjectCreationError};
 
 fn main() {
@@ -301,32 +301,6 @@ fn run() -> Result<(), String> {
                             continue;
                         }
                     }
-                    "html" => {
-                        let default = HtmlParser::default();
-                        let parser = any_config
-                            .html
-                            .as_ref()
-                            .unwrap_or(&default)
-                            .default_language(code_type);
-                        if let Err(error) = compile_all(
-                            &parser,
-                            &doc_dir,
-                            &code_dir,
-                            &file_name,
-                            entrypoint,
-                            language,
-                            &any_config.language,
-                            &mut HashSet::new(),
-                            &mut HashSet::new(),
-                        ) {
-                            eprintln!(
-                                "ERROR: Failed to compile source file \"{}\": {}",
-                                file_name.display(),
-                                error
-                            );
-                            continue;
-                        }
-                    }
                     other => {
                         eprintln!("Unknown style {}", other);
                         continue;
@@ -471,7 +445,6 @@ fn create_project(file: &str, style: &str) -> Result<(), Box<dyn Error>> {
     let (template, toml) = match style {
         "md" => (templates::MD, templates::MD_CONFIG),
         "tex" => (templates::TEX, templates::TEX_CONFIG),
-        "html" => (templates::HTML, templates::HTML_CONFIG),
         _ => ("", ""),
     };
 

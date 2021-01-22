@@ -1,7 +1,6 @@
 //! Representation of the text parts of the AST
 
-use core::fmt::Formatter;
-use std::fmt::Display;
+use std::fmt::{Display, Formatter};
 
 /// A `TextBlock` is just text that will be copied verbatim into the output documentation file
 #[derive(Debug, Default)]
