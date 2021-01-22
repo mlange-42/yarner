@@ -2,7 +2,7 @@
 
 [![Build Status](https://travis-ci.com/mlange-42/yarner.svg?branch=master)](https://travis-ci.com/mlange-42/yarner)
 
-Literate programming transpiler for Markdown. This project aims to provide a modern, developer friendly literate programming tool.
+A language-agnostic [Literate Programming](https://en.wikipedia.org/wiki/Literate_programming) tool for Markdown. From Markdown documents written and structured for humans, Yarner extracts code blocks into compilable source code. From small algorithms to large structured projects using multiple languages, everything is possible.
 
 Yarner works with familiar syntax, which can be further customized to suit your needs exactly. See the [examples](examples) directory for full working examples.
 
@@ -49,12 +49,12 @@ Note that the contents of these directories can then be treated as usual, i.e. c
 ## Features
 
 * Macros
-* Meta variable interpolation
-* Comment extraction
 * Named entrypoints
+* Comment extraction
 * Multiple files, multiple entrypoints
-* Multiple languages in one file
 * File transclusions
+* Multiple languages in one file
+* Meta variable interpolation
 
 See [docs/Features.md](docs/Features.md) for a complete list and detailed explanation of all features.
 

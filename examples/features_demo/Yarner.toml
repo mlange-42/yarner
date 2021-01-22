@@ -1,0 +1,84 @@
+[parser]
+
+# The sequence that identifies the start and end of a fenced code block
+fence_sequence = "```"
+
+# Alternative sequence that identifies the start and end of a fenced code block.
+# Allows for normal Markdown fences in code blocks
+fence_sequence_alt = "~~~"
+
+# The sequence to identify a comment which should be omitted from the compiled code,
+# and may be rendered as an `<aside>` if `comments_as_aside` is set.
+# Text after a comment in the first line of a code block gives the block's name
+comment_start = "//-"
+
+# Parsed comments are stripped from the code and written to an `<aside></aside>` block after the code when printing.
+# If false, the comments are just written back into the code.
+comments_as_aside = false
+
+# The sequence to identify the start of a meta variable interpolation.
+interpolation_start = "@{"
+# The sequence to identify the end of a meta variable interpolation.
+interpolation_end = "}"
+
+# The sequence to identify the start of a macro invocation.
+macro_start = "// ==>"
+# The sequence to identify the end of a macro invocation.
+macro_end = "."
+
+# The sequence to identify the start of a transclusion.
+transclusion_start = "@{{"
+# The sequence to identify the end of a transclusion.
+transclusion_end = "}}"
+
+# The sequence to split variables into name and value.
+variable_sep = ":"
+
+# Prefix for file-specific entry points.
+file_prefix = "file:"
+
+# Name prefix for code blocks not shown in the docs.
+hidden_prefix = "hidden:"
+
+## The language to set if there was no automatically detected language. Optional.
+# default_language = "rust"
+
+[paths]
+# Root directory. All paths are relative to this.
+root = "."
+# Code output path.
+code = "code/"
+# Docs output path.
+docs = "docs/"
+# The input source file(s) as glob pattern(s).
+files = ["README.md.md"]
+## File(s) to include in code output (unprocessed), as glob pattern(s).
+# code_files = ["**/*.rs"]
+## Allows to modify paths of copied code files. Replaces path components. Optional.
+## When given, must have as many elements as code_files.
+## E.g., use "foo/bar" to replace the first two path component by foo and bar.
+## Use "-" to ommit, and "_" to preserve a component. Use a single "_" if no change is intended at all.
+# code_paths = ["_"]
+## File(s) to include in docs output (unprocessed), as glob pattern(s).
+# doc_files = ["**/*.png", "**/*.jpg"]
+## Allows to modify paths of copied code files. See code_paths for details. Optional.
+# doc_paths = ["_"]
+## Entrypoint block name. Optional. If not supplied, unnamed code blocks are used.
+# entrypoint = "Main"
+
+## Language-sprcific settings. Optional. Required for reverse mode.
+## The language is determined by the extension of code output files.
+## Example language settings for Rust:
+# [language.rs]
+## Start of comments. Can be start of line or block comments.
+# comment_start = "//"
+### End of comments. Optional, only for block comments
+## comment_end = "*/"
+## Start of block labels.
+# block_start = "<@"
+## End of block labels.
+# block_end = "@>"
+## Replaces lines containing only whitespaces by blank lines, in code output. Defaults to true.
+# clear_blank_lines = true
+## Enforces code files to always end with a blank line. Defaults to true.
+# eof_newline = true
