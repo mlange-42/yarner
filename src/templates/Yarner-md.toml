@@ -1,4 +1,4 @@
-[md]
+[parser]
 
 # The sequence that identifies the start and end of a fenced code block
 fence_sequence = "```"

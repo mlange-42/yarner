@@ -7,7 +7,7 @@ use std::io::Write;
 use std::path::{Path, PathBuf};
 use yarner::config::{AnyConfig, LanguageSettings};
 use yarner::document::{CompileError, CompileErrorKind, Document};
-use yarner::parser::{MdParser, ParseError, Parser, ParserConfig, Printer, TexParser};
+use yarner::parser::{ParseError, Parser, ParserConfig, Printer};
 use yarner::{templates, MultipleTransclusionError, ProjectCreationError};
 
 fn main() {
@@ -38,13 +38,6 @@ fn run() -> Result<(), String> {
             .help("Sets the config file name")
             .takes_value(true)
             .default_value("Yarner.toml"))
-        .arg(Arg::with_name("style")
-            .short("s")
-            .long("style")
-            .value_name("style")
-            .help("Sets the style to use. If not specified, it is inferred from the file extension.")
-            .takes_value(true)
-            .possible_values(&["md", "tex", "html"]))
         .arg(Arg::with_name("root")
             .long("root")
             .short("r")
@@ -94,21 +87,14 @@ fn run() -> Result<(), String> {
                 .takes_value(true)
                 .required(true)
                 .index(1))
-            .arg(Arg::with_name("style")
-                .short("s")
-                .help("Sets the style to use.")
-                .takes_value(true)
-                .possible_values(&["md", "tex", "html"])
-                .default_value("md")
-                .index(2)));
+        );
 
     let matches = app.clone().get_matches();
 
     if let Some(matches) = matches.subcommand_matches("create") {
         let file = matches.value_of("file").unwrap();
-        let style = matches.value_of("style").unwrap();
 
-        match create_project(file, style) {
+        match create_project(file) {
             Ok(_) => eprintln!(
                 "Successfully created project for {}.\nTo compile the project, run `yarner` from the project directory.",
                 file
@@ -223,13 +209,8 @@ fn run() -> Result<(), String> {
             };
             if input.is_file() {
                 any_input = true;
-                let (file_name, style_type, code_type) = {
+                let (file_name, code_type) = {
                     let file_name = PathBuf::from(&input);
-
-                    let style_type = input
-                        .extension()
-                        .and_then(|osstr| osstr.to_str())
-                        .map(|s| s.to_owned());
 
                     let code_type = input.file_stem().and_then(|stem| {
                         PathBuf::from(stem)
@@ -237,75 +218,31 @@ fn run() -> Result<(), String> {
                             .and_then(|osstr| osstr.to_str())
                             .map(|s| s.to_owned())
                     });
-                    (file_name, style_type, code_type)
+                    (file_name, code_type)
                 };
 
                 let language = matches.value_of("language");
 
-                match matches
-                    .value_of("style")
-                    .map(|s| s.to_string())
-                    .or(style_type)
-                    .unwrap_or("md".to_string())
-                    .as_str()
-                {
-                    "md" => {
-                        let default = MdParser::default();
-                        let parser = any_config
-                            .md
-                            .as_ref()
-                            .unwrap_or(&default)
-                            .default_language(code_type);
-                        if let Err(error) = compile_all(
-                            &parser,
-                            &doc_dir,
-                            &code_dir,
-                            &file_name,
-                            entrypoint,
-                            language,
-                            &any_config.language,
-                            &mut HashSet::new(),
-                            &mut HashSet::new(),
-                        ) {
-                            eprintln!(
-                                "ERROR: Failed to compile source file \"{}\": {}",
-                                file_name.display(),
-                                error
-                            );
-                            continue;
-                        }
-                    }
-                    "tex" => {
-                        let default = TexParser::default();
-                        let parser = any_config
-                            .tex
-                            .as_ref()
-                            .unwrap_or(&default)
-                            .default_language(code_type);
-                        if let Err(error) = compile_all(
-                            &parser,
-                            &doc_dir,
-                            &code_dir,
-                            &file_name,
-                            entrypoint,
-                            language,
-                            &any_config.language,
-                            &mut HashSet::new(),
-                            &mut HashSet::new(),
-                        ) {
-                            eprintln!(
-                                "ERROR: Failed to compile source file \"{}\": {}",
-                                file_name.display(),
-                                error
-                            );
-                            continue;
-                        }
-                    }
-                    other => {
-                        eprintln!("Unknown style {}", other);
-                        continue;
-                    }
-                };
+                let parser = any_config.parser.default_language(code_type);
+
+                if let Err(error) = compile_all(
+                    &parser,
+                    &doc_dir,
+                    &code_dir,
+                    &file_name,
+                    entrypoint,
+                    language,
+                    &any_config.language,
+                    &mut HashSet::new(),
+                    &mut HashSet::new(),
+                ) {
+                    eprintln!(
+                        "ERROR: Failed to compile source file \"{}\": {}",
+                        file_name.display(),
+                        error
+                    );
+                    continue;
+                }
             }
         }
     }
@@ -424,8 +361,8 @@ fn modify_path(path: &PathBuf, replace: &str) -> PathBuf {
     new_path
 }
 
-fn create_project(file: &str, style: &str) -> Result<(), Box<dyn Error>> {
-    let file_name = format!("{}.{}", file, style);
+fn create_project(file: &str) -> Result<(), Box<dyn Error>> {
+    let file_name = format!("{}.md", file);
     let base_path = PathBuf::from(&file_name);
     let toml_path = PathBuf::from("Yarner.toml");
 
@@ -442,18 +379,12 @@ fn create_project(file: &str, style: &str) -> Result<(), Box<dyn Error>> {
         ))));
     }
 
-    let (template, toml) = match style {
-        "md" => (templates::MD, templates::MD_CONFIG),
-        "tex" => (templates::TEX, templates::TEX_CONFIG),
-        _ => ("", ""),
-    };
-
-    let toml = toml.replace("%%MAIN_FILE%%", &file_name);
+    let toml = templates::MD_CONFIG.replace("%%MAIN_FILE%%", &file_name);
     let mut toml_file = File::create(&toml_path)?;
     toml_file.write_all(&toml.as_bytes())?;
 
     let mut base_file = File::create(&base_path)?;
-    base_file.write_all(&template.as_bytes())?;
+    base_file.write_all(&templates::MD.as_bytes())?;
 
     Ok(())
 }

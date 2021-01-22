@@ -7,10 +7,8 @@
 //! out correctly.
 
 pub mod md;
-pub mod tex;
 
 pub use self::md::MdParser;
-pub use self::tex::TexParser;
 
 use crate::document::code::{CodeBlock, Line, Segment, Source};
 use crate::document::text::TextBlock;

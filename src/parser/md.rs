@@ -342,7 +342,6 @@ impl Parser for MdParser {
                                     None => Some(Parse::Incomplete),
                                 },
                             }
-                            //Some(Parse::Incomplete)
                         }
                         Some(Node::Text(block)) => match self.parse_transclusion(line) {
                             Err(err) => Some(Parse::Error(MdError::Single {
