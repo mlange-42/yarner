@@ -31,6 +31,10 @@ transclusion_start = "@{{"
 # The sequence to identify the end of a transclusion.
 transclusion_end = "}}"
 
+# Prefix for links that should be followed during processing.
+# Should be RegEx-compatible.
+link_prefix = "@"
+
 # The sequence to split variables into name and value.
 variable_sep = ":"
 

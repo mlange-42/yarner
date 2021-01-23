@@ -71,4 +71,4 @@ authors = ["Your Name <you@example.com>"]
 edition = "2018"
 ```
 
-Linked files are also included in the compilation process if the link is relative and the file exists. By linking to file [.gitignore.md](.gitignore.md), we use this feature to include it into processing.
+Files linked with a certain prefix (`@` by default) are also included in the compilation process if the link is relative and the file exists. By linking to file [.gitignore.md](.gitignore.md), we use this feature to include it into processing. The prefixed is removed in documentation output.

@@ -62,4 +62,4 @@ For the first one, we use file transclusions. In the complied documentation in s
 
 @{{[Cargo.toml.md](Cargo.toml.md)}}
 
-Linked files are also included in the compilation process if the link is relative and the file exists. By linking to file [.gitignore.md](.gitignore.md), we use this feature to include it into processing.
+Files linked with a certain prefix (`@` by default) are also included in the compilation process if the link is relative and the file exists. By linking to file @[.gitignore.md](.gitignore.md), we use this feature to include it into processing. The prefixed is removed in documentation output.

@@ -72,9 +72,21 @@ impl Ast {
         code_blocks
     }
     /// Gets all the text blocks of this AST
+    #[allow(dead_code)]
     pub(crate) fn text_blocks(&self) -> Vec<&TextBlock> {
         self.nodes
             .iter()
+            .filter_map(|node| match node {
+                Node::Text(block) => Some(block),
+                _ => None,
+            })
+            .collect()
+    }
+
+    /// Gets all the text blocks of this AST
+    pub(crate) fn text_blocks_mut(&mut self) -> Vec<&mut TextBlock> {
+        self.nodes
+            .iter_mut()
             .filter_map(|node| match node {
                 Node::Text(block) => Some(block),
                 _ => None,
