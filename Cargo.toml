@@ -6,7 +6,6 @@ description = "Literate programming tool"
 homepage = "https://github.com/mlange-42/yarner"
 repository = "https://github.com/mlange-42/yarner"
 license = "MIT"
-exclude = ["examples/*"]
 edition = "2018"
 
 [profile.release]
