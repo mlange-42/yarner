@@ -6,8 +6,8 @@ Features in Markdown code blocks:
 * [Named entrypoints](#named-entrypoints)
 * [Comment extraction](#extracted-comments)
 * [Multiple files, multiple entrypoints](#multiple-files-multiple-entrypoints)
-* [File transclusions](#file-transclusions) (Markdown)
-* [Include linked files](#include-linked-files) (Markdown)
+* [File transclusions](#file-transclusions)
+* [Include linked files](#include-linked-files)
 * [Dead and hidden code blocks](#dead-and-hidden-code-blocks)
 * [Multiple languages in one file](#multiple-languages)
 * [Meta variables](#meta-variables)
@@ -115,15 +115,13 @@ It is not required that transcluded files have their own entrypoints. All code b
 
 ## Include linked files
 
-Files linked from the main source document are included in the compilation process.
-
-As an example, Yarner would also compile the file `src/main.rs.md` here:
+Files linked with a certain prefix (`@` by default) are included in the compilation process. As an example, Yarner would also compile the file `src/main.rs.md` here:
 
 ```md
-* [src/main.rs](src/main.rs.md)
+* @[src/main.rs](src/main.rs.md)
 ```
 
-However, files are only included in the compilation if they are referenced by a *relative path*, and the file exists in that location.
+However, files are only included in the compilation if they are referenced by a *relative path*, and the file exists in that location. The prefix is removed before writing documentation output.
 
 ## Dead and hidden code blocks
 

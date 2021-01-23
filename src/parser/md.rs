@@ -23,7 +23,7 @@
 //! Currently, the Markdown parser does not support code that is written to the compiled file, but
 //! not rendered in the documentation file.
 
-use serde_derive::{Deserialize, Serialize};
+use serde_derive::Deserialize;
 use std::iter::FromIterator;
 
 use super::{ParseError, Parser, ParserConfig, Printer};
@@ -35,11 +35,13 @@ use crate::document::tranclusion::Transclusion;
 use crate::document::Document;
 use crate::util::try_collect::TryCollectExt;
 use regex::Regex;
+use serde::de::Error;
+use serde::{Deserialize, Deserializer};
 use std::fs::File;
 use std::path::PathBuf;
 
 /// The config for parsing a Markdown document
-#[derive(Clone, Deserialize, Serialize, Debug)]
+#[derive(Clone, Deserialize, Debug)]
 pub struct MdParser {
     /// The sequence that identifies the start and end of a fenced code block
     ///
@@ -86,6 +88,13 @@ pub struct MdParser {
     ///
     /// Default: `}}`
     pub transclusion_end: String,
+    /// Prefix for links that should be followed during processing.
+    /// Should be RegEx-compatible.
+    ///
+    /// Default: `@`
+    #[serde(rename(deserialize = "link_prefix"))]
+    #[serde(deserialize_with = "from_link_prefix")]
+    pub link_following_pattern: (String, Regex),
     /// The sequence to split variables into name and value.
     ///
     /// Default: `:`
@@ -100,8 +109,29 @@ pub struct MdParser {
     pub hidden_prefix: String,
 }
 
+fn from_link_prefix<'de, D>(deserializer: D) -> Result<(String, Regex), D::Error>
+where
+    D: Deserializer<'de>,
+{
+    let prefix: &str = Deserialize::deserialize(deserializer)?;
+    Ok((
+        prefix.to_string(),
+        Regex::new(&format!(r"{}\[([^\[\]]*)\]\((.*?)\)", prefix)).map_err(|err| {
+            D::Error::custom(format!(
+                r"Error compiling Regex pattern {}\[([^\[\]]*)\]\((.*?)\)\n{}",
+                prefix,
+                err.to_string()
+            ))
+        })?,
+    ))
+}
+
 impl Default for MdParser {
     fn default() -> Self {
+        let regex = (
+            String::from("@"),
+            Regex::new(r"@\[([^\[\]]*)\]\((.*?)\)").unwrap(),
+        );
         Self {
             default_language: None,
             fence_sequence: String::from("```"),
@@ -114,6 +144,7 @@ impl Default for MdParser {
             macro_end: String::from("."),
             transclusion_start: String::from("@{{"),
             transclusion_end: String::from("}}"),
+            link_following_pattern: regex,
             variable_sep: String::from(":"),
             file_prefix: String::from("file:"),
             hidden_prefix: String::from("hidden:"),
@@ -121,7 +152,7 @@ impl Default for MdParser {
     }
 }
 
-impl MdParser {
+impl<'a> MdParser {
     const LINK_PATTERN: &'static str = r"\[([^\[\]]*)\]\((.*?)\)";
 
     /// Creates a default parser with a fallback language
@@ -387,48 +418,94 @@ impl Parser for MdParser {
         Ok(Document::from_iter(document))
     }
 
-    fn find_links(&self, input: &Document, from: &PathBuf) -> Result<Vec<PathBuf>, Self::Error> {
-        let regex = Regex::new(Self::LINK_PATTERN).unwrap();
-        let paths = input
-            .tree()
-            .text_blocks()
-            .iter()
-            .flat_map(|block| {
-                block.lines().iter().flat_map(|line| {
-                    regex
-                        .captures_iter(line)
-                        .map(|m| m.get(2).unwrap().as_str())
-                        .filter_map(|p| {
-                            // Correct links for the case that the linking file is not in the project base directory
-                            let mut path = from.parent().unwrap().to_path_buf();
-                            path.push(p);
-                            let path = PathBuf::from(path_clean::clean(
-                                &path.to_str().unwrap().replace("\\", "/"),
-                            ));
-                            //let path = PathBuf::from(p);
-                            if path.is_relative()
-                                && !p.starts_with('#')
-                                && !p.starts_with("http://")
-                                && !p.starts_with("https://")
-                                && !p.starts_with("ftp://")
-                            {
-                                if File::open(&path).is_ok() {
-                                    Some(path)
-                                } else {
-                                    // TODO: move out of function?
-                                    eprintln!(
-                                        "WARNING: link target not found for {}",
-                                        path.display()
-                                    );
-                                    None
-                                }
-                            } else {
-                                None
-                            }
-                        })
-                })
-            })
-            .collect();
+    fn find_links(
+        &self,
+        input: &mut Document,
+        from: &PathBuf,
+    ) -> Result<Vec<PathBuf>, Self::Error> {
+        let regex = &self.link_following_pattern; //Regex::new(Self::LINK_PATTERN).unwrap();
+        let mut paths = vec![];
+        let tree = input.tree_mut();
+
+        for block in tree.text_blocks_mut() {
+            for line in block.lines_mut().iter_mut() {
+                let mut new_line: Option<String> = None;
+                for capture in regex.1.captures_iter(line) {
+                    let index = capture.get(0).unwrap().start();
+                    let len = regex.0.len();
+                    if let Some(l) = &mut new_line {
+                        *l = format!("{}{}", &l[..index], &l[(index + len)..]);
+                    } else {
+                        new_line = Some(format!("{}{}", &line[..index], &line[(index + 1)..]));
+                    }
+
+                    let link = capture.get(2).unwrap().as_str();
+                    let mut path = from.parent().unwrap().to_path_buf();
+                    path.push(link);
+                    let path = PathBuf::from(path_clean::clean(
+                        &path.to_str().unwrap().replace("\\", "/"),
+                    ));
+                    if path.is_relative()
+                        && !link.starts_with('#')
+                        && !link.starts_with("http://")
+                        && !link.starts_with("https://")
+                        && !link.starts_with("ftp://")
+                    {
+                        if File::open(&path).is_ok() {
+                            paths.push(path);
+                        } else {
+                            // TODO: move out of function?
+                            eprintln!("WARNING: link target not found for {}", path.display());
+                        }
+                    }
+                }
+                if let Some(new_line) = new_line {
+                    *line = new_line;
+                }
+            }
+        }
+        /*
+               let paths = input
+                   .tree()
+                   .text_blocks()
+                   .iter()
+                   .flat_map(|block| {
+                       block.lines().iter().flat_map(|line| {
+                           regex
+                               .captures_iter(line)
+                               .map(|m| m.get(2).unwrap().as_str())
+                               .filter_map(|p| {
+                                   // Correct links for the case that the linking file is not in the project base directory
+                                   let mut path = from.parent().unwrap().to_path_buf();
+                                   path.push(p);
+                                   let path = PathBuf::from(path_clean::clean(
+                                       &path.to_str().unwrap().replace("\\", "/"),
+                                   ));
+                                   //let path = PathBuf::from(p);
+                                   if path.is_relative()
+                                       && !p.starts_with('#')
+                                       && !p.starts_with("http://")
+                                       && !p.starts_with("https://")
+                                       && !p.starts_with("ftp://")
+                                   {
+                                       if File::open(&path).is_ok() {
+                                           Some(path)
+                                       } else {
+                                           // TODO: move out of function?
+                                           eprintln!(
+                                               "WARNING: link target not found for {}",
+                                               path.display()
+                                           );
+                                           None
+                                       }
+                                   } else {
+                                       None
+                                   }
+                               })
+                       })
+                   })
+                   .collect();
+        */
         Ok(paths)
     }
 }

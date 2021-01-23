@@ -1,4 +1,4 @@
-# Markdown yarner template
+# Yarner template
 
 The following code goes to the base file of code output:
 

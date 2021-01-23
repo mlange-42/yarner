@@ -5,7 +5,7 @@ use serde_derive::{Deserialize, Serialize};
 use std::collections::HashMap;
 
 /// Top-leven config
-#[derive(Serialize, Deserialize, Default, Debug)]
+#[derive(Deserialize, Default, Debug)]
 pub struct AnyConfig {
     /// Config for Markdown parser
     pub parser: MdParser,
