@@ -2,16 +2,9 @@
 
 [![Build Status](https://travis-ci.com/mlange-42/yarner.svg?branch=master)](https://travis-ci.com/mlange-42/yarner)
 
-Generic literate programming transpiler. This project aims to provide a modern, developer friendly
-literate programming tool.
+A language-agnostic [Literate Programming](https://en.wikipedia.org/wiki/Literate_programming) tool for Markdown. From Markdown documents written and structured for humans, Yarner extracts code blocks into compilable source code. From small algorithms to large structured projects using multiple languages, everything is possible.
 
-Yarner works with familiar syntax, which can be further customized to suit your needs
-exactly. It uses pluggable, configurable input formats, with out-of-the-box support for:
-*   Markdown
-*   Latex
-*   HTML
-
-See the [examples](examples) directory for full working examples in each style.
+Yarner works with familiar syntax, which can be further customized to suit your needs exactly. See the [examples](examples) directory for full working examples.
 
 ## Installation
 
@@ -26,96 +19,78 @@ See the [examples](examples) directory for full working examples in each style.
 In case you have [Rust](https://www.rust-lang.org/) installed, you can install with `cargo`:
 
 ```
-cargo install --git https://github.com/mlange-42/yarner yarner --features bin
+cargo install --git https://github.com/mlange-42/yarner yarner
 ```
 
 ## Getting started
 
-To set up a new project, use the `create` sub-command.
-To create a Markdown project, run the following
-in your project's base directory:
-
-```
-yarner create README.md md
-```
-
-Or simply, since Markdown is the default:
+To set up a new project, use the `create` sub-command. Run the following in your project's base directory:
 
 ```
 yarner create README.md
 ```
 
-This creates a file `Yarner.toml` with default settings,
-and a file `README.md.md` as starting point for Literate Programming
-(don't care for the double extension for now).
+This creates a file `Yarner.toml` with default settings, and a file `README.md.md` as starting point for Literate Programming (don't care for the double extension for now).
 
-The generated file already contains some content to get started with Yarner's
-basic features. For details, read the following sections.
+The generated file already contains some content to get started with Yarner's basic features. For details, read the following sections.
 
-To "compile" the project (extract code and create documentation),
-simply run:
+To "compile" the project (extract code and create documentation), simply run:
 
 ```
 yarner
 ```
 
-This creates two sub-directories, one containing the extracted code,
-and the other containing the final documentation.
+This creates two sub-directories, one containing the extracted code, and the other containing the final documentation.
 
-Note that the contents of these directories can then be treated as usual,
-i.e. compiling the code with the normal compiler,
-or rendering Markdown to HTML or TeX to PDF.
+Note that the contents of these directories can then be treated as usual, i.e. compiling the code with the normal compiler, or rendering Markdown to HTML or PDF.
 
-> Note: You can move or copy the Yarner executable into your project directory for convenience.
-> Otherwise, you need to specify the path to Yarner in the command, or add it to the PATH environment variable.
+> Note: You can move or copy the Yarner executable into your project directory for convenience. Otherwise, you need to specify the path to Yarner in the command, or add it to the PATH environment variable.
 
 ## Features
 
-In all styles, the code sections are handled the same way, supporting:
-* macros
-* meta variable interpolation
-* comment extraction
-* named entrypoints
-* multiple files, multiple entrypoints
-* multiple languages in one file
-* file transclusions
+* Macros
+* Named entrypoints
+* Comment extraction
+* Multiple files, multiple entrypoints
+* File transclusions
+* Multiple languages in one file
+* Meta variable interpolation
 
 See [docs/Features.md](docs/Features.md) for a complete list and detailed explanation of all features.
 
-Text sections are also handled the same way in all styles - just copied in and written out with
-no processing. This allows you to write your documentation however you like.
+Text sections are simply copied in and written out with no processing except for file transclusions. This allows you to write your documentation however you like.
 
 ## Examples
 
 ### Macros
 
-Macros are what enables the literate program to be written in logical order for the human reader.
-Using Yarner, this is accomplished by naming the code blocks, and then referencing them later by
-"invoking" the macro.
+Macros are what enables the literate program to be written in logical order for the human reader. Using Yarner, this is accomplished by naming the code blocks, and then referencing them later by "invoking" the macro.
 
-By default, macro invocations start with a long arrow `==>` and end with a period `.`.
-Both of these sequences can be customized to suit your needs better.
-The only restriction with macro invocations is that they must be the only thing on the line. 
+By default, macro invocations start with `// ==>` and end with a period `.`. Both of these sequences can be customized to suit your needs better. The only restriction with macro invocations is that they must be the only thing on the line.
 
-Here, we have an unnamed code block as entrypoint, and "draw" code from two other code blocks into the main function. These code blocks are named by their first line of code, starting with `//`.
+Here, we have an unnamed code block as entrypoint, and "draw" code from two other code blocks into the main function. These code blocks are named by their first line of code, starting with `//-`.
+
 ~~~
 The program starts in the main function. It calculates something and prints the result:
+
 ```rust
 fn main() {
-    ==> Calculate something.
-    ==> Print the result.
+    // ==> Calculate something.
+    // ==> Print the result.
 }
 ```
 
 The calculation does the following:
+
 ```rust
-// Calculate something
+//- Calculate something
 let result = 100;
 ```
 
 Printing the result looks like this:
+
 ```rust
-// Print the result
+//- Print the result
 println!("{}", result);
 ```
 ~~~
@@ -125,22 +100,25 @@ The rendered document looks like this:
 ----
 
 The program starts in the main function. It calculates something and prints the result:
+
 ```rust
 fn main() {
-    ==> Calculate something.
-    ==> Print the result.
+    // ==> Calculate something.
+    // ==> Print the result.
 }
 ```
 
 The calculation does the following:
+
 ```rust
-// Calculate something
+//- Calculate something
 let result = 100;
 ```
 
 Printing the result looks like this:
+
 ```rust
-// Print the result
+//- Print the result
 println!("{}", result);
 ```
 ----
@@ -158,15 +136,14 @@ A feature to note is that if two code blocks have the same name, they are concat
 
 ### Entrypoints
 
-By default, the entrypoint of the program is always the unnamed code block. However, a code block name can be passed to Yarner on the command line. Then, instead
-of starting at the unnamed code block, it will start at the code block with this name.
+By default, the entrypoint of the program is always the unnamed code block. However, a code block name can be given in `Yarner.toml` or passed to Yarner on the command line. Then, instead of starting at the unnamed code block, it will start at the code block with this name.
 
 By naming code blocks with prefix `file:` followed by a relative path, multiple code files can be created
 from one source file. Each code block with the `file:` prefix is treated as a separate entry point.
 
 ~~~md
 ```rust
-// file:src/lib.rs
+//- file:src/lib.rs
 fn say_hello() {
     println!("Hello Literate Programmer!");
 }
@@ -177,15 +154,11 @@ fn say_hello() {
 
 ## Configuration
 
-Each style supports some additional configuration, which is provided via a toml configuration file
-(default: Yarner.toml). A file with default configurations is generated through the `create` sub-command.
-See the comments in these files for details on individual settings.
-This is also the place to modify Yarner's syntax to suite your needs and preferences.
+Configuration is provided via a toml configuration file (default: `Yarner.toml`). A file with default configurations is generated through the `create` sub-command. See the comments in these files for details on individual settings. It is also the place to modify Yarner's syntax to suite your needs and preferences.
 
 ## Usage
 
-Most command line options can be specified in the project's `Yarner.toml` config file for convenience.
-Command line options override options from the config file.
+Most command line options can be specified in the project's `Yarner.toml` config file for convenience. Command line options override options from the config file.
 
 ```
 Literate programming compiler
@@ -214,8 +187,8 @@ OPTIONS:
     -e, --entrypoint <entrypoint>    The named entrypoint to use when tangling code. Defaults to the unnamed code block.
     -l, --language <language>        The language to output the tangled code in. Only code blocks in this language will
                                      be used.
-    -s, --style <style>              Sets the style to use. If not specified, it is inferred from the file extension.
-                                     [possible values: md, tex, html]
+    -r, --root <root>                Root directory. If none is specified, uses 'path' -> 'root' from config file.
+                                     Default: current directory.
 
 ARGS:
     <input>...    The input source file(s) as glob pattern(s). If none are specified, uses 'path' -> 'files' from
@@ -228,5 +201,4 @@ SUBCOMMANDS:
 
 ## Acknowledgements
 
-This tool is derived from [foxfriends](https://github.com/foxfriends)'
-work [outline](https://github.com/foxfriends/outline).
+This tool is derived from [foxfriends](https://github.com/foxfriends)' work [outline](https://github.com/foxfriends/outline).

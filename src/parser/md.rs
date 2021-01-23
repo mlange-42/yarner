@@ -50,12 +50,6 @@ pub struct MdParser {
     ///
     /// Default: \~\~\~
     pub fence_sequence_alt: String,
-    /// The sequence that separates the language from the name of the code block after the fence
-    ///
-    /// Default: ` - `
-    pub block_name_start: String,
-    /// The sequence that indicates the end of the code block name. Optional
-    pub block_name_end: Option<String>,
     /// Parsed comments are stripped from the code and written to an `<aside></aside>` block after
     /// the code when printing. If false, the comments are just written back into the code.
     ///
@@ -112,8 +106,6 @@ impl Default for MdParser {
             default_language: None,
             fence_sequence: String::from("```"),
             fence_sequence_alt: String::from("~~~"),
-            block_name_start: String::from(" - "),
-            block_name_end: None,
             comments_as_aside: false,
             comment_start: String::from("//"),
             interpolation_start: String::from("@{"),
@@ -156,7 +148,7 @@ impl MdParser {
         let trim = line.trim();
         if trim.starts_with(&self.transclusion_start) {
             if let Some(index) = line.find(&self.transclusion_end) {
-                let trans = &trim[..index];
+                let trans = &trim[self.transclusion_start.len()..index];
                 let regex = Regex::new(Self::LINK_PATTERN).unwrap();
 
                 let path: Vec<_> = regex
@@ -167,6 +159,7 @@ impl MdParser {
                 let target = path.get(0).unwrap_or(&trans);
 
                 let path = PathBuf::from(target);
+
                 Ok(Some(Node::Transclusion(Transclusion::new(path))))
             } else {
                 Err(ParseError::UnclosedTransclusionError(line.to_owned()))
@@ -260,28 +253,10 @@ impl Parser for MdParser {
                             let indent_len = line.find(fence_sequence).unwrap();
                             let (indent, rest) = line.split_at(indent_len);
                             let rest = &rest[fence_sequence.len()..];
-                            let name_start = rest.find(&self.block_name_start);
-                            let name = name_start
-                                .map(|start| start + self.block_name_start.len())
-                                .map(|name_start| {
-                                    let name_end = self
-                                        .block_name_end
-                                        .as_ref()
-                                        .and_then(|end| {
-                                            rest[name_start + self.block_name_start.len()..]
-                                                .find(end)
-                                        })
-                                        .map(|name_end| {
-                                            self.block_name_start.len() + name_end + name_start
-                                        })
-                                        .unwrap_or_else(|| rest.len());
-                                    let name = &rest[name_start..name_end];
-                                    self.parse_name(name, false)
-                                });
 
                             let mut code_block = CodeBlock::new().indented(indent);
 
-                            let language = rest[..name_start.unwrap_or_else(|| rest.len())].trim();
+                            let language = rest.trim();
                             let language = if language.is_empty() {
                                 match &self.default_language {
                                     Some(language) => Some(language.to_owned()),
@@ -294,26 +269,6 @@ impl Parser for MdParser {
                                 code_block = code_block.in_language(language);
                             }
                             code_block = code_block.alternative(starts_fenced_alt);
-                            code_block = match name {
-                                None => code_block,
-                                Some(Ok((name, vars, defaults))) => {
-                                    let hidden = name.starts_with(&self.hidden_prefix);
-                                    let name = if hidden {
-                                        &name[self.hidden_prefix.len()..]
-                                    } else {
-                                        &name[..]
-                                    };
-                                    code_block
-                                        .named(name.to_string(), vars, defaults)
-                                        .hidden(hidden)
-                                }
-                                Some(Err(error)) => {
-                                    return Some(Parse::Error(MdError::Single {
-                                        line_number,
-                                        kind: error.into(),
-                                    }))
-                                }
-                            };
                             state.node = Some(Node::Code(code_block));
                             match previous {
                                 None => Some(Parse::Incomplete),
@@ -342,7 +297,6 @@ impl Parser for MdParser {
                                     None => Some(Parse::Incomplete),
                                 },
                             }
-                            //Some(Parse::Incomplete)
                         }
                         Some(Node::Text(block)) => match self.parse_transclusion(line) {
                             Err(err) => Some(Parse::Error(MdError::Single {
@@ -363,8 +317,7 @@ impl Parser for MdParser {
                         },
                         Some(Node::Code(block)) => {
                             if line.starts_with(&block.indent) {
-                                if block.name.is_none()
-                                    && block.source.is_empty()
+                                if block.source.is_empty()
                                     && line.trim().starts_with(&self.comment_start)
                                 {
                                     let trim = line.trim()[self.comment_start.len()..].trim();

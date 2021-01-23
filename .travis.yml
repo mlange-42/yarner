@@ -34,7 +34,7 @@ before_cache:
   - rm -rf /home/travis/.cargo/registry
 
 before_deploy:
-  - cargo build --release --features="bin"
+  - cargo build --release
   - rm -rf ${REPO} || exit 0
   - mkdir ${REPO}
   - if [[ "$TRAVIS_OS_NAME" == "osx" ]]; then cp -f target/release/yarner ${REPO} > /dev/null; fi

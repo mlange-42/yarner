@@ -148,7 +148,7 @@ impl Ast {
                 })
             }
         }
-        if settings.map(|s| s.eof_newline).unwrap_or(true) && !result.ends_with("\n\n") {
+        if settings.map(|s| s.eof_newline).unwrap_or(true) && !result.ends_with('\n') {
             result.push('\n');
         }
         Ok(result)

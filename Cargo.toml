@@ -17,19 +17,6 @@ debug = false
 debug-assertions = false
 overflow-checks = false
 
-[lib]
-name = "yarner"
-path = "src/lib.rs"
-
-[features]
-bin = ["clap", "toml", "either"]
-
-[[bin]]
-name = "yarner"
-path = "src/bin/main.rs"
-required-features = ["bin"]
-edition = "2018"
-
 [dependencies]
 serde = "1.0"
 serde_derive = "1.0"
@@ -37,15 +24,5 @@ regex = "1.3"
 pathdiff = "0.2"
 path-clean = "0.1.0"
 glob = "0.3"
-
-[dependencies.toml]
-version = "0.4"
-optional = true
-
-[dependencies.clap]
-version = "2.32"
-optional = true
-
-[dependencies.either]
-version = "1.5"
-optional = true
+toml = "0.4"
+clap = "2.32"

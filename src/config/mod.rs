@@ -8,11 +8,7 @@ use std::collections::HashMap;
 #[derive(Serialize, Deserialize, Default, Debug)]
 pub struct AnyConfig {
     /// Config for Markdown parser
-    pub md: Option<MdParser>,
-    /// Config for TeX parser
-    pub tex: Option<TexParser>,
-    /// Config for Html parser
-    pub html: Option<HtmlParser>,
+    pub parser: MdParser,
     /// Config for paths
     pub paths: Option<Paths>,
     /// Programming language specific settings

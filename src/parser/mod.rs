@@ -6,13 +6,9 @@
 //! Additionally, for each parser, a `Printer` is needed to be able to write the code back
 //! out correctly.
 
-pub mod html;
 pub mod md;
-pub mod tex;
 
-pub use self::html::HtmlParser;
 pub use self::md::MdParser;
-pub use self::tex::TexParser;
 
 use crate::document::code::{CodeBlock, Line, Segment, Source};
 use crate::document::text::TextBlock;
@@ -123,7 +119,7 @@ pub trait Parser: ParserConfig {
         if rest.starts_with(self.macro_start()) {
             if let Some(end_index) = rest.find(self.macro_end()) {
                 let (name, scope, _names) =
-                    self.parse_name(&rest[self.macro_start().len()..end_index], true)?;
+                    self.parse_name(&rest[self.macro_start().len()..end_index].trim(), true)?;
                 return Ok(Line {
                     line_number,
                     indent: indent.to_owned(),
