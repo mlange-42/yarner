@@ -30,9 +30,9 @@ impl Document {
     /// Formats this `Document` as a string containing the compiled code
     pub fn print_code(
         &self,
-        entrypoint: Option<&str>,
-        language: Option<&str>,
-        settings: Option<&LanguageSettings>,
+        entrypoint: &Option<&str>,
+        language: &Option<&str>,
+        settings: &Option<&LanguageSettings>,
     ) -> Result<String, CompileError> {
         self.tree.print_code(entrypoint, language, settings)
     }

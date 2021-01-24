@@ -6,6 +6,7 @@
 //! Additionally, for each parser, a `Printer` is needed to be able to write the code back
 //! out correctly.
 
+pub mod code;
 pub mod md;
 
 pub use self::md::MdParser;
@@ -16,7 +17,7 @@ use crate::document::tranclusion::Transclusion;
 use crate::document::Document;
 use std::error::Error;
 use std::fmt;
-use std::path::PathBuf;
+use std::path::{Path, PathBuf};
 
 /// A `ParserConfig` can be used to customize the built in parsing methods
 pub trait ParserConfig {
@@ -47,7 +48,7 @@ pub trait Parser: ParserConfig {
 
     /// Parses the text part of the document. Should delegate the code section on a line-by-line
     /// basis to the built in code parser.
-    fn parse(&self, input: &str) -> Result<Document, Self::Error>;
+    fn parse(&self, input: &str, path: &Path) -> Result<Document, Self::Error>;
 
     /// Find all files linked into the document for later compilation and/or transclusion.
     fn find_links(
@@ -166,7 +167,7 @@ pub trait Parser: ParserConfig {
     }
 
     /// Finds all file-specific entry points
-    fn get_entry_points(&self, doc: &Document, language: Option<&str>) -> Vec<(String, String)> {
+    fn get_entry_points(&self, doc: &Document, language: &Option<&str>) -> Vec<(String, String)> {
         let mut entries = vec![];
         let pref = self.file_prefix();
         for (name, _block) in doc.tree().code_blocks(language) {

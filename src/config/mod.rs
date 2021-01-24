@@ -16,7 +16,7 @@ pub struct AnyConfig {
 }
 
 /// Config for paths
-#[derive(Serialize, Deserialize, Default, Debug)]
+#[derive(Serialize, Deserialize, Default, Debug, Clone)]
 pub struct Paths {
     /// Code output path.
     pub root: Option<String>,

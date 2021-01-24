@@ -12,6 +12,8 @@ pub struct CodeBlock {
     pub indent: String,
     /// The name of this code block
     pub name: Option<String>,
+    /// Whether the code block was originally unnamed
+    pub is_unnamed: bool,
     /// The variables extracted from the name
     pub vars: Vec<String>,
     /// The variables' default values extracted from the name
@@ -87,7 +89,7 @@ impl CodeBlock {
     pub fn compile(
         &self,
         code_blocks: &HashMap<Option<&str>, Vec<CodeBlock>>,
-        settings: Option<&LanguageSettings>,
+        settings: &Option<&LanguageSettings>,
     ) -> Result<String, CompileError> {
         self.compile_with(code_blocks, HashMap::default(), settings)
     }
@@ -101,9 +103,13 @@ impl CodeBlock {
         &self,
         code_blocks: &HashMap<Option<&str>, Vec<CodeBlock>>,
         scope: HashMap<String, String>,
-        settings: Option<&LanguageSettings>,
+        settings: &Option<&LanguageSettings>,
     ) -> Result<String, CompileError> {
-        let name = self.name.to_owned().unwrap_or_else(|| "".to_string());
+        let name = if self.is_unnamed {
+            "".to_string()
+        } else {
+            self.name.to_owned().unwrap_or_else(|| "".to_string())
+        };
         let comment_end = settings
             .map(|s| s.comment_end.to_owned().unwrap_or_else(|| "".to_string()))
             .unwrap_or_else(|| "".to_string());
@@ -200,7 +206,7 @@ impl Line {
         &self,
         code_blocks: &HashMap<Option<&str>, Vec<CodeBlock>>,
         scope: &HashMap<String, String>,
-        settings: Option<&LanguageSettings>,
+        settings: &Option<&LanguageSettings>,
     ) -> Result<String, CompileError> {
         let blank_lines = settings.map(|s| s.clear_blank_lines).unwrap_or(true);
         match &self.source {

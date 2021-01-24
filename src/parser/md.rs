@@ -38,7 +38,7 @@ use regex::Regex;
 use serde::de::Error;
 use serde::{Deserialize, Deserializer};
 use std::fs::File;
-use std::path::PathBuf;
+use std::path::{Path, PathBuf};
 
 /// The config for parsing a Markdown document
 #[derive(Clone, Deserialize, Debug)]
@@ -175,7 +175,7 @@ impl<'a> MdParser {
         }
     }
 
-    fn parse_transclusion(&self, line: &str) -> Result<Option<Node>, ParseError> {
+    fn parse_transclusion(&self, line: &str, into: &Path) -> Result<Option<Node>, ParseError> {
         let trim = line.trim();
         if trim.starts_with(&self.transclusion_start) {
             if let Some(index) = line.find(&self.transclusion_end) {
@@ -189,7 +189,8 @@ impl<'a> MdParser {
 
                 let target = path.get(0).unwrap_or(&trans);
 
-                let path = PathBuf::from(target);
+                let mut path = PathBuf::from(into.parent().unwrap_or_else(|| Path::new(".")));
+                path.push(target);
 
                 Ok(Some(Node::Transclusion(Transclusion::new(path))))
             } else {
@@ -229,7 +230,7 @@ impl Parser for MdParser {
     type Error = MdError;
 
     #[allow(clippy::nonminimal_bool)]
-    fn parse(&self, input: &str) -> Result<Document, Self::Error> {
+    fn parse(&self, input: &str, path: &Path) -> Result<Document, Self::Error> {
         #[derive(Default)]
         struct State {
             node: Option<Node>,
@@ -313,7 +314,7 @@ impl Parser for MdParser {
                             let mut new_block = TextBlock::new();
                             new_block.add_line(line);
                             state.node = Some(Node::Text(new_block));
-                            match self.parse_transclusion(line) {
+                            match self.parse_transclusion(line, path) {
                                 Err(err) => Some(Parse::Error(MdError::Single {
                                     line_number,
                                     kind: MdErrorKind::Parse(err),
@@ -329,7 +330,7 @@ impl Parser for MdParser {
                                 },
                             }
                         }
-                        Some(Node::Text(block)) => match self.parse_transclusion(line) {
+                        Some(Node::Text(block)) => match self.parse_transclusion(line, path) {
                             Err(err) => Some(Parse::Error(MdError::Single {
                                 line_number,
                                 kind: MdErrorKind::Parse(err),
@@ -477,48 +478,6 @@ impl Parser for MdParser {
                 }
             }
         }
-        /*
-               let paths = input
-                   .tree()
-                   .text_blocks()
-                   .iter()
-                   .flat_map(|block| {
-                       block.lines().iter().flat_map(|line| {
-                           regex
-                               .captures_iter(line)
-                               .map(|m| m.get(2).unwrap().as_str())
-                               .filter_map(|p| {
-                                   // Correct links for the case that the linking file is not in the project base directory
-                                   let mut path = from.parent().unwrap().to_path_buf();
-                                   path.push(p);
-                                   let path = PathBuf::from(path_clean::clean(
-                                       &path.to_str().unwrap().replace("\\", "/"),
-                                   ));
-                                   //let path = PathBuf::from(p);
-                                   if path.is_relative()
-                                       && !p.starts_with('#')
-                                       && !p.starts_with("http://")
-                                       && !p.starts_with("https://")
-                                       && !p.starts_with("ftp://")
-                                   {
-                                       if File::open(&path).is_ok() {
-                                           Some(path)
-                                       } else {
-                                           // TODO: move out of function?
-                                           eprintln!(
-                                               "WARNING: link target not found for {}",
-                                               path.display()
-                                           );
-                                           None
-                                       }
-                                   } else {
-                                       None
-                                   }
-                               })
-                       })
-                   })
-                   .collect();
-        */
         Ok(paths)
     }
 }

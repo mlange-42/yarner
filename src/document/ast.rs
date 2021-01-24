@@ -49,7 +49,7 @@ impl Ast {
     /// Gets all the code blocks of this AST, concatenating blocks of the same name
     pub(crate) fn code_blocks(
         &self,
-        language: Option<&str>,
+        language: &Option<&str>,
     ) -> HashMap<Option<&str>, Vec<CodeBlock>> {
         let mut code_blocks = HashMap::new();
         for node in &self.nodes {
@@ -140,11 +140,11 @@ impl Ast {
     /// Renders the program this AST is representing in the code format
     pub(crate) fn print_code(
         &self,
-        entrypoint: Option<&str>,
-        language: Option<&str>,
-        settings: Option<&LanguageSettings>,
+        entrypoint: &Option<&str>,
+        language: &Option<&str>,
+        settings: &Option<&LanguageSettings>,
     ) -> Result<String, CompileError> {
-        let code_blocks = self.code_blocks(language);
+        let code_blocks = self.code_blocks(&language);
         let mut result = String::new();
         match code_blocks.get(&entrypoint) {
             Some(blocks) => {
@@ -166,7 +166,7 @@ impl Ast {
         Ok(result)
     }
 
-    /// Renders the program this AST is representing in the documentation format
+    /// Transclusion
     pub fn transclude(&mut self, replace: &Transclusion, with: Ast, from_source: &str, from: &str) {
         let mut index = 0;
         while index < self.nodes.len() {
@@ -178,6 +178,7 @@ impl Ast {
                             // TODO use entrypoint option here, too? Currently, only in main file.
                             if code.name.is_none() {
                                 code.name = Some(from.to_string());
+                                code.is_unnamed = true;
                             }
                             // TODO: move to parser?
                             if code.source_file.is_none() {
