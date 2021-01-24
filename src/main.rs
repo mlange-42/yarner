@@ -7,7 +7,7 @@ use std::io::Write;
 use std::path::{Path, PathBuf};
 use yarner::config::{AnyConfig, LanguageSettings};
 use yarner::document::{CompileError, CompileErrorKind, Document};
-use yarner::parser::code::CodeParser;
+use yarner::parser::code::{CodeParser, RevCodeBlock};
 use yarner::parser::{ParseError, Parser, ParserConfig, Printer};
 use yarner::{templates, MultipleTransclusionError, ProjectCreationError};
 
@@ -242,7 +242,7 @@ fn process_inputs_reverse(
 ) -> Result<(), String> {
     let mut any_input = false;
 
-    let mut documents: Vec<(PathBuf, Document)> = vec![];
+    let mut documents: HashMap<PathBuf, Document> = HashMap::new();
     let mut code_files: HashSet<PathBuf> = HashSet::new();
 
     for pattern in input_patterns {
@@ -309,28 +309,53 @@ fn process_inputs_reverse(
             .to_string());
     }
 
-    reverse(documents, code_files, &config.language).map_err(|err| err.to_string())?;
+    reverse(documents, code_files, &config)?;
 
     Ok(())
 }
 
 fn reverse(
-    _documents: Vec<(PathBuf, Document)>,
+    _documents: HashMap<PathBuf, Document>,
     code_files: HashSet<PathBuf>,
-    languages: &Option<HashMap<String, LanguageSettings>>,
-) -> Result<(), std::io::Error> {
+    config: &AnyConfig,
+) -> Result<(), String> {
+    let mut code_blocks: HashMap<(PathBuf, Option<String>), Vec<RevCodeBlock>> = HashMap::new();
+
     let parser = CodeParser {};
-    if let Some(langs) = languages {
+    if let Some(languages) = &config.language {
         for file in code_files {
             let language = file.extension().and_then(|s| s.to_str());
             if let Some(language) = language {
-                if let Some(lang) = langs.get(language) {
-                    let source = fs::read_to_string(&file)?;
-                    parser.parse(&source, lang);
+                if let Some(lang) = languages.get(language) {
+                    let source = fs::read_to_string(&file).map_err(|err| err.to_string())?;
+                    let blocks = parser.parse(&source, &config.parser, lang);
+
+                    for block in blocks.into_iter() {
+                        let path = PathBuf::from(&block.file);
+                        match code_blocks.entry((path, block.name.clone())) {
+                            Occupied(mut entry) => {
+                                entry.get_mut().push(block);
+                            }
+                            Vacant(entry) => {
+                                entry.insert(vec![block]);
+                            }
+                        }
+                    }
                 }
             }
         }
     }
+
+    for ((file, name), blocks) in code_blocks {
+        eprintln!("----- {}", file.display());
+        for block in blocks {
+            eprintln!("//- {:?} ({})", name, block.index);
+            for line in block.lines {
+                eprintln!("{}", line);
+            }
+        }
+    }
+
     Ok(())
 }
 
@@ -544,7 +569,7 @@ fn transclude_dry_run<P>(
     code_dir: &Option<PathBuf>,
     entrypoint: &Option<&str>,
     language: &Option<&str>,
-    documents: &mut Vec<(PathBuf, Document)>,
+    documents: &mut HashMap<PathBuf, Document>,
     track_code_files: &mut HashSet<PathBuf>,
 ) -> Result<Document, Box<dyn std::error::Error>>
 where
@@ -579,7 +604,7 @@ where
                 track_code_files,
             )?;
 
-            documents.push((trans.file().clone(), doc));
+            documents.insert(trans.file().clone(), doc);
             trans_so_far.insert(trans.file().clone());
         } else {
             return Err(Box::new(MultipleTransclusionError(trans.file().clone())));
@@ -691,7 +716,7 @@ fn compile_all_reverse<P>(
     settings: &Option<HashMap<String, LanguageSettings>>,
     track_input_files: &mut HashSet<PathBuf>,
     track_code_files: &mut HashSet<PathBuf>,
-    documents: &mut Vec<(PathBuf, Document)>,
+    documents: &mut HashMap<PathBuf, Document>,
 ) -> Result<(), Box<dyn std::error::Error>>
 where
     P: Parser + Printer,
@@ -722,7 +747,7 @@ where
             track_code_files,
         )?;
 
-        documents.push((file_name.clone(), document));
+        documents.insert(file_name.clone(), document);
 
         track_input_files.insert(file_name.clone());
 
