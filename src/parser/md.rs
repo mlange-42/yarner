@@ -422,8 +422,9 @@ impl Parser for MdParser {
         &self,
         input: &mut Document,
         from: &PathBuf,
+        remove_marker: bool,
     ) -> Result<Vec<PathBuf>, Self::Error> {
-        let regex = &self.link_following_pattern; //Regex::new(Self::LINK_PATTERN).unwrap();
+        let regex = &self.link_following_pattern;
         let mut paths = vec![];
         let tree = input.tree_mut();
 
@@ -432,18 +433,24 @@ impl Parser for MdParser {
             for line in block.lines_mut().iter_mut() {
                 let mut new_line: Option<String> = None;
                 for capture in regex.1.captures_iter(line) {
-                    let index = capture.get(0).unwrap().start();
-                    let len = regex.0.len();
-                    if let Some(l) = &mut new_line {
-                        *l = format!("{}{}", &l[..(index - offset)], &l[(index + len - offset)..]);
-                    } else {
-                        new_line = Some(format!(
-                            "{}{}",
-                            &line[..(index - offset)],
-                            &line[(index + len - offset)..]
-                        ));
+                    if remove_marker {
+                        let index = capture.get(0).unwrap().start();
+                        let len = regex.0.len();
+                        if let Some(l) = &mut new_line {
+                            *l = format!(
+                                "{}{}",
+                                &l[..(index - offset)],
+                                &l[(index + len - offset)..]
+                            );
+                        } else {
+                            new_line = Some(format!(
+                                "{}{}",
+                                &line[..(index - offset)],
+                                &line[(index + len - offset)..]
+                            ));
+                        }
+                        offset += len;
                     }
-                    offset += len;
 
                     let link = capture.get(2).unwrap().as_str();
                     let mut path = from.parent().unwrap().to_path_buf();

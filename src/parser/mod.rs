@@ -50,8 +50,12 @@ pub trait Parser: ParserConfig {
     fn parse(&self, input: &str) -> Result<Document, Self::Error>;
 
     /// Find all files linked into the document for later compilation and/or transclusion.
-    fn find_links(&self, input: &mut Document, from: &PathBuf)
-        -> Result<Vec<PathBuf>, Self::Error>;
+    fn find_links(
+        &self,
+        input: &mut Document,
+        from: &PathBuf,
+        remove_marker: bool,
+    ) -> Result<Vec<PathBuf>, Self::Error>;
 
     /// Parses a macro name, returning the name and the extracted variables
     #[allow(clippy::type_complexity)]

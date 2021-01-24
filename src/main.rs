@@ -79,6 +79,12 @@ fn run() -> Result<(), String> {
             .help("Produces clean code output, without block label comments.")
             .required(false)
             .takes_value(false))
+        .arg(Arg::with_name("reverse")
+            .long("reverse")
+            .short("R")
+            .help("Reverse mode: play back code changes into source files.")
+            .required(false)
+            .takes_value(false))
         .subcommand(SubCommand::with_name("create")
             .about("Creates a yarner project in the current directory")
             .arg(Arg::with_name("file")
@@ -86,8 +92,7 @@ fn run() -> Result<(), String> {
                 .value_name("file")
                 .takes_value(true)
                 .required(true)
-                .index(1))
-        );
+                .index(1)));
 
     let matches = app.clone().get_matches();
 
@@ -147,6 +152,7 @@ fn run() -> Result<(), String> {
         ));
     }
 
+    let reverse = matches.is_present("reverse");
     let clean_code = matches.is_present("clean");
     if let Some(languages) = &mut any_config.language {
         for lang in languages.values_mut() {
@@ -255,13 +261,13 @@ fn run() -> Result<(), String> {
 
     if let Some(code_dir) = code_dir {
         if let Some(code_file_patterns) = &paths.code_files {
-            copy_files(code_file_patterns, &paths.code_paths, code_dir)?;
+            copy_files(code_file_patterns, &paths.code_paths, code_dir, reverse)?;
         }
     }
 
     if let Some(doc_dir) = doc_dir {
         if let Some(doc_file_patterns) = &paths.doc_files {
-            copy_files(doc_file_patterns, &paths.doc_paths, doc_dir)?;
+            copy_files(doc_file_patterns, &paths.doc_paths, doc_dir, reverse)?;
         }
     }
 
@@ -272,6 +278,7 @@ fn copy_files(
     patterns: &[String],
     path_mod: &Option<Vec<String>>,
     target_dir: PathBuf,
+    reverse: bool,
 ) -> Result<(), String> {
     match path_mod {
         Some(path_mod) if patterns.len() != path_mod.len() => {
@@ -320,13 +327,21 @@ fn copy_files(
                         entry.insert(file.clone());
                     }
                 }
-                eprintln!("Copying file {} to {}", file.display(), out_path.display());
 
                 let mut file_path = target_dir.clone();
                 file_path.push(out_path);
 
-                fs::create_dir_all(file_path.parent().unwrap()).unwrap();
-                if let Err(err) = fs::copy(&file, &file_path) {
+                if !reverse {
+                    fs::create_dir_all(file_path.parent().unwrap()).unwrap();
+                }
+                let (from, to) = if reverse {
+                    eprintln!("Copying file {} to {}", file_path.display(), file.display());
+                    (&file_path, &file)
+                } else {
+                    eprintln!("Copying file {} to {}", file.display(), file_path.display());
+                    (&file, &file_path)
+                };
+                if let Err(err) = fs::copy(&from, &to) {
                     return Err(format!(
                         "ERROR: --> Error copying file {}: {}",
                         file.display(),
@@ -453,7 +468,7 @@ where
 {
     if !track_input_files.contains(file_name) {
         let mut document = transclude(parser, file_name, None)?;
-        let links = parser.find_links(&mut document, file_name)?;
+        let links = parser.find_links(&mut document, file_name, true)?;
 
         let file_str = file_name.to_str().unwrap();
         document.tree_mut().set_source(file_str);
