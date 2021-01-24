@@ -428,16 +428,22 @@ impl Parser for MdParser {
         let tree = input.tree_mut();
 
         for block in tree.text_blocks_mut() {
+            let mut offset = 0;
             for line in block.lines_mut().iter_mut() {
                 let mut new_line: Option<String> = None;
                 for capture in regex.1.captures_iter(line) {
                     let index = capture.get(0).unwrap().start();
                     let len = regex.0.len();
                     if let Some(l) = &mut new_line {
-                        *l = format!("{}{}", &l[..index], &l[(index + len)..]);
+                        *l = format!("{}{}", &l[..(index - offset)], &l[(index + len - offset)..]);
                     } else {
-                        new_line = Some(format!("{}{}", &line[..index], &line[(index + 1)..]));
+                        new_line = Some(format!(
+                            "{}{}",
+                            &line[..(index - offset)],
+                            &line[(index + len - offset)..]
+                        ));
                     }
+                    offset += len;
 
                     let link = capture.get(2).unwrap().as_str();
                     let mut path = from.parent().unwrap().to_path_buf();
