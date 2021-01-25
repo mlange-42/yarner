@@ -6,6 +6,7 @@
 //! Additionally, for each parser, a `Printer` is needed to be able to write the code back
 //! out correctly.
 
+pub mod code;
 pub mod md;
 
 pub use self::md::MdParser;
@@ -14,9 +15,10 @@ use crate::document::code::{CodeBlock, Line, Segment, Source};
 use crate::document::text::TextBlock;
 use crate::document::tranclusion::Transclusion;
 use crate::document::Document;
+use crate::parser::code::RevCodeBlock;
 use std::error::Error;
 use std::fmt;
-use std::path::PathBuf;
+use std::path::{Path, PathBuf};
 
 /// A `ParserConfig` can be used to customize the built in parsing methods
 pub trait ParserConfig {
@@ -47,11 +49,15 @@ pub trait Parser: ParserConfig {
 
     /// Parses the text part of the document. Should delegate the code section on a line-by-line
     /// basis to the built in code parser.
-    fn parse(&self, input: &str) -> Result<Document, Self::Error>;
+    fn parse(&self, input: &str, path: &Path) -> Result<Document, Self::Error>;
 
     /// Find all files linked into the document for later compilation and/or transclusion.
-    fn find_links(&self, input: &mut Document, from: &PathBuf)
-        -> Result<Vec<PathBuf>, Self::Error>;
+    fn find_links(
+        &self,
+        input: &mut Document,
+        from: &PathBuf,
+        remove_marker: bool,
+    ) -> Result<Vec<PathBuf>, Self::Error>;
 
     /// Parses a macro name, returning the name and the extracted variables
     #[allow(clippy::type_complexity)]
@@ -162,7 +168,7 @@ pub trait Parser: ParserConfig {
     }
 
     /// Finds all file-specific entry points
-    fn get_entry_points(&self, doc: &Document, language: Option<&str>) -> Vec<(String, String)> {
+    fn get_entry_points(&self, doc: &Document, language: &Option<&str>) -> Vec<(String, String)> {
         let mut entries = vec![];
         let pref = self.file_prefix();
         for (name, _block) in doc.tree().code_blocks(language) {
@@ -217,11 +223,18 @@ pub trait Printer: ParserConfig {
     /// Prints a code block
     fn print_code_block(&self, block: &CodeBlock) -> String;
 
+    /// Prints a code block in reverse mode
+    fn print_code_block_reverse(
+        &self,
+        block: &CodeBlock,
+        alternative: Option<&RevCodeBlock>,
+    ) -> String;
+
     /// Prints a text block
     fn print_text_block(&self, block: &TextBlock) -> String;
 
     /// Prints a code block
-    fn print_transclusion(&self, transclusion: &Transclusion) -> String;
+    fn print_transclusion(&self, transclusion: &Transclusion, reverse: bool) -> String;
 
     /// Fills a name with its placeholders and defaults
     fn print_name(&self, mut name: String, vars: &[String], defaults: &[Option<String>]) -> String {
@@ -258,6 +271,9 @@ pub trait Printer: ParserConfig {
         match &line.source {
             Source::Macro { name, scope } => {
                 output.push_str(self.macro_start());
+                if !self.macro_start().ends_with(' ') {
+                    output.push(' ');
+                }
                 output.push_str(&self.print_macro_call(name.clone(), &scope));
                 output.push_str(self.macro_end());
             }

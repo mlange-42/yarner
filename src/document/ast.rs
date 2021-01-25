@@ -8,7 +8,9 @@ use super::text::TextBlock;
 use super::{CompileError, CompileErrorKind};
 use crate::config::LanguageSettings;
 use crate::document::tranclusion::Transclusion;
+use crate::parser::code::RevCodeBlock;
 use crate::parser::Printer;
+use std::collections::hash_map::Entry;
 
 /// A `Node` in the `Ast`
 #[derive(Debug)]
@@ -49,7 +51,7 @@ impl Ast {
     /// Gets all the code blocks of this AST, concatenating blocks of the same name
     pub(crate) fn code_blocks(
         &self,
-        language: Option<&str>,
+        language: &Option<&str>,
     ) -> HashMap<Option<&str>, Vec<CodeBlock>> {
         let mut code_blocks = HashMap::new();
         for node in &self.nodes {
@@ -111,7 +113,7 @@ impl Ast {
         for node in &self.nodes {
             match node {
                 Node::Transclusion(transclusion) => {
-                    output.push_str(&printer.print_transclusion(transclusion))
+                    output.push_str(&printer.print_transclusion(transclusion, false))
                 }
                 Node::Text(text_block) => output.push_str(&printer.print_text_block(text_block)),
                 Node::Code(code_block) => {
@@ -137,20 +139,103 @@ impl Ast {
         output
     }
 
+    /// Renders the program this AST is representing back into the original format, replacing code blocks
+    pub(crate) fn print_reverse<P: Printer>(
+        &self,
+        printer: &P,
+        code_blocks: &HashMap<&Option<String>, &Vec<RevCodeBlock>>,
+    ) -> String {
+        let mut block_count: HashMap<&Option<String>, usize> = HashMap::new();
+
+        let mut output = String::new();
+        for node in &self.nodes {
+            match node {
+                Node::Transclusion(transclusion) => {
+                    output.push_str(&printer.print_transclusion(transclusion, true))
+                }
+                Node::Text(text_block) => output.push_str(&printer.print_text_block(text_block)),
+                Node::Code(code_block) => {
+                    let index = match block_count.entry(&code_block.name) {
+                        Entry::Occupied(mut entry) => {
+                            let old_index = *entry.get();
+                            entry.insert(old_index + 1)
+                        }
+                        Entry::Vacant(entry) => {
+                            entry.insert(1);
+                            0
+                        }
+                    };
+                    let alt_block = if let Some(blocks) = code_blocks.get(&code_block.name) {
+                        blocks.get(index)
+                    } else {
+                        None
+                    };
+                    output.push_str(
+                        &printer
+                            .print_code_block_reverse(code_block, alt_block)
+                            .split('\n')
+                            .map(|line| {
+                                if line.is_empty() {
+                                    line.to_string()
+                                } else {
+                                    format!("{}{}", code_block.indent, line)
+                                }
+                            })
+                            .collect::<Vec<_>>()
+                            .join("\n"),
+                    )
+                }
+            }
+        }
+        output
+    }
+
     /// Renders the program this AST is representing in the code format
     pub(crate) fn print_code(
         &self,
-        entrypoint: Option<&str>,
-        language: Option<&str>,
-        settings: Option<&LanguageSettings>,
+        entrypoint: &Option<&str>,
+        language: &Option<&str>,
+        settings: &Option<&LanguageSettings>,
     ) -> Result<String, CompileError> {
-        let code_blocks = self.code_blocks(language);
+        let comment_start = settings.map(|s| &s.comment_start[..]).unwrap_or("");
+        let comment_end = settings
+            .and_then(|s| s.comment_end.as_ref().map(|e| &e[..]))
+            .unwrap_or("");
+        let block_start = settings.map(|s| &s.block_start[..]).unwrap_or("");
+        let block_end = settings.map(|s| &s.block_end[..]).unwrap_or("");
+
+        let clean = if let Some(s) = settings {
+            s.clean_code
+        } else {
+            true
+        };
+
+        let code_blocks = self.code_blocks(&language);
         let mut result = String::new();
         match code_blocks.get(&entrypoint) {
             Some(blocks) => {
                 for block in blocks {
+                    let path = block.source_file.to_owned().unwrap_or_default();
+                    let name = if block.is_unnamed {
+                        ""
+                    } else {
+                        block.name.as_ref().map(|n| &n[..]).unwrap_or("")
+                    };
+
+                    if !clean {
+                        result.push_str(&format!(
+                            "{} {}{}#{}{}\n",
+                            comment_start, block_start, path, name, comment_end,
+                        ));
+                    }
                     result.push_str(&block.compile(&code_blocks, settings)?);
                     result.push('\n');
+                    if !clean {
+                        result.push_str(&format!(
+                            "{} {}{}#{}{}",
+                            comment_start, block_end, path, name, comment_end,
+                        ));
+                    }
                 }
             }
             None => {
@@ -166,7 +251,7 @@ impl Ast {
         Ok(result)
     }
 
-    /// Renders the program this AST is representing in the documentation format
+    /// Transclusion
     pub fn transclude(&mut self, replace: &Transclusion, with: Ast, from_source: &str, from: &str) {
         let mut index = 0;
         while index < self.nodes.len() {
@@ -178,6 +263,7 @@ impl Ast {
                             // TODO use entrypoint option here, too? Currently, only in main file.
                             if code.name.is_none() {
                                 code.name = Some(from.to_string());
+                                code.is_unnamed = true;
                             }
                             // TODO: move to parser?
                             if code.source_file.is_none() {

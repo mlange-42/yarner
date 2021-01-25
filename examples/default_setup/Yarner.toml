@@ -54,8 +54,10 @@ root = "."
 code = "code/"
 # Docs output path.
 docs = "docs/"
+
 # The input source file(s) as glob pattern(s).
 files = ["README.md.md"]
+
 ## File(s) to include in code output (unprocessed), as glob pattern(s).
 # code_files = ["**/*.rs"]
 ## Allows to modify paths of copied code files. Replaces path components. Optional.
@@ -63,6 +65,7 @@ files = ["README.md.md"]
 ## E.g., use "foo/bar" to replace the first two path component by foo and bar.
 ## Use "-" to ommit, and "_" to preserve a component. Use a single "_" if no change is intended at all.
 # code_paths = ["_"]
+
 ## File(s) to include in docs output (unprocessed), as glob pattern(s).
 # doc_files = ["**/*.png", "**/*.jpg"]
 ## Allows to modify paths of copied code files. See code_paths for details. Optional.
@@ -78,10 +81,14 @@ files = ["README.md.md"]
 # comment_start = "//"
 ### End of comments. Optional, only for block comments
 ## comment_end = "*/"
+
 ## Start of block labels.
 # block_start = "<@"
+## Start of next block with the same name.
+# block_next = "<@>"
 ## End of block labels.
 # block_end = "@>"
+
 ## Replaces lines containing only whitespaces by blank lines, in code output. Defaults to true.
 # clear_blank_lines = true
 ## Enforces code files to always end with a blank line. Defaults to true.

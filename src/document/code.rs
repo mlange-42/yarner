@@ -12,6 +12,8 @@ pub struct CodeBlock {
     pub indent: String,
     /// The name of this code block
     pub name: Option<String>,
+    /// Whether the code block was originally unnamed
+    pub is_unnamed: bool,
     /// The variables extracted from the name
     pub vars: Vec<String>,
     /// The variables' default values extracted from the name
@@ -87,7 +89,7 @@ impl CodeBlock {
     pub fn compile(
         &self,
         code_blocks: &HashMap<Option<&str>, Vec<CodeBlock>>,
-        settings: Option<&LanguageSettings>,
+        settings: &Option<&LanguageSettings>,
     ) -> Result<String, CompileError> {
         self.compile_with(code_blocks, HashMap::default(), settings)
     }
@@ -101,42 +103,13 @@ impl CodeBlock {
         &self,
         code_blocks: &HashMap<Option<&str>, Vec<CodeBlock>>,
         scope: HashMap<String, String>,
-        settings: Option<&LanguageSettings>,
+        settings: &Option<&LanguageSettings>,
     ) -> Result<String, CompileError> {
-        let name = self.name.to_owned().unwrap_or_else(|| "".to_string());
-        let comment_end = settings
-            .map(|s| s.comment_end.to_owned().unwrap_or_else(|| "".to_string()))
-            .unwrap_or_else(|| "".to_string());
-        let path = self.source_file.to_owned().unwrap_or_default();
         self.source
             .iter()
             .map(|line| line.compile_with(code_blocks, &scope, settings))
             .try_collect()
             .map(|vec: Vec<_>| vec.join("\n"))
-            .map(|block: String| {
-                if let Some(s) = settings {
-                    if !s.clean_code {
-                        format!(
-                            "{} {}{}#{}{}\n{}\n{} {}{}#{}{}",
-                            s.comment_start,
-                            s.block_start,
-                            path,
-                            name,
-                            comment_end,
-                            block,
-                            s.comment_start,
-                            s.block_end,
-                            path,
-                            name,
-                            comment_end,
-                        )
-                    } else {
-                        block
-                    }
-                } else {
-                    block
-                }
-            })
     }
 
     fn assign_vars(&self, scope: &[String]) -> HashMap<String, String> {
@@ -200,8 +173,22 @@ impl Line {
         &self,
         code_blocks: &HashMap<Option<&str>, Vec<CodeBlock>>,
         scope: &HashMap<String, String>,
-        settings: Option<&LanguageSettings>,
+        settings: &Option<&LanguageSettings>,
     ) -> Result<String, CompileError> {
+        let comment_start = settings.map(|s| &s.comment_start[..]).unwrap_or("");
+        let comment_end = settings
+            .and_then(|s| s.comment_end.as_ref().map(|e| &e[..]))
+            .unwrap_or("");
+        let block_start = settings.map(|s| &s.block_start[..]).unwrap_or("");
+        let block_end = settings.map(|s| &s.block_end[..]).unwrap_or("");
+        let block_next = settings.map(|s| &s.block_next[..]).unwrap_or("");
+
+        let clean = if let Some(s) = settings {
+            s.clean_code
+        } else {
+            true
+        };
+
         let blank_lines = settings.map(|s| s.clear_blank_lines).unwrap_or(true);
         match &self.source {
             Source::Source(segments) => {
@@ -233,8 +220,27 @@ impl Line {
                 })?;
 
                 let mut result = vec![];
-                for block in blocks {
+                for (idx, block) in blocks.iter().enumerate() {
                     let scope = block.assign_vars(&scope[..]);
+
+                    let path = block.source_file.to_owned().unwrap_or_default();
+                    let name = if block.is_unnamed {
+                        ""
+                    } else {
+                        block.name.as_ref().map(|n| &n[..]).unwrap_or("")
+                    };
+
+                    if !clean {
+                        result.push(format!(
+                            "{}{} {}{}#{}{}",
+                            &self.indent,
+                            comment_start,
+                            if idx == 0 { &block_start } else { &block_next },
+                            path,
+                            name,
+                            comment_end,
+                        ));
+                    }
                     result.push(
                         block
                             .compile_with(code_blocks, scope, settings)
@@ -251,6 +257,13 @@ impl Line {
                                     .join("\n")
                             })?,
                     );
+
+                    if !clean && idx == blocks.len() - 1 {
+                        result.push(format!(
+                            "{}{} {}{}#{}{}",
+                            &self.indent, comment_start, &block_end, path, name, comment_end,
+                        ));
+                    }
                 }
                 Ok(result.join("\n"))
             }

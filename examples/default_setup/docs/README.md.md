@@ -5,7 +5,7 @@ The following code goes to the base file of code output:
 ```md
 Hello Literate Programmer!
 
-// ==>More code.
+// ==> More code.
 ```
 
 In the code output, `==> More code.` will be replaced by the following code:
@@ -22,7 +22,7 @@ Here, we create a file `main.rs` in subfolder `src`:
 //- file:src/main.rs
 fn main() {
     println!("Hello Literate Programmer!");
-    // ==>More code in main.
+    // ==> More code in main.
 }
 ```
 

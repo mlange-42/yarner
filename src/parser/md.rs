@@ -33,12 +33,13 @@ use crate::document::code::CodeBlock;
 use crate::document::text::TextBlock;
 use crate::document::tranclusion::Transclusion;
 use crate::document::Document;
+use crate::parser::code::RevCodeBlock;
 use crate::util::try_collect::TryCollectExt;
 use regex::Regex;
 use serde::de::Error;
 use serde::{Deserialize, Deserializer};
 use std::fs::File;
-use std::path::PathBuf;
+use std::path::{Path, PathBuf};
 
 /// The config for parsing a Markdown document
 #[derive(Clone, Deserialize, Debug)]
@@ -155,6 +156,11 @@ impl Default for MdParser {
 impl<'a> MdParser {
     const LINK_PATTERN: &'static str = r"\[([^\[\]]*)\]\((.*?)\)";
 
+    /// Check the validity of the parser configuration
+    pub fn check(&self) -> Result<(), String> {
+        Ok(())
+    }
+
     /// Creates a default parser with a fallback language
     pub fn for_language(language: String) -> Self {
         Self {
@@ -175,7 +181,7 @@ impl<'a> MdParser {
         }
     }
 
-    fn parse_transclusion(&self, line: &str) -> Result<Option<Node>, ParseError> {
+    fn parse_transclusion(&self, line: &str, into: &Path) -> Result<Option<Node>, ParseError> {
         let trim = line.trim();
         if trim.starts_with(&self.transclusion_start) {
             if let Some(index) = line.find(&self.transclusion_end) {
@@ -189,9 +195,13 @@ impl<'a> MdParser {
 
                 let target = path.get(0).unwrap_or(&trans);
 
-                let path = PathBuf::from(target);
+                let mut path = PathBuf::from(into.parent().unwrap_or_else(|| Path::new(".")));
+                path.push(target);
 
-                Ok(Some(Node::Transclusion(Transclusion::new(path))))
+                Ok(Some(Node::Transclusion(Transclusion::new(
+                    path,
+                    line.to_string(),
+                ))))
             } else {
                 Err(ParseError::UnclosedTransclusionError(line.to_owned()))
             }
@@ -229,7 +239,7 @@ impl Parser for MdParser {
     type Error = MdError;
 
     #[allow(clippy::nonminimal_bool)]
-    fn parse(&self, input: &str) -> Result<Document, Self::Error> {
+    fn parse(&self, input: &str, path: &Path) -> Result<Document, Self::Error> {
         #[derive(Default)]
         struct State {
             node: Option<Node>,
@@ -313,7 +323,7 @@ impl Parser for MdParser {
                             let mut new_block = TextBlock::new();
                             new_block.add_line(line);
                             state.node = Some(Node::Text(new_block));
-                            match self.parse_transclusion(line) {
+                            match self.parse_transclusion(line, path) {
                                 Err(err) => Some(Parse::Error(MdError::Single {
                                     line_number,
                                     kind: MdErrorKind::Parse(err),
@@ -329,7 +339,7 @@ impl Parser for MdParser {
                                 },
                             }
                         }
-                        Some(Node::Text(block)) => match self.parse_transclusion(line) {
+                        Some(Node::Text(block)) => match self.parse_transclusion(line, path) {
                             Err(err) => Some(Parse::Error(MdError::Single {
                                 line_number,
                                 kind: MdErrorKind::Parse(err),
@@ -422,8 +432,9 @@ impl Parser for MdParser {
         &self,
         input: &mut Document,
         from: &PathBuf,
+        remove_marker: bool,
     ) -> Result<Vec<PathBuf>, Self::Error> {
-        let regex = &self.link_following_pattern; //Regex::new(Self::LINK_PATTERN).unwrap();
+        let regex = &self.link_following_pattern;
         let mut paths = vec![];
         let tree = input.tree_mut();
 
@@ -432,18 +443,24 @@ impl Parser for MdParser {
                 let mut offset = 0;
                 let mut new_line: Option<String> = None;
                 for capture in regex.1.captures_iter(line) {
-                    let index = capture.get(0).unwrap().start();
-                    let len = regex.0.len();
-                    if let Some(l) = &mut new_line {
-                        *l = format!("{}{}", &l[..(index - offset)], &l[(index + len - offset)..]);
-                    } else {
-                        new_line = Some(format!(
-                            "{}{}",
-                            &line[..(index - offset)],
-                            &line[(index + len - offset)..]
-                        ));
+                    if remove_marker {
+                        let index = capture.get(0).unwrap().start();
+                        let len = regex.0.len();
+                        if let Some(l) = &mut new_line {
+                            *l = format!(
+                                "{}{}",
+                                &l[..(index - offset)],
+                                &l[(index + len - offset)..]
+                            );
+                        } else {
+                            new_line = Some(format!(
+                                "{}{}",
+                                &line[..(index - offset)],
+                                &line[(index + len - offset)..]
+                            ));
+                        }
+                        offset += len;
                     }
-                    offset += len;
 
                     let link = capture.get(2).unwrap().as_str();
                     let mut path = from.parent().unwrap().to_path_buf();
@@ -470,57 +487,11 @@ impl Parser for MdParser {
                 }
             }
         }
-        /*
-               let paths = input
-                   .tree()
-                   .text_blocks()
-                   .iter()
-                   .flat_map(|block| {
-                       block.lines().iter().flat_map(|line| {
-                           regex
-                               .captures_iter(line)
-                               .map(|m| m.get(2).unwrap().as_str())
-                               .filter_map(|p| {
-                                   // Correct links for the case that the linking file is not in the project base directory
-                                   let mut path = from.parent().unwrap().to_path_buf();
-                                   path.push(p);
-                                   let path = PathBuf::from(path_clean::clean(
-                                       &path.to_str().unwrap().replace("\\", "/"),
-                                   ));
-                                   //let path = PathBuf::from(p);
-                                   if path.is_relative()
-                                       && !p.starts_with('#')
-                                       && !p.starts_with("http://")
-                                       && !p.starts_with("https://")
-                                       && !p.starts_with("ftp://")
-                                   {
-                                       if File::open(&path).is_ok() {
-                                           Some(path)
-                                       } else {
-                                           // TODO: move out of function?
-                                           eprintln!(
-                                               "WARNING: link target not found for {}",
-                                               path.display()
-                                           );
-                                           None
-                                       }
-                                   } else {
-                                       None
-                                   }
-                               })
-                       })
-                   })
-                   .collect();
-        */
         Ok(paths)
     }
 }
 
 impl Printer for MdParser {
-    fn print_text_block(&self, block: &TextBlock) -> String {
-        format!("{}\n", block.to_string())
-    }
-
     fn print_code_block(&self, block: &CodeBlock) -> String {
         let fence_sequence = if block.alternative {
             &self.fence_sequence_alt
@@ -565,11 +536,60 @@ impl Printer for MdParser {
         output
     }
 
-    fn print_transclusion(&self, transclusion: &Transclusion) -> String {
-        let mut output = String::new();
-        output.push_str("**WARNING!** Missed/skipped transclusion: ");
-        output.push_str(transclusion.file().to_str().unwrap());
+    fn print_code_block_reverse(
+        &self,
+        block: &CodeBlock,
+        alternative: Option<&RevCodeBlock>,
+    ) -> String {
+        let fence_sequence = if block.alternative {
+            &self.fence_sequence_alt
+        } else {
+            &self.fence_sequence
+        };
+        let mut output = fence_sequence.clone();
+        if let Some(language) = &block.language {
+            output.push_str(language);
+        }
         output.push('\n');
+        if let Some(name) = &block.name {
+            output.push_str(&self.comment_start);
+            output.push(' ');
+            output.push_str(&self.print_name(name.clone(), &block.vars, &block.defaults));
+            output.push('\n');
+        }
+
+        if let Some(alt) = alternative {
+            for line in &alt.lines {
+                output.push_str(&line);
+                output.push('\n');
+            }
+        } else {
+            for line in &block.source {
+                output.push_str(&self.print_line(&line, true));
+                output.push('\n');
+            }
+        }
+
+        output.push_str(fence_sequence);
+        output.push('\n');
+
+        output
+    }
+
+    fn print_text_block(&self, block: &TextBlock) -> String {
+        format!("{}\n", block.to_string())
+    }
+
+    fn print_transclusion(&self, transclusion: &Transclusion, reverse: bool) -> String {
+        let mut output = String::new();
+        if reverse {
+            output.push_str(transclusion.original());
+            output.push('\n');
+        } else {
+            output.push_str("**WARNING!** Missed/skipped transclusion: ");
+            output.push_str(transclusion.file().to_str().unwrap());
+            output.push('\n');
+        }
         output
     }
 }

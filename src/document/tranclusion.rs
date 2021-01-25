@@ -7,16 +7,23 @@ use std::path::PathBuf;
 pub struct Transclusion {
     /// The target file path
     file: PathBuf,
+    /// The original string of the transclusion
+    original: String,
 }
 
 impl Transclusion {
     /// Creates a new `Transclusion`
-    pub fn new(file: PathBuf) -> Self {
-        Transclusion { file }
+    pub fn new(file: PathBuf, original: String) -> Self {
+        Transclusion { file, original }
     }
 
     /// The path to the file this transclusion points to
     pub fn file(&self) -> &PathBuf {
         &self.file
+    }
+
+    /// The original string of the transclusion
+    pub fn original(&self) -> &str {
+        &self.original
     }
 }
