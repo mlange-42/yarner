@@ -430,8 +430,8 @@ impl Parser for MdParser {
         let tree = input.tree_mut();
 
         for block in tree.text_blocks_mut() {
-            let mut offset = 0;
             for line in block.lines_mut().iter_mut() {
+                let mut offset = 0;
                 let mut new_line: Option<String> = None;
                 for capture in regex.1.captures_iter(line) {
                     if remove_marker {
