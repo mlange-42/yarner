@@ -137,6 +137,9 @@ fn run() -> Result<(), String> {
             }
         }
     };
+
+    any_config.check()?;
+
     let paths = any_config.paths.clone().unwrap_or_default();
 
     let root = matches
@@ -360,13 +363,9 @@ fn reverse(
 
         let print = doc.print_reverse(&config.parser, &blocks);
 
-        let mut file_path = PathBuf::from("test");
-        file_path.push(&path);
-        fs::create_dir_all(file_path.parent().unwrap()).unwrap();
+        eprintln!("  --> Writing back to file {}", path.display());
 
-        eprintln!("  --> Writing back to file {}", file_path.display());
-
-        let mut file = File::create(file_path).unwrap();
+        let mut file = File::create(path).unwrap();
         write!(file, "{}", print).unwrap()
     }
 

@@ -26,7 +26,7 @@ fn main() {
     }
     stop();
 }
-// ==>Functions.
+// ==> Functions.
 ```
 
 Function code blocks are here:

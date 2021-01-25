@@ -64,11 +64,17 @@ impl CodeParser {
                     }
                 }
 
-                let full_name = if is_next {
-                    trimmed[next.len()..].to_string()
+                let mut full_name = if is_next {
+                    trimmed[next.len()..].trim().to_string()
                 } else {
-                    trimmed[start.len()..].to_string()
+                    trimmed[start.len()..].trim().to_string()
                 };
+                if let Some(comment_end) = &language.comment_end {
+                    if let Some(idx) = full_name.find(comment_end) {
+                        full_name = full_name[..idx].trim().to_string();
+                    }
+                }
+
                 let mut parts = full_name.splitn(2, '#');
                 let file = parts.next().unwrap_or("").to_string();
                 let name = parts.next().and_then(|s| {

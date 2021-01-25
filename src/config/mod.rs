@@ -15,6 +15,22 @@ pub struct AnyConfig {
     pub language: Option<HashMap<String, LanguageSettings>>,
 }
 
+impl AnyConfig {
+    /// Check the validity of the configuration
+    pub fn check(&self) -> Result<(), String> {
+        self.parser.check()?;
+        if let Some(paths) = &self.paths {
+            paths.check()?;
+        }
+        if let Some(languages) = &self.language {
+            for language in languages.values() {
+                language.check()?;
+            }
+        }
+        Ok(())
+    }
+}
+
 /// Config for paths
 #[derive(Serialize, Deserialize, Default, Debug, Clone)]
 pub struct Paths {
@@ -38,6 +54,13 @@ pub struct Paths {
     pub entrypoint: Option<String>,
 }
 
+impl Paths {
+    /// Check the validity of the paths configuration
+    pub fn check(&self) -> Result<(), String> {
+        Ok(())
+    }
+}
+
 /// Config for a programming language
 #[derive(Serialize, Deserialize, Default, Debug)]
 pub struct LanguageSettings {
@@ -58,4 +81,23 @@ pub struct LanguageSettings {
     /// Print code without block labels.
     #[serde(skip)]
     pub clean_code: bool,
+}
+
+impl LanguageSettings {
+    /// Check the validity of language settings
+    pub fn check(&self) -> Result<(), String> {
+        if self.block_start.starts_with(&self.block_next) {
+            return Err(
+                "ERROR: Language parameter 'block_start' must not start with the same sequence as 'block_next'"
+                    .to_string(),
+            );
+        }
+        if self.block_end.starts_with(&self.block_start) {
+            return Err(
+                "ERROR: Language parameter 'block_end' must not start with the same sequence as 'block_start'"
+                    .to_string(),
+            );
+        }
+        Ok(())
+    }
 }

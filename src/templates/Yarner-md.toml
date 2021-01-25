@@ -80,15 +80,15 @@ files = ["%%MAIN_FILE%%"]
 # [language.rs]
 ## Start of comments. Can be start of line or block comments.
 # comment_start = "//"
-### End of comments. Optional, only for block comments
+### End of comments. Optional, only for languages that support only block comments
 ## comment_end = "*/"
 
 ## Start of block labels.
-# block_start = "<<@"
+# block_start = "<@"
 ## Start of next block with the same name.
 # block_next = "<@>"
 ## End of block labels.
-# block_end = "@>>"
+# block_end = "@>"
 
 ## Replaces lines containing only whitespaces by blank lines, in code output. Defaults to true.
 # clear_blank_lines = true

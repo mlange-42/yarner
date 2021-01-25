@@ -156,6 +156,11 @@ impl Default for MdParser {
 impl<'a> MdParser {
     const LINK_PATTERN: &'static str = r"\[([^\[\]]*)\]\((.*?)\)";
 
+    /// Check the validity of the parser configuration
+    pub fn check(&self) -> Result<(), String> {
+        Ok(())
+    }
+
     /// Creates a default parser with a fallback language
     pub fn for_language(language: String) -> Self {
         Self {
@@ -553,9 +558,6 @@ impl Printer for MdParser {
             output.push('\n');
         }
 
-        let mut comments = vec![];
-        let line_offset = block.line_number().unwrap_or(0);
-
         if let Some(alt) = alternative {
             for line in &alt.lines {
                 output.push_str(&line);
@@ -563,26 +565,13 @@ impl Printer for MdParser {
             }
         } else {
             for line in &block.source {
-                output.push_str(&self.print_line(&line, !self.comments_as_aside));
-                if self.comments_as_aside {
-                    if let Some(comment) = &line.comment {
-                        comments.push((line.line_number - line_offset, comment));
-                    }
-                }
+                output.push_str(&self.print_line(&line, true));
                 output.push('\n');
             }
         }
 
         output.push_str(fence_sequence);
         output.push('\n');
-
-        for (line, comment) in comments {
-            output.push_str(&format!(
-                "<aside class=\"comment\" data-line=\"{}\">{}</aside>\n",
-                line,
-                comment.trim()
-            ));
-        }
 
         output
     }
