@@ -8,7 +8,9 @@ use super::text::TextBlock;
 use super::{CompileError, CompileErrorKind};
 use crate::config::LanguageSettings;
 use crate::document::tranclusion::Transclusion;
+use crate::parser::code::RevCodeBlock;
 use crate::parser::Printer;
+use std::collections::hash_map::Entry;
 
 /// A `Node` in the `Ast`
 #[derive(Debug)]
@@ -111,7 +113,7 @@ impl Ast {
         for node in &self.nodes {
             match node {
                 Node::Transclusion(transclusion) => {
-                    output.push_str(&printer.print_transclusion(transclusion))
+                    output.push_str(&printer.print_transclusion(transclusion, false))
                 }
                 Node::Text(text_block) => output.push_str(&printer.print_text_block(text_block)),
                 Node::Code(code_block) => {
@@ -137,6 +139,57 @@ impl Ast {
         output
     }
 
+    /// Renders the program this AST is representing back into the original format, replacing code blocks
+    pub(crate) fn print_reverse<P: Printer>(
+        &self,
+        printer: &P,
+        code_blocks: &HashMap<&Option<String>, &Vec<RevCodeBlock>>,
+    ) -> String {
+        let mut block_count: HashMap<&Option<String>, usize> = HashMap::new();
+
+        let mut output = String::new();
+        for node in &self.nodes {
+            match node {
+                Node::Transclusion(transclusion) => {
+                    output.push_str(&printer.print_transclusion(transclusion, true))
+                }
+                Node::Text(text_block) => output.push_str(&printer.print_text_block(text_block)),
+                Node::Code(code_block) => {
+                    let index = match block_count.entry(&code_block.name) {
+                        Entry::Occupied(mut entry) => {
+                            let old_index = *entry.get();
+                            entry.insert(old_index + 1)
+                        }
+                        Entry::Vacant(entry) => {
+                            entry.insert(1);
+                            0
+                        }
+                    };
+                    let alt_block = if let Some(blocks) = code_blocks.get(&code_block.name) {
+                        blocks.get(index)
+                    } else {
+                        None
+                    };
+                    output.push_str(
+                        &printer
+                            .print_code_block_reverse(code_block, alt_block)
+                            .split('\n')
+                            .map(|line| {
+                                if line.is_empty() {
+                                    line.to_string()
+                                } else {
+                                    format!("{}{}", code_block.indent, line)
+                                }
+                            })
+                            .collect::<Vec<_>>()
+                            .join("\n"),
+                    )
+                }
+            }
+        }
+        output
+    }
+
     /// Renders the program this AST is representing in the code format
     pub(crate) fn print_code(
         &self,
@@ -144,13 +197,54 @@ impl Ast {
         language: &Option<&str>,
         settings: &Option<&LanguageSettings>,
     ) -> Result<String, CompileError> {
+        let comment_start = settings
+            .map(|s| s.comment_start.to_owned())
+            .unwrap_or_else(|| "".to_string());
+
+        let comment_end = settings
+            .map(|s| s.comment_end.to_owned().unwrap_or_else(|| "".to_string()))
+            .unwrap_or_else(|| "".to_string());
+
+        let block_start = settings
+            .map(|s| s.block_start.to_owned())
+            .unwrap_or_else(|| "".to_string());
+
+        let block_end = settings
+            .map(|s| s.block_end.to_owned())
+            .unwrap_or_else(|| "".to_string());
+
+        let clean = if let Some(s) = settings {
+            s.clean_code
+        } else {
+            true
+        };
+
         let code_blocks = self.code_blocks(&language);
         let mut result = String::new();
         match code_blocks.get(&entrypoint) {
             Some(blocks) => {
                 for block in blocks {
+                    let path = block.source_file.to_owned().unwrap_or_default();
+                    let name = if block.is_unnamed {
+                        "".to_string()
+                    } else {
+                        block.name.to_owned().unwrap_or_else(|| "".to_string())
+                    };
+
+                    if !clean {
+                        result.push_str(&format!(
+                            "{} {}{}#{}{}\n",
+                            comment_start, block_start, path, name, comment_end,
+                        ));
+                    }
                     result.push_str(&block.compile(&code_blocks, settings)?);
                     result.push('\n');
+                    if !clean {
+                        result.push_str(&format!(
+                            "{} {}{}#{}{}",
+                            comment_start, block_end, path, name, comment_end,
+                        ));
+                    }
                 }
             }
             None => {

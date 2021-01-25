@@ -15,6 +15,7 @@ use crate::document::code::{CodeBlock, Line, Segment, Source};
 use crate::document::text::TextBlock;
 use crate::document::tranclusion::Transclusion;
 use crate::document::Document;
+use crate::parser::code::RevCodeBlock;
 use std::error::Error;
 use std::fmt;
 use std::path::{Path, PathBuf};
@@ -222,11 +223,18 @@ pub trait Printer: ParserConfig {
     /// Prints a code block
     fn print_code_block(&self, block: &CodeBlock) -> String;
 
+    /// Prints a code block in reverse mode
+    fn print_code_block_reverse(
+        &self,
+        block: &CodeBlock,
+        alternative: Option<&RevCodeBlock>,
+    ) -> String;
+
     /// Prints a text block
     fn print_text_block(&self, block: &TextBlock) -> String;
 
     /// Prints a code block
-    fn print_transclusion(&self, transclusion: &Transclusion) -> String;
+    fn print_transclusion(&self, transclusion: &Transclusion, reverse: bool) -> String;
 
     /// Fills a name with its placeholders and defaults
     fn print_name(&self, mut name: String, vars: &[String], defaults: &[Option<String>]) -> String {
@@ -263,6 +271,9 @@ pub trait Printer: ParserConfig {
         match &line.source {
             Source::Macro { name, scope } => {
                 output.push_str(self.macro_start());
+                if !self.macro_start().ends_with(' ') {
+                    output.push(' ');
+                }
                 output.push_str(&self.print_macro_call(name.clone(), &scope));
                 output.push_str(self.macro_end());
             }

@@ -47,6 +47,8 @@ pub struct LanguageSettings {
     pub comment_end: Option<String>,
     /// Start of block labels
     pub block_start: String,
+    /// Start of next block of the same name
+    pub block_next: String,
     /// End of block labels
     pub block_end: String,
     /// Determines if code lines containing only whitespace characters are printed as blank lines. Default: true.

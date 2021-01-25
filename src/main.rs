@@ -315,7 +315,7 @@ fn process_inputs_reverse(
 }
 
 fn reverse(
-    _documents: HashMap<PathBuf, Document>,
+    documents: HashMap<PathBuf, Document>,
     code_files: HashSet<PathBuf>,
     config: &AnyConfig,
 ) -> Result<(), String> {
@@ -346,14 +346,28 @@ fn reverse(
         }
     }
 
-    for ((file, name), blocks) in code_blocks {
-        eprintln!("----- {}", file.display());
-        for block in blocks {
-            eprintln!("//- {:?} ({})", name, block.index);
-            for line in block.lines {
-                eprintln!("{}", line);
-            }
-        }
+    for (path, doc) in documents {
+        let blocks: HashMap<_, _> = code_blocks
+            .iter()
+            .filter_map(|((p, name), block)| {
+                if p == &path {
+                    Some((name, block))
+                } else {
+                    None
+                }
+            })
+            .collect();
+
+        let print = doc.print_reverse(&config.parser, &blocks);
+
+        let mut file_path = PathBuf::from("test");
+        file_path.push(&path);
+        fs::create_dir_all(file_path.parent().unwrap()).unwrap();
+
+        eprintln!("  --> Writing back to file {}", file_path.display());
+
+        let mut file = File::create(file_path).unwrap();
+        write!(file, "{}", print).unwrap()
     }
 
     Ok(())
@@ -732,7 +746,7 @@ where
             documents,
             track_code_files,
         )?;
-        let links = parser.find_links(&mut document, file_name, true)?;
+        let links = parser.find_links(&mut document, file_name, false)?;
 
         let file_str = file_name.to_str().unwrap();
         document.tree_mut().set_source(file_str);

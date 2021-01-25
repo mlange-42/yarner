@@ -84,9 +84,11 @@ files = ["%%MAIN_FILE%%"]
 ## comment_end = "*/"
 
 ## Start of block labels.
-# block_start = "<@"
+# block_start = "<<@"
+## Start of next block with the same name.
+# block_next = "<@>"
 ## End of block labels.
-# block_end = "@>"
+# block_end = "@>>"
 
 ## Replaces lines containing only whitespaces by blank lines, in code output. Defaults to true.
 # clear_blank_lines = true

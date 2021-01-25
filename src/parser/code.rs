@@ -46,6 +46,7 @@ impl CodeParser {
         language: &LanguageSettings,
     ) -> Vec<RevCodeBlock> {
         let start = format!("{} {}", language.comment_start, language.block_start);
+        let next = format!("{} {}", language.comment_start, language.block_next);
         let end = format!("{} {}", language.comment_start, language.block_end);
 
         let mut block_count: HashMap<String, usize> = HashMap::new();
@@ -54,8 +55,20 @@ impl CodeParser {
         for line in source.lines() {
             let trimmed = line.trim_start();
             let indent = line.len() - trimmed.len();
-            if trimmed.starts_with(&start) {
-                let full_name = trimmed[start.len()..].to_string();
+            if trimmed.starts_with(&start) || trimmed.starts_with(&next) {
+                let is_next = trimmed.starts_with(&next);
+                if is_next {
+                    let block = block_stack.pop();
+                    if let Some(block) = block {
+                        blocks.push(block);
+                    }
+                }
+
+                let full_name = if is_next {
+                    trimmed[next.len()..].to_string()
+                } else {
+                    trimmed[start.len()..].to_string()
+                };
                 let mut parts = full_name.splitn(2, '#');
                 let file = parts.next().unwrap_or("").to_string();
                 let name = parts.next().and_then(|s| {
@@ -66,15 +79,17 @@ impl CodeParser {
                     }
                 });
 
-                if let (Some(name), Some(block)) = (&name, block_stack.last_mut()) {
-                    let new_line = format!(
-                        "{}{} {}{}",
-                        " ".repeat(indent),
-                        parser.macro_start(),
-                        name,
-                        parser.macro_end()
-                    );
-                    block.push_line(new_line);
+                if !is_next {
+                    if let (Some(name), Some(block)) = (&name, block_stack.last_mut()) {
+                        let new_line = format!(
+                            "{}{} {}{}",
+                            " ".repeat(indent),
+                            parser.macro_start(),
+                            name,
+                            parser.macro_end()
+                        );
+                        block.push_line(new_line);
+                    }
                 }
 
                 let index = match block_count.entry(full_name) {
@@ -87,10 +102,6 @@ impl CodeParser {
 
                 let block =
                     RevCodeBlock::new(file, name.clone(), index, line[..indent].to_string());
-                /*if let Some(name) = &name {
-                    let new_line = format!("{} {}", parser.comment_start(), name,);
-                    block.push_line(new_line);
-                }*/
                 block_stack.push(block);
             } else if trimmed.starts_with(&end) {
                 let block = block_stack.pop();

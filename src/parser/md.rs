@@ -33,6 +33,7 @@ use crate::document::code::CodeBlock;
 use crate::document::text::TextBlock;
 use crate::document::tranclusion::Transclusion;
 use crate::document::Document;
+use crate::parser::code::RevCodeBlock;
 use crate::util::try_collect::TryCollectExt;
 use regex::Regex;
 use serde::de::Error;
@@ -192,7 +193,10 @@ impl<'a> MdParser {
                 let mut path = PathBuf::from(into.parent().unwrap_or_else(|| Path::new(".")));
                 path.push(target);
 
-                Ok(Some(Node::Transclusion(Transclusion::new(path))))
+                Ok(Some(Node::Transclusion(Transclusion::new(
+                    path,
+                    line.to_string(),
+                ))))
             } else {
                 Err(ParseError::UnclosedTransclusionError(line.to_owned()))
             }
@@ -483,10 +487,6 @@ impl Parser for MdParser {
 }
 
 impl Printer for MdParser {
-    fn print_text_block(&self, block: &TextBlock) -> String {
-        format!("{}\n", block.to_string())
-    }
-
     fn print_code_block(&self, block: &CodeBlock) -> String {
         let fence_sequence = if block.alternative {
             &self.fence_sequence_alt
@@ -531,11 +531,76 @@ impl Printer for MdParser {
         output
     }
 
-    fn print_transclusion(&self, transclusion: &Transclusion) -> String {
-        let mut output = String::new();
-        output.push_str("**WARNING!** Missed/skipped transclusion: ");
-        output.push_str(transclusion.file().to_str().unwrap());
+    fn print_code_block_reverse(
+        &self,
+        block: &CodeBlock,
+        alternative: Option<&RevCodeBlock>,
+    ) -> String {
+        let fence_sequence = if block.alternative {
+            &self.fence_sequence_alt
+        } else {
+            &self.fence_sequence
+        };
+        let mut output = fence_sequence.clone();
+        if let Some(language) = &block.language {
+            output.push_str(language);
+        }
         output.push('\n');
+        if let Some(name) = &block.name {
+            output.push_str(&self.comment_start);
+            output.push(' ');
+            output.push_str(&self.print_name(name.clone(), &block.vars, &block.defaults));
+            output.push('\n');
+        }
+
+        let mut comments = vec![];
+        let line_offset = block.line_number().unwrap_or(0);
+
+        if let Some(alt) = alternative {
+            for line in &alt.lines {
+                output.push_str(&line);
+                output.push('\n');
+            }
+        } else {
+            for line in &block.source {
+                output.push_str(&self.print_line(&line, !self.comments_as_aside));
+                if self.comments_as_aside {
+                    if let Some(comment) = &line.comment {
+                        comments.push((line.line_number - line_offset, comment));
+                    }
+                }
+                output.push('\n');
+            }
+        }
+
+        output.push_str(fence_sequence);
+        output.push('\n');
+
+        for (line, comment) in comments {
+            output.push_str(&format!(
+                "<aside class=\"comment\" data-line=\"{}\">{}</aside>\n",
+                line,
+                comment.trim()
+            ));
+        }
+
+        output
+    }
+
+    fn print_text_block(&self, block: &TextBlock) -> String {
+        format!("{}\n", block.to_string())
+    }
+
+    fn print_transclusion(&self, transclusion: &Transclusion, reverse: bool) -> String {
+        let mut output = String::new();
+        if reverse {
+            output.push_str(transclusion.original());
+            output.push('\n');
+        } else {
+            output.push_str("**WARNING!** Missed/skipped transclusion: ");
+            output.push_str(transclusion.file().to_str().unwrap());
+            output.push('\n');
+        }
         output
     }
 }
