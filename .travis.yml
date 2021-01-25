@@ -2,6 +2,8 @@ language: rust
 env:
   global:
     - REPO=yarner
+    - MDBOOK_VERSION=0.4.6
+    - MDBOOK_TOC_VERSION=0.6.1
 
 os:
   - linux
@@ -34,6 +36,9 @@ before_cache:
   - rm -rf /home/travis/.cargo/registry
 
 before_deploy:
+  - if [[ "$TRAVIS_OS_NAME" == "linux" ]]; then (test -x $HOME/.cargo/bin/mdbook || cargo install mdbook --vers "${MDBOOK_VERSION}") ; fi
+  - if [[ "$TRAVIS_OS_NAME" == "linux" ]]; then (test -x $HOME/.cargo/bin/mdbook-toc || cargo install mdbook-toc --vers "${MDBOOK_TOC_VERSION}") ; fi
+  - if [[ "$TRAVIS_OS_NAME" == "linux" ]]; then mdbook build guide ; fi
   - cargo build --release
   - rm -rf ${REPO} || exit 0
   - mkdir ${REPO}
@@ -43,11 +48,21 @@ before_deploy:
   - tar -czf ${REPO}-${TRAVIS_TAG}-${TRAVIS_OS_NAME}.tar.gz ${REPO}
 
 deploy:
-  provider: releases
-  skip_cleanup: true
-  token:
-    secure: KsAgWs7M1S4x2tO60kqjgqHjU72UFN4GMluHr2KHCRuwVZOGSrlh0GqB8MsB4W3XzSCdgc1lFQB6SvIKaA4sEaKCgVtd8w0mVK06WlpEq8EmRBdHxOEeT+9f0PPNBLjQ/dpj1lJtE7gEJiKdgdAL0SzmdecOPnWtqPgk6k7k6Qv4gfkUOVe721hRGl7rTEjLXmIhRqaX5Azcm1zXCyWFGZoUKpLcce0rA62meup3Xv78GCywHVx83GDUw8WaukMw3eSbcKLahQV3qc3RU5OLT8ZpD+NZpdxM59PBydpNAwu8fdSqEEUzu8L3eePm0T0K0RwEWZQDmrUYPHIwyYTVstAT88Ch6ACwrM7TwV2PbqTeMbDULfVIe8XBjYJPa2EWzRw8k4Wdpas+6YZwXtoempCKq74psJrgekPnbyTyS9NOo5KlM5HALE77Rs0Fn3MSFglVMxLCn9vtAxFRs3zxRhwHOWF+Z6BTeDPQs3nmhxWVJKHLLQnGzZsSEa5ZL5+CNa4OnIMLRq9nc4yR8/MIactPBCuN8bp0MYixi7wgSs/mTAy3wVDcR8PyQOGeYIZdezsp5mAw9aleBFizgCszb5Qgc+KWPQsnFtY6tO18po9OPiT6ZpzqlkFIBQckcTT1ra37CJbl5zu7qgiP50IuW7f1KeXUvrXXDW/FIjUaFUM=
-  file: ${REPO}-${TRAVIS_TAG}-${TRAVIS_OS_NAME}.tar.gz
-  on:
-    tags: true
-    all_branches: true
+  - provider: pages
+    skip_cleanup: true
+    token:
+      secure: KsAgWs7M1S4x2tO60kqjgqHjU72UFN4GMluHr2KHCRuwVZOGSrlh0GqB8MsB4W3XzSCdgc1lFQB6SvIKaA4sEaKCgVtd8w0mVK06WlpEq8EmRBdHxOEeT+9f0PPNBLjQ/dpj1lJtE7gEJiKdgdAL0SzmdecOPnWtqPgk6k7k6Qv4gfkUOVe721hRGl7rTEjLXmIhRqaX5Azcm1zXCyWFGZoUKpLcce0rA62meup3Xv78GCywHVx83GDUw8WaukMw3eSbcKLahQV3qc3RU5OLT8ZpD+NZpdxM59PBydpNAwu8fdSqEEUzu8L3eePm0T0K0RwEWZQDmrUYPHIwyYTVstAT88Ch6ACwrM7TwV2PbqTeMbDULfVIe8XBjYJPa2EWzRw8k4Wdpas+6YZwXtoempCKq74psJrgekPnbyTyS9NOo5KlM5HALE77Rs0Fn3MSFglVMxLCn9vtAxFRs3zxRhwHOWF+Z6BTeDPQs3nmhxWVJKHLLQnGzZsSEa5ZL5+CNa4OnIMLRq9nc4yR8/MIactPBCuN8bp0MYixi7wgSs/mTAy3wVDcR8PyQOGeYIZdezsp5mAw9aleBFizgCszb5Qgc+KWPQsnFtY6tO18po9OPiT6ZpzqlkFIBQckcTT1ra37CJbl5zu7qgiP50IuW7f1KeXUvrXXDW/FIjUaFUM=
+    local_dir: guide/public
+    keep_history: false
+    on:
+      tags: true
+      condition: "$TRAVIS_OS_NAME = linux"
+      all_branches: true
+  - provider: releases
+    skip_cleanup: true
+    token:
+      secure: KsAgWs7M1S4x2tO60kqjgqHjU72UFN4GMluHr2KHCRuwVZOGSrlh0GqB8MsB4W3XzSCdgc1lFQB6SvIKaA4sEaKCgVtd8w0mVK06WlpEq8EmRBdHxOEeT+9f0PPNBLjQ/dpj1lJtE7gEJiKdgdAL0SzmdecOPnWtqPgk6k7k6Qv4gfkUOVe721hRGl7rTEjLXmIhRqaX5Azcm1zXCyWFGZoUKpLcce0rA62meup3Xv78GCywHVx83GDUw8WaukMw3eSbcKLahQV3qc3RU5OLT8ZpD+NZpdxM59PBydpNAwu8fdSqEEUzu8L3eePm0T0K0RwEWZQDmrUYPHIwyYTVstAT88Ch6ACwrM7TwV2PbqTeMbDULfVIe8XBjYJPa2EWzRw8k4Wdpas+6YZwXtoempCKq74psJrgekPnbyTyS9NOo5KlM5HALE77Rs0Fn3MSFglVMxLCn9vtAxFRs3zxRhwHOWF+Z6BTeDPQs3nmhxWVJKHLLQnGzZsSEa5ZL5+CNa4OnIMLRq9nc4yR8/MIactPBCuN8bp0MYixi7wgSs/mTAy3wVDcR8PyQOGeYIZdezsp5mAw9aleBFizgCszb5Qgc+KWPQsnFtY6tO18po9OPiT6ZpzqlkFIBQckcTT1ra37CJbl5zu7qgiP50IuW7f1KeXUvrXXDW/FIjUaFUM=
+    file: ${REPO}-${TRAVIS_TAG}-${TRAVIS_OS_NAME}.tar.gz
+    on:
+      tags: true
+      all_branches: true

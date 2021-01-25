@@ -1,0 +1,24 @@
+[book]
+authors = ["Martin Lange"]
+language = "en"
+multilingual = false
+src = "src"
+title = "Yarner Documentation"
+
+[build]
+build-dir = "public"
+
+[output.html]
+default-theme = "Rust"
+git-repository-url = "https://github.com/mlange-42/yarner"
+git-repository-icon = "fa-github"
+
+[output.html.search]
+limit-results = 15
+teaser-word-count = 50
+use-boolean-and = true
+
+[preprocessor.toc]
+command = "mdbook-toc"
+renderer = ["html"]
+max-level = 2
