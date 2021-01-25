@@ -175,25 +175,13 @@ impl Line {
         scope: &HashMap<String, String>,
         settings: &Option<&LanguageSettings>,
     ) -> Result<String, CompileError> {
-        let comment_start = settings
-            .map(|s| s.comment_start.to_owned())
-            .unwrap_or_else(|| "".to_string());
-
+        let comment_start = settings.map(|s| &s.comment_start[..]).unwrap_or("");
         let comment_end = settings
-            .map(|s| s.comment_end.to_owned().unwrap_or_else(|| "".to_string()))
-            .unwrap_or_else(|| "".to_string());
-
-        let block_start = settings
-            .map(|s| s.block_start.to_owned())
-            .unwrap_or_else(|| "".to_string());
-
-        let block_end = settings
-            .map(|s| s.block_end.to_owned())
-            .unwrap_or_else(|| "".to_string());
-
-        let block_next = settings
-            .map(|s| s.block_next.to_owned())
-            .unwrap_or_else(|| "".to_string());
+            .and_then(|s| s.comment_end.as_ref().map(|e| &e[..]))
+            .unwrap_or("");
+        let block_start = settings.map(|s| &s.block_start[..]).unwrap_or("");
+        let block_end = settings.map(|s| &s.block_end[..]).unwrap_or("");
+        let block_next = settings.map(|s| &s.block_next[..]).unwrap_or("");
 
         let clean = if let Some(s) = settings {
             s.clean_code
@@ -237,9 +225,9 @@ impl Line {
 
                     let path = block.source_file.to_owned().unwrap_or_default();
                     let name = if block.is_unnamed {
-                        "".to_string()
+                        ""
                     } else {
-                        block.name.to_owned().unwrap_or_else(|| "".to_string())
+                        block.name.as_ref().map(|n| &n[..]).unwrap_or("")
                     };
 
                     if !clean {
