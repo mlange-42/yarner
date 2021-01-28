@@ -554,6 +554,9 @@ impl Printer for MdParser {
         if let Some(name) = &block.name {
             output.push_str(&self.comment_start);
             output.push(' ');
+            if block.hidden {
+                output.push_str(&self.hidden_prefix);
+            }
             output.push_str(&self.print_name(name.clone(), &block.vars, &block.defaults));
             output.push('\n');
         }
