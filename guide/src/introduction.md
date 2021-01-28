@@ -4,6 +4,10 @@
 
 From Markdown documents written and structured for humans, Yarner extracts code blocks into compilable source code. It offers sufficient features and flexibility to be usable also for larger projects with numerous files and multiple languages.
 
+## GitHub project
+
+Yarner is Open Source and available [on GitHub](https://github.com/mlange-42/yarner).
+
 ## Contributing
 
 For feature requests and issues, please use the [issue tracker](https://github.com/mlange-42/yarner/issues). Merge requests are welcome.

@@ -3,8 +3,8 @@
 [Yarner -- Introduction](./introduction.md)
 
 - [Installation](./installation.md)
-- [Getting started]()
-- [Macros]()
+- [Getting started](./getting-started.md)
+- [Blocks and macros](./blocks-macros.md)
 - [Dead and hidden code]()
 - [Multiple code files]()
 - [Including linked files]()
