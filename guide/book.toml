@@ -10,6 +10,7 @@ build-dir = "public"
 
 [output.html]
 default-theme = "Rust"
+additional-css = ["src/css/custom.css"]
 git-repository-url = "https://github.com/mlange-42/yarner"
 git-repository-icon = "fa-github"
 
@@ -20,5 +21,6 @@ use-boolean-and = true
 
 [preprocessor.toc]
 command = "mdbook-toc"
-renderer = ["html"]
+# marker = "<!-- toc -->"
 max-level = 2
+renderer = ["html"]

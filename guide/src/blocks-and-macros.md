@@ -109,6 +109,8 @@ fn say_hello() {
 }
 ```
 
+**Macro evaluation is recursive.** Thus, code blocks that are referenced by macros can also contain macro invocations.
+
 ## Named entrypoints
 
 By default, unnamed code blocks are the entrypoints for code extraction.
