@@ -235,6 +235,7 @@ version = "0.2.2"
 dependencies = [
  "clap",
  "glob",
+ "once_cell",
  "path-clean",
  "regex",
  "serde",

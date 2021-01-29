@@ -18,7 +18,6 @@ pub struct AnyConfig {
 impl AnyConfig {
     /// Check the validity of the configuration
     pub fn check(&self) -> Result<(), String> {
-        self.parser.check()?;
         if let Some(paths) = &self.paths {
             paths.check()?;
         }
