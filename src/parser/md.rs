@@ -2,9 +2,6 @@
 //!
 //! This includes some extensions to support some of the more advanced features of this tool.
 //!
-//! See `examples/md/wc.c.md` for an example of how to use this format with the default config,
-//! which is specified as follows:
-//!
 //! *   Code lines are enclosed in fenced code blocks, using `\`\`\`lang` as the fence.
 //! *   A macro (named code block) separates the name from the language tag ` - `, such as
 //!     `\`\`\`c - Name of the macro`. Note that the hyphen is surrounded by a single space on
@@ -15,7 +12,7 @@
 //! *   Interpolation of is done such as `@{a meta variable}`.
 //! *   Macros (named code blocks) are invoked by `==> Macro name.` (note the period at the end)
 //!
-//! As with all supported styles, all code blocks with the same name are concatenated, in the order
+//! All code blocks with the same name are concatenated, in the order
 //! they are found, and the "unnamed" block is used as the entry point when generating the output
 //! source file. Any code blocks with names which are not invoked will not appear in the compiled
 //! code.
@@ -23,22 +20,20 @@
 //! Currently, the Markdown parser does not support code that is written to the compiled file, but
 //! not rendered in the documentation file.
 
-use serde_derive::Deserialize;
-use std::iter::FromIterator;
-
-use super::{ParseError, Parser, ParserConfig, Printer};
-
 use crate::document::ast::Node;
-use crate::document::code::CodeBlock;
+use crate::document::code::{CodeBlock, Line, Segment, Source};
 use crate::document::text::TextBlock;
 use crate::document::tranclusion::Transclusion;
 use crate::document::Document;
 use crate::parser::code::RevCodeBlock;
-use crate::util::try_collect::TryCollectExt;
+use crate::util::{try_collect::TryCollectExt, Fallible};
 use regex::Regex;
-use serde::de::Error;
+use serde::de::Error as _;
 use serde::{Deserialize, Deserializer};
+use std::error::Error;
+use std::fmt::Write;
 use std::fs::File;
+use std::iter::FromIterator;
 use std::path::{Path, PathBuf};
 
 /// The config for parsing a Markdown document
@@ -153,7 +148,7 @@ impl Default for MdParser {
     }
 }
 
-impl<'a> MdParser {
+impl MdParser {
     const LINK_PATTERN: &'static str = r"\[([^\[\]]*)\]\((.*?)\)";
 
     /// Check the validity of the parser configuration
@@ -181,7 +176,7 @@ impl<'a> MdParser {
         }
     }
 
-    fn parse_transclusion(&self, line: &str, into: &Path) -> Result<Option<Node>, ParseError> {
+    fn parse_transclusion(&self, line: &str, into: &Path) -> Fallible<Option<Node>> {
         let trim = line.trim();
         if trim.starts_with(&self.transclusion_start) {
             if let Some(index) = line.find(&self.transclusion_end) {
@@ -203,7 +198,7 @@ impl<'a> MdParser {
                     line.to_string(),
                 ))))
             } else {
-                Err(ParseError::UnclosedTransclusionError(line.to_owned()))
+                Err(format!("Unclosed transclusion in: {}", line).into())
             }
         } else {
             Ok(None)
@@ -211,35 +206,33 @@ impl<'a> MdParser {
     }
 }
 
-impl ParserConfig for MdParser {
-    fn comment_start(&self) -> &str {
+impl MdParser {
+    pub fn comment_start(&self) -> &str {
         &self.comment_start
     }
-    fn interpolation_start(&self) -> &str {
+    pub fn interpolation_start(&self) -> &str {
         &self.interpolation_start
     }
-    fn interpolation_end(&self) -> &str {
+    pub fn interpolation_end(&self) -> &str {
         &self.interpolation_end
     }
-    fn macro_start(&self) -> &str {
+    pub fn macro_start(&self) -> &str {
         &self.macro_start
     }
-    fn macro_end(&self) -> &str {
+    pub fn macro_end(&self) -> &str {
         &self.macro_end
     }
-    fn variable_sep(&self) -> &str {
+    pub fn variable_sep(&self) -> &str {
         &self.variable_sep
     }
-    fn file_prefix(&self) -> &str {
+    pub fn file_prefix(&self) -> &str {
         &self.file_prefix
     }
 }
 
-impl Parser for MdParser {
-    type Error = MdError;
-
+impl MdParser {
     #[allow(clippy::nonminimal_bool)]
-    fn parse(&self, input: &str, path: &Path) -> Result<Document, Self::Error> {
+    pub fn parse(&self, input: &str, path: &Path) -> Fallible<Document> {
         #[derive(Default)]
         struct State {
             node: Option<Node>,
@@ -248,7 +241,13 @@ impl Parser for MdParser {
         enum Parse {
             Incomplete,
             Complete(Node),
-            Error(MdError),
+            Error(Box<dyn Error>),
+        }
+
+        impl Parse {
+            fn error(err: Box<dyn Error>, line: usize) -> Self {
+                Self::Error(format!("{} (line {})", err, line).into())
+            }
         }
 
         let mut state = State::default();
@@ -284,10 +283,9 @@ impl Parser for MdParser {
                                 state.node = None;
                                 Some(Parse::Complete(Node::Code(code_block)))
                             } else {
-                                Some(Parse::Error(MdError::Single {
-                                    line_number,
-                                    kind: MdErrorKind::IncorrectIndentation,
-                                }))
+                                Some(Parse::Error(
+                                    format!("Incorrect indentation in line {}", line_number).into(),
+                                ))
                             }
                         }
                         previous => {
@@ -324,10 +322,7 @@ impl Parser for MdParser {
                             new_block.add_line(line);
                             state.node = Some(Node::Text(new_block));
                             match self.parse_transclusion(line, path) {
-                                Err(err) => Some(Parse::Error(MdError::Single {
-                                    line_number,
-                                    kind: MdErrorKind::Parse(err),
-                                })),
+                                Err(err) => Some(Parse::error(err, line_number)),
                                 Ok(trans) => match trans {
                                     Some(node) => {
                                         let new_block = TextBlock::new();
@@ -340,10 +335,7 @@ impl Parser for MdParser {
                             }
                         }
                         Some(Node::Text(block)) => match self.parse_transclusion(line, path) {
-                            Err(err) => Some(Parse::Error(MdError::Single {
-                                line_number,
-                                kind: MdErrorKind::Parse(err),
-                            })),
+                            Err(err) => Some(Parse::error(err, line_number)),
                             Ok(trans) => match trans {
                                 Some(node) => {
                                     let ret = state.node.take();
@@ -377,10 +369,7 @@ impl Parser for MdParser {
                                             block.defaults = defaults;
                                         }
                                         Err(error) => {
-                                            return Some(Parse::Error(MdError::Single {
-                                                line_number,
-                                                kind: error.into(),
-                                            }))
+                                            return Some(Parse::error(error, line_number));
                                         }
                                     };
                                     Some(Parse::Incomplete)
@@ -390,20 +379,16 @@ impl Parser for MdParser {
                                     {
                                         Ok(line) => line,
                                         Err(error) => {
-                                            return Some(Parse::Error(MdError::Single {
-                                                line_number,
-                                                kind: error.into(),
-                                            }))
+                                            return Some(Parse::error(error, line_number));
                                         }
                                     };
                                     block.add_line(line);
                                     Some(Parse::Incomplete)
                                 }
                             } else {
-                                Some(Parse::Error(MdError::Single {
-                                    line_number,
-                                    kind: MdErrorKind::IncorrectIndentation,
-                                }))
+                                Some(Parse::Error(
+                                    format!("Incorrect indentation line {}", line_number).into(),
+                                ))
                             }
                         }
                         Some(Node::Transclusion(trans)) => {
@@ -421,19 +406,26 @@ impl Parser for MdParser {
                 Parse::Error(error) => Some(Err(error)),
                 Parse::Complete(node) => Some(Ok(node)),
             })
-            .try_collect::<_, _, Vec<_>, MdError>()?;
+            .try_collect::<_, _, Vec<_>, Vec<Box<dyn std::error::Error>>>()
+            .map_err(|errors| {
+                let mut msg = String::new();
+                for error in errors {
+                    writeln!(&mut msg, "{}", error).unwrap();
+                }
+                msg
+            })?;
         if let Some(node) = state.node.take() {
             document.push(node);
         }
         Ok(Document::from_iter(document))
     }
 
-    fn find_links(
+    pub fn find_links(
         &self,
         input: &mut Document,
         from: &Path,
         remove_marker: bool,
-    ) -> Result<Vec<PathBuf>, Self::Error> {
+    ) -> Fallible<Vec<PathBuf>> {
         let regex = &self.link_following_pattern;
         let mut paths = vec![];
         let tree = input.tree_mut();
@@ -489,10 +481,136 @@ impl Parser for MdParser {
         }
         Ok(paths)
     }
+
+    /// Parses a macro name, returning the name and the extracted variables
+    #[allow(clippy::type_complexity)]
+    pub fn parse_name(
+        &self,
+        mut input: &str,
+        is_call: bool,
+    ) -> Fallible<(String, Vec<String>, Vec<Option<String>>)> {
+        let orig = input;
+        let mut name = String::new();
+        let mut vars = vec![];
+        let mut optionals = vec![];
+        let start = self.interpolation_start();
+        let end = self.interpolation_end();
+        let sep = self.variable_sep();
+        let sep_len = sep.len();
+        loop {
+            if let Some(start_index) = input.find(start) {
+                if let Some(end_index) = input[start_index + start.len()..].find(end) {
+                    name.push_str(&input[..start_index]);
+                    name.push_str(&start);
+                    name.push_str(&end);
+                    let var =
+                        &input[start_index + start.len()..start_index + start.len() + end_index];
+                    if is_call {
+                        vars.push(var.to_owned());
+                        optionals.push(None);
+                    } else if let Some(sep_index) = var.find(sep) {
+                        vars.push((&var[..sep_index]).to_owned());
+                        optionals.push(Some((&var[sep_index + sep_len..]).to_owned()));
+                    } else {
+                        vars.push(var.to_owned());
+                        optionals.push(None);
+                    }
+                    input = &input[start_index + start.len() + end_index + end.len()..];
+                } else {
+                    return Err(format!("Unclosed variable in: {}", orig).into());
+                }
+            } else {
+                name.push_str(input);
+                break;
+            }
+        }
+        Ok((name, vars, optionals))
+    }
+
+    /// Parses a line as code, returning the parsed `Line` object
+    pub fn parse_line(&self, line_number: usize, input: &str) -> Fallible<Line> {
+        let orig = input;
+        let indent_len = input
+            .chars()
+            .take_while(|ch| ch.is_whitespace())
+            .collect::<String>()
+            .len();
+        let (indent, rest) = input.split_at(indent_len);
+        let (mut rest, comment) = if let Some(comment_index) = rest.find(self.comment_start()) {
+            let (rest, comment) = rest.split_at(comment_index);
+            (
+                rest,
+                Some((&comment[self.comment_start().len()..]).to_owned()),
+            )
+        } else {
+            (rest, None)
+        };
+
+        if rest.starts_with(self.macro_start()) {
+            if let Some(end_index) = rest.find(self.macro_end()) {
+                let (name, scope, _names) =
+                    self.parse_name(&rest[self.macro_start().len()..end_index].trim(), true)?;
+                return Ok(Line {
+                    line_number,
+                    indent: indent.to_owned(),
+                    source: Source::Macro { name, scope },
+                    comment,
+                });
+            }
+        }
+
+        let mut source = vec![];
+        let start = self.interpolation_start();
+        let end = self.interpolation_end();
+        loop {
+            if let Some(start_index) = rest.find(start) {
+                if let Some(end_index) = rest[start_index + start.len()..].find(end) {
+                    source.push(Segment::Source((&rest[..start_index]).to_owned()));
+                    source.push(Segment::MetaVar(
+                        (&rest[start_index + start.len()..start_index + start.len() + end_index])
+                            .to_owned(),
+                    ));
+                    rest = &rest[start_index + start.len() + end_index + end.len()..];
+                } else {
+                    return Err(format!("Unclosed variable in: {}", orig).into());
+                }
+            } else {
+                if !rest.is_empty() {
+                    source.push(Segment::Source(rest.to_owned()));
+                }
+                break;
+            }
+        }
+
+        Ok(Line {
+            line_number,
+            indent: indent.to_owned(),
+            source: Source::Source(source),
+            comment,
+        })
+    }
+
+    /// Finds all file-specific entry points
+    pub fn get_entry_points(
+        &self,
+        doc: &Document,
+        language: &Option<&str>,
+    ) -> Vec<(String, String)> {
+        let mut entries = vec![];
+        let pref = self.file_prefix();
+        for (name, _block) in doc.tree().code_blocks(language) {
+            if let Some(name) = name {
+                if let Some(rest) = name.strip_prefix(pref) {
+                    entries.push((name.to_owned(), rest.to_owned()))
+                }
+            }
+        }
+        entries
+    }
 }
 
-impl Printer for MdParser {
-    fn print_code_block(&self, block: &CodeBlock) -> String {
+impl MdParser {
+    pub fn print_code_block(&self, block: &CodeBlock) -> String {
         let fence_sequence = if block.alternative {
             &self.fence_sequence_alt
         } else {
@@ -536,7 +654,7 @@ impl Printer for MdParser {
         output
     }
 
-    fn print_code_block_reverse(
+    pub fn print_code_block_reverse(
         &self,
         block: &CodeBlock,
         alternative: Option<&RevCodeBlock>,
@@ -579,11 +697,11 @@ impl Printer for MdParser {
         output
     }
 
-    fn print_text_block(&self, block: &TextBlock) -> String {
+    pub fn print_text_block(&self, block: &TextBlock) -> String {
         format!("{}\n", block.to_string())
     }
 
-    fn print_transclusion(&self, transclusion: &Transclusion, reverse: bool) -> String {
+    pub fn print_transclusion(&self, transclusion: &Transclusion, reverse: bool) -> String {
         let mut output = String::new();
         if reverse {
             output.push_str(transclusion.original());
@@ -595,61 +713,72 @@ impl Printer for MdParser {
         }
         output
     }
-}
 
-/// Kinds of errors that can be encountered while parsing and restructuring the Markdown
-#[derive(Debug)]
-pub enum MdErrorKind {
-    /// A line was un-indented too far, usually indicating an error
-    IncorrectIndentation,
-    /// Generic parse error
-    Parse(ParseError),
-}
-
-/// Errors that were encountered while parsing the HTML
-#[derive(Debug)]
-pub enum MdError {
-    #[doc(hidden)]
-    Single {
-        line_number: usize,
-        kind: MdErrorKind,
-    },
-    #[doc(hidden)]
-    Multi(Vec<MdError>),
-}
-
-impl std::fmt::Display for MdError {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        match self {
-            MdError::Multi(errors) => {
-                for error in errors {
-                    writeln!(f, "{}", error)?;
-                }
-                Ok(())
+    /// Fills a name with its placeholders and defaults
+    pub fn print_name(
+        &self,
+        mut name: String,
+        vars: &[String],
+        defaults: &[Option<String>],
+    ) -> String {
+        let start = self.interpolation_start();
+        let end = self.interpolation_end();
+        let var_placeholder = format!("{}{}", start, end);
+        for (var, default) in vars.iter().zip(defaults) {
+            let mut var_full = var.to_string();
+            if let Some(default) = default {
+                var_full.push_str(self.variable_sep());
+                var_full.push_str(default);
             }
-            MdError::Single { line_number, kind } => {
-                writeln!(f, "{:?} (line {})", kind, line_number)
+            let var_name = format!("{}{}{}", start, var_full, end);
+            name = name.replacen(&var_placeholder, &var_name, 1);
+        }
+        name
+    }
+
+    /// Fills a name with its placeholders
+    pub fn print_macro_call(&self, mut name: String, vars: &[String]) -> String {
+        let start = self.interpolation_start();
+        let end = self.interpolation_end();
+        let var_placeholder = format!("{}{}", start, end);
+        for var in vars {
+            let var_name = format!("{}{}{}", start, var, end);
+            name = name.replacen(&var_placeholder, &var_name, 1);
+        }
+        name
+    }
+
+    /// Prints a line of a code block
+    pub fn print_line(&self, line: &Line, print_comments: bool) -> String {
+        let mut output = line.indent.to_string();
+        match &line.source {
+            Source::Macro { name, scope } => {
+                output.push_str(self.macro_start());
+                if !self.macro_start().ends_with(' ') {
+                    output.push(' ');
+                }
+                output.push_str(&self.print_macro_call(name.clone(), &scope));
+                output.push_str(self.macro_end());
+            }
+            Source::Source(segments) => {
+                for segment in segments {
+                    match segment {
+                        Segment::Source(source) => output.push_str(source),
+                        Segment::MetaVar(name) => {
+                            output.push_str(self.interpolation_start());
+                            output.push_str(&name);
+                            output.push_str(self.interpolation_end());
+                        }
+                    }
+                }
             }
         }
-    }
-}
-
-impl std::error::Error for MdError {}
-
-impl FromIterator<MdError> for MdError {
-    fn from_iter<I: IntoIterator<Item = MdError>>(iter: I) -> Self {
-        MdError::Multi(iter.into_iter().collect())
-    }
-}
-
-impl From<Vec<MdError>> for MdError {
-    fn from(multi: Vec<MdError>) -> Self {
-        MdError::Multi(multi)
-    }
-}
-
-impl From<ParseError> for MdErrorKind {
-    fn from(error: ParseError) -> Self {
-        MdErrorKind::Parse(error)
+        if print_comments {
+            if let Some(comment) = &line.comment {
+                output.push_str(self.comment_start());
+                output.push_str(&comment);
+            }
+        }
+        output
     }
 }

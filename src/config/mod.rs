@@ -1,7 +1,7 @@
 //! Config objects, to be read from Yarner.toml
 
-use crate::parser::*;
-use serde_derive::{Deserialize, Serialize};
+use crate::parser::md::MdParser;
+use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
 
 /// Top-leven config

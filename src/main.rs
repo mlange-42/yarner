@@ -6,8 +6,11 @@ pub mod util;
 
 use crate::config::{AnyConfig, LanguageSettings};
 use crate::document::{CompileError, CompileErrorKind, Document};
-use crate::parser::code::{CodeParser, RevCodeBlock};
-use crate::parser::{ParseError, Parser, ParserConfig, Printer};
+use crate::parser::{
+    code::{CodeParser, RevCodeBlock},
+    md::MdParser,
+};
+use crate::util::Fallible;
 use clap::{crate_version, App, Arg, SubCommand};
 use std::collections::hash_map::Entry::{Occupied, Vacant};
 use std::collections::{HashMap, HashSet};
@@ -582,19 +585,15 @@ fn create_project(file: &str) -> Result<(), Box<dyn Error>> {
     Ok(())
 }
 
-fn transclude_dry_run<P>(
-    parser: &P,
+fn transclude_dry_run(
+    parser: &MdParser,
     file_name: &Path,
     code_dir: &Option<PathBuf>,
     entrypoint: &Option<&str>,
     language: &Option<&str>,
     documents: &mut HashMap<PathBuf, Document>,
     track_code_files: &mut HashSet<PathBuf>,
-) -> Result<Document, Box<dyn std::error::Error>>
-where
-    P: Parser + Printer + ParserConfig,
-    P::Error: 'static,
-{
+) -> Fallible<Document> {
     let source_main = fs::read_to_string(&file_name)?;
     let document = parser.parse(&source_main, &file_name)?;
 
@@ -633,11 +632,7 @@ where
     Ok(document)
 }
 
-fn transclude<P>(parser: &P, file_name: &Path) -> Result<Document, Box<dyn std::error::Error>>
-where
-    P: Parser + Printer + ParserConfig,
-    P::Error: 'static,
-{
+fn transclude(parser: &MdParser, file_name: &Path) -> Fallible<Document> {
     let source_main = fs::read_to_string(&file_name)?;
     let mut document = parser.parse(&source_main, &file_name)?;
 
@@ -669,8 +664,8 @@ where
 }
 
 #[allow(clippy::too_many_arguments)]
-fn compile_all<P>(
-    parser: &P,
+fn compile_all(
+    parser: &MdParser,
     doc_dir: &Option<PathBuf>,
     code_dir: &Option<PathBuf>,
     file_name: &Path,
@@ -679,11 +674,7 @@ fn compile_all<P>(
     settings: &Option<HashMap<String, LanguageSettings>>,
     track_input_files: &mut HashSet<PathBuf>,
     track_code_files: &mut HashSet<PathBuf>,
-) -> Result<(), Box<dyn std::error::Error>>
-where
-    P: Parser + Printer,
-    P::Error: 'static,
-{
+) -> Fallible {
     if !track_input_files.contains(file_name) {
         let mut document = transclude(parser, file_name)?;
         let links = parser.find_links(&mut document, file_name, true)?;
@@ -725,8 +716,8 @@ where
 }
 
 #[allow(clippy::too_many_arguments)]
-fn compile_all_reverse<P>(
-    parser: &P,
+fn compile_all_reverse(
+    parser: &MdParser,
     doc_dir: &Option<PathBuf>,
     code_dir: &Option<PathBuf>,
     file_name: &Path,
@@ -736,11 +727,7 @@ fn compile_all_reverse<P>(
     track_input_files: &mut HashSet<PathBuf>,
     track_code_files: &mut HashSet<PathBuf>,
     documents: &mut HashMap<PathBuf, Document>,
-) -> Result<(), Box<dyn std::error::Error>>
-where
-    P: Parser + Printer,
-    P::Error: 'static,
-{
+) -> Fallible {
     if !track_input_files.contains(file_name) {
         let mut document = transclude_dry_run(
             parser,
@@ -792,8 +779,8 @@ where
 }
 
 #[allow(clippy::too_many_arguments)]
-fn compile<P>(
-    parser: &P,
+fn compile(
+    parser: &MdParser,
     document: &Document,
     doc_dir: &Option<PathBuf>,
     code_dir: &Option<PathBuf>,
@@ -802,11 +789,7 @@ fn compile<P>(
     language: &Option<&str>,
     settings: &Option<HashMap<String, LanguageSettings>>,
     track_code_files: &mut HashSet<PathBuf>,
-) -> Result<(), Box<dyn std::error::Error>>
-where
-    P: Parser + Printer,
-    P::Error: 'static,
-{
+) -> Fallible {
     eprintln!("Compiling file {}", file_name.display());
 
     let mut entries = vec![(entrypoint.as_deref(), file_name.to_owned())];
@@ -853,10 +836,11 @@ where
                 };
 
                 if track_code_files.contains(&file_path) {
-                    return Err(Box::new(ParseError::MultipleCodeFileAccessError(format!(
+                    return Err(format!(
                         "ERROR: Multiple locations point to code file {}",
                         file_path.display()
-                    ))));
+                    )
+                    .into());
                 } else {
                     track_code_files.insert(file_path.clone());
                 }
@@ -888,19 +872,15 @@ where
 }
 
 #[allow(clippy::too_many_arguments)]
-fn compile_reverse<P>(
-    parser: &P,
+fn compile_reverse(
+    parser: &MdParser,
     document: &Document,
     code_dir: &Option<PathBuf>,
     file_name: &Path,
     entrypoint: &Option<&str>,
     language: &Option<&str>,
     track_code_files: &mut HashSet<PathBuf>,
-) -> Result<(), Box<dyn std::error::Error>>
-where
-    P: Parser + Printer,
-    P::Error: 'static,
-{
+) -> Fallible {
     eprintln!("Compiling file {}", file_name.display());
 
     let mut entries = vec![(entrypoint.as_deref(), file_name.to_owned())];
@@ -925,10 +905,11 @@ where
                 }
 
                 if track_code_files.contains(&file_path) {
-                    return Err(Box::new(ParseError::MultipleCodeFileAccessError(format!(
+                    return Err(format!(
                         "ERROR: Multiple locations point to code file {}",
                         file_path.display()
-                    ))));
+                    )
+                    .into());
                 } else {
                     track_code_files.insert(file_path.clone());
                 }

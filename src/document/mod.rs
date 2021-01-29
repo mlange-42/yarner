@@ -8,8 +8,7 @@ pub mod tranclusion;
 
 use self::ast::Ast;
 use crate::config::LanguageSettings;
-use crate::parser::code::RevCodeBlock;
-use crate::parser::Printer;
+use crate::parser::{code::RevCodeBlock, md::MdParser};
 use std::collections::HashMap;
 
 /// A representation of a `Document` of literate code
@@ -25,14 +24,14 @@ impl Document {
     }
 
     /// Formats this `Document` as a string containing the documentation file contents
-    pub fn print_docs<P: Printer>(&self, printer: &P) -> String {
+    pub fn print_docs(&self, printer: &MdParser) -> String {
         self.tree.print_docs(printer)
     }
 
     /// Formats this `Document` as the original source, potentially replacing code blocks
-    pub fn print_reverse<P: Printer>(
+    pub fn print_reverse(
         &self,
-        printer: &P,
+        printer: &MdParser,
         code_blocks: &HashMap<&Option<String>, &Vec<RevCodeBlock>>,
     ) -> String {
         self.tree.print_reverse(printer, code_blocks)
