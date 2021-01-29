@@ -5,7 +5,6 @@
 If you consider a macro invocation like a function call, then meta variables are like parameters.
 
 By default, to indicate that a macro includes a meta variable, the name of the variable must be part of the name of the macro, delimited by `@{` and `}`.
-
 Then that meta variable may be used within the macro by again using its name within the `@{` and `}` in the code.
 
 Finally, a macro with meta variables is invoked by replacing the name of the variable with its value in the invocation.

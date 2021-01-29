@@ -18,7 +18,7 @@ The generated Markdown file already contains some content to get started with Ya
 
 ## Build a project
 
-To build/"compile" the project (extract code and create documentation), simply run:
+To build the project (i.e. extract code and create documentation), simply run:
 
 ```plaintext
 > yarner

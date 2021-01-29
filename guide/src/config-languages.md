@@ -25,12 +25,12 @@ eof_newline = true
 
 ## Options
 
-| Option              | Details                                                                                                                            |
-| ------------------- | ---------------------------------------------------------------------------------------------------------------------------------- |
-| `comment_start`     | Start of comments in the language. Used for code block labels for reverse mode. Can be start of line or block comments.            |
-| `comment_end`       | End of comments. Optional, only for languages that support only block comments.                                                    |
-| `block_start`       | Start sequence of block labels.                                                                                                    |
-| `block_next`        | Start of next block with the same name.                                                                                            |
-| `block_end`         | End of block labels.                                                                                                               |
-| `clear_blank_lines` | Replaces lines containing only whitespaces by blank lines, in code output. Defaults to true when no language settings are present. |
-| `eof_newline`       | Enforces code files to always end with a blank line. Defaults to true when no language settings are present.                       |
+| Option              | Details                                                                                                                             |
+| ------------------- | ----------------------------------------------------------------------------------------------------------------------------------- |
+| `comment_start`     | Start of comments in the language. Used for code block labels for reverse mode. Can be start of line or block comments              |
+| `comment_end`       | End of comments. Optional, only for languages that support only block comments                                                      |
+| `block_start`       | Start sequence of block labels                                                                                                      |
+| `block_next`        | Start of next block with the same name                                                                                              |
+| `block_end`         | End of block labels                                                                                                                 |
+| `clear_blank_lines` | Replaces lines containing only whitespaces by blank lines, in code output. Defaults to `true` when no language settings are present |
+| `eof_newline`       | Enforces code files to always end with a blank line. Defaults to `true` when no language settings are present                       |

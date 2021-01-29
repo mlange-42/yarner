@@ -46,7 +46,11 @@ comment_start = "#"
 
 Option `comment_end` is provided for languages that support only block comments and sould be left out in all other cases.
 
+For details on the available options, see chapter [Languages](./config-languages.md).
+
 Multiple languages can be defined by simply adding one section per language.
+It is, however, not necessary to provide language settings for every file extension present.
+Files with no language settings for their extension are simply ignored during reverse mode.
 
 ## Code block labels
 
@@ -100,4 +104,4 @@ Of course, the reverse mode does not work with clean output.
 The [Comment extraction](./comment-extraction.md) feature does not work with reverse mode.
 As Yarner's special comments (`//-` by default) are not written to code files, they will be lost during reverse mode.
 
-This may my be fixed in a future version of Yarner.
+This may be fixed in a future version of Yarner.

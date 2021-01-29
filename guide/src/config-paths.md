@@ -1,6 +1,6 @@
 # Paths
 
-Section `paths` of a project's `Yarner.toml` contains configuration of which files to process and to copy.
+Section `paths` of a project's `Yarner.toml` contains configuration on which files to process and to copy.
 
 [[_TOC_]]
 
@@ -27,14 +27,14 @@ files = ["<file>"]
 
 # Options
 
-| Option       | Details                                                                                                                  |
-| ------------ | ------------------------------------------------------------------------------------------------------------------------ |
-| `root`       | The root directory all paths are relative to.                                                                            |
-| `code`       | Path for code output.                                                                                                    |
-| `docs`       | Path for documentation output.                                                                                           |
-| `files`      | List of files to process.                                                                                                |
-| `entrypoint` | Block name to be used as entrypoint. Optional. Uses unnamed entrypoints if not present.                                  |
-| `code_files` | Files or glob patterns for files to copy to the code output. Optional. See [Copying files](./copying-files.md).          |
-| `code_paths` | Manipulation of code copy paths. Optional. See [Copying files](./copying-files.md).                                      |
-| `doc_files`  | Files or glob patterns for files to copy to the documentation output. Optional. See [Copying files](./copying-files.md). |
-| `doc_paths`  | Manipulation of documentation copy paths. Optional. See [Copying files](./copying-files.md).                             |
+| Option       | Details                                                                                                                 |
+| ------------ | ----------------------------------------------------------------------------------------------------------------------- |
+| `root`       | The root directory all paths are relative to                                                                            |
+| `code`       | Path for code output                                                                                                    |
+| `docs`       | Path for documentation output                                                                                           |
+| `files`      | List of files to process                                                                                                |
+| `entrypoint` | Block name to be used as entrypoint. Optional. Uses unnamed entrypoints if not present                                  |
+| `code_files` | Files or glob patterns for files to copy to the code output. Optional. See [Copying files](./copying-files.md)          |
+| `code_paths` | Manipulation of code copy paths. Optional. See [Copying files](./copying-files.md)                                      |
+| `doc_files`  | Files or glob patterns for files to copy to the documentation output. Optional. See [Copying files](./copying-files.md) |
+| `doc_paths`  | Manipulation of documentation copy paths. Optional. See [Copying files](./copying-files.md)                             |

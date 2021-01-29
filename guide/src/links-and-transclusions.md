@@ -1,7 +1,7 @@
 # Links and transclusions
 
 For larger projects, not only multiple code files are desirable, but also multiple Markdown source and/or documentation files.
-This chapter explains two features for that purpose.
+This chapter explains two features serving that purpose.
 
 [[_TOC_]]
 
@@ -36,6 +36,8 @@ During transclusion, unnamed code blocks are renamed to produce code in the same
 Note the prefix `file:`. See chapter [Multiple code files](./multiple-code-files.md) for details.
 
 A transclusion should be the only thing in a line.
+
+**Transclusions are recursive**, so transcluded files can also transculde other files themselves.
 
 ## Limitations - link correction
 

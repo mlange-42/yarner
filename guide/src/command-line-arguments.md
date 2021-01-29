@@ -19,7 +19,7 @@ The normal workflow is:
     > yarner
 
 USAGE:
-    yarner.exe [FLAGS] [OPTIONS] [input]... [SUBCOMMAND]
+    yarner [FLAGS] [OPTIONS] [input]... [SUBCOMMAND]
 
 FLAGS:
     -C, --clean      Produces clean code output, without block label comments.

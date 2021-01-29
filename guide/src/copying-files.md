@@ -1,7 +1,7 @@
 # Copying files
 
 Sometimes it may be desired to include code that is not part of the Markdown sources.
-Further, it may be necessary to include files in the documentation that are not procesed by Yarner, like images.
+Further, it may be necessary to include files in the documentation that are not processed by Yarner, like images.
 For such cases, Yarner can automatically copy files into code and documentation output.
 
 [[_TOC_]]
@@ -39,8 +39,8 @@ code_paths = ["-"]
 When present, options `code_paths` and `doc_paths` must have as many entries as `code_files` and `doc_files`, respectively.
 Each entry of e.g. `code_paths` is applied to the corresponding entry in `code_files`.
 
-Possible modifications: 
+**Possible modifications:**
 
-* Use "foo/bar" to replace the first two path component by foo and bar.
-* Use "-" to ommit, and "_" to preserve a component.
-* Use a single "_" if no change is intended at all.
+* Use `foo/bar` to replace the first two path component by `foo` and `bar`.
+* Use `-` (minus) to ommit, and `_` (underscore) to preserve a component.
+* Use a single `_` (underscore) if no path change is intended at all.

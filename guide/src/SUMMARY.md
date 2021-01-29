@@ -2,7 +2,6 @@
 
 [Yarner -- Introduction](./introduction.md)
 
-<!-- - [How is works](./how-it-works.md) -->
 - [Installation](./installation.md)
 - [Getting started](./getting-started.md)
 - [Blocks and macros](./blocks-and-macros.md)

@@ -2,13 +2,13 @@
 
 Yarner's aim is to make it possible to create software from documents written and structured for humans.
 The most important features in that respect are (named) code blocks and macros.
-This chapter gives an introduction for basic use of these features.
+This chapter provides an introduction to their basic usage.
 
 [[_TOC_]]
 
 ## Code blocks
 
-In the most basic scenario, Yarner extracts code blocks from a Markdown document and writes them to an equally-named file in the `code` output directoy, with the `md` extension stripped off.
+In the most basic scenario, Yarner extracts code blocks from a Markdown document and writes them to an equally-named file in the `code` output directoy, with the file's `md` extension stripped off.
 
 As an example, create a project like this:
 
@@ -32,13 +32,13 @@ fn main() {
 ```
 ````
 
-Running yarner
+Running yarner with
 
 ```plaintext
 > yarner
 ```
 
-Now creates a file `main.rs` in sub-directory `code`, and a documentation file `main.rs.md` in sub-directory `docs`.
+creates a file `main.rs` in sub-directory `code`, and a documentation file `main.rs.md` in sub-directory `docs`.
 In this case, `docs/main.rs.md` has the same content as the original file, and `code/main.rs` contains the extracted code block:
 
 ```rust,noplaypen
@@ -50,7 +50,8 @@ fn main() {
 ## Macros
 
 To allow structuring for humans, Yarner uses macros. 
-For that sake, code blocks can be given a name in their first line, by default prefixed with `//-`:
+For that sake, code blocks can be given a name in their first line, by default prefixed with `//-`.
+Here is a code block named `Say hello`:
 
 ````markdown
 ```rust
@@ -74,7 +75,7 @@ fn main() {
 ```
 ````
 
-As a complete example, the main file content could look like this:
+As a complete example, the content of a file `main.rs.md` could look like this:
 
 ````markdown
 # Simple example
@@ -114,7 +115,7 @@ fn say_hello() {
 ## Named entrypoints
 
 By default, unnamed code blocks are the entrypoints for code extraction.
-This can be changed in the config file `Yarner.toml` through variable `entrypoint` in section `[paths]`:
+This can be changed in the config file `Yarner.toml` through the option `entrypoint` in section `[paths]`:
 
 ```toml
 ...

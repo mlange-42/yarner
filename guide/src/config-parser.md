@@ -39,7 +39,7 @@ hidden_prefix = "hidden:"
 | Option                                    | Details                                                                                                                                                                |
 | ----------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | `fence_sequence`                          | The sequence used for normal code blocks                                                                                                                               |
-| `fence_sequence_alt`                      | Alternative fence sequence to allow for code blocks inside code blocks. Use this for the outer block.                                                                  |
+| `fence_sequence_alt`                      | Alternative fence sequence to allow for code blocks inside code blocks. Use this for the outer block                                                                   |
 | `comment_start`                           | Sequence for comments. The comment in the first line of a code block is the block's name                                                                               |
 | `comments_as_aside`                       | Comments starting with the above sequence are excluded from code output. With this option on `true`, comments are places in `<aside>` tags in the documentation output |
 | `interpolation_start` `interpolation_end` | Start and end of a meta variable                                                                                                                                       |
@@ -47,6 +47,6 @@ hidden_prefix = "hidden:"
 | `transclusion_start` `transclusion_end`   | Start and end of a transclusion. E.g. `@{{transclude.md}}`                                                                                                             |
 | `link_prefix`                             | Prefix for links to make Yarner include the linked file in the build process. E.g. `@[Linked file](linked.md)`                                                         |
 | `variable_sep`                            | Separator between variable name and value                                                                                                                              |
-| `file_prefix`                             | Prefix to treat bloch names as target file specifiers. E.g. `//- file:main.rs`                                                                                         |
-| `hidden_prefix`                           | Prefix to hide a code block in documentation output. E.g. `//- hiden:Secret code block`                                                                                |
-| `default_language`                        | The default language in case no language is given after the opening fence sequence. Optional.                                                                          |
+| `file_prefix`                             | Prefix to treat block names as target file specifiers. E.g. `//- file:main.rs`                                                                                         |
+| `hidden_prefix`                           | Prefix to hide a code block in documentation output. E.g. `//- hidden:Secret code block`                                                                               |
+| `default_language`                        | The default language in case no language is given after the opening fence sequence. Optional                                                                           |
