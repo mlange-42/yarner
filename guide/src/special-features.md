@@ -1,4 +1,4 @@
-# Other features
+# Special features
 
 Yarner provides some features that still have to proof their usefulness.
 These are described in the following chapters.

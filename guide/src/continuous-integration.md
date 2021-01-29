@@ -3,8 +3,8 @@
 This chapter shows some examples how to use Yarner with Continuous integration.
 There are always two ways to get Yarner:
 
-1.) Use a rust image and install it using `cargo`
-2.) Download the [precompiled binaries](https://github.com/mlange-42/yarner/releases/)
+1. Use a rust image and install it using `cargo`
+2. Download the [precompiled binaries](https://github.com/mlange-42/yarner/releases/)
 
 In these examples, we use the second option.
 

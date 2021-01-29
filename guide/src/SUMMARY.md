@@ -11,7 +11,7 @@
 - [Links and transclusions](./links-and-transclusions.md)
 - [Copying files](./copying-files.md)
 - [Reverse mode](./reverse-mode.md)
-- [Other features](./other-features.md)
+- [Special features](./special-features.md)
   - [Meta variables](./meta-variables.md)
   - [Comment extraction](./comment-extraction.md)
 - [Configuration](./configuration.md)
