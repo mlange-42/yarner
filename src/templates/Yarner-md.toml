@@ -64,7 +64,7 @@ files = ["%%MAIN_FILE%%"]
 ## File(s) to include in code output (unprocessed), as glob pattern(s).
 # code_files = ["**/*.rs"]
 ## Allows to modify paths of copied code files. Replaces path components. Optional.
-## When given, must have as many elements as code_files.
+## When present, must have as many elements as code_files.
 ## E.g., use "foo/bar" to replace the first two path component by foo and bar.
 ## Use "-" to ommit, and "_" to preserve a component. Use a single "_" if no change is intended at all.
 # code_paths = ["_"]
@@ -74,7 +74,8 @@ files = ["%%MAIN_FILE%%"]
 ## Allows to modify paths of copied code files. See code_paths for details. Optional.
 # doc_paths = ["_"]
 
-## Language-sprcific settings. Optional. Required for reverse mode.
+## Language-specific settings. Optional. Multiple language entries are possible.
+## Required for reverse mode.
 ## The language is determined by the extension of code output files.
 ## Example language settings for Rust:
 # [language.rs]
