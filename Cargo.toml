@@ -9,6 +9,7 @@ license = "MIT"
 edition = "2018"
 
 [profile.release]
+panic = "abort"
 opt-level = "s"
 lto = true
 codegen-units = 1
