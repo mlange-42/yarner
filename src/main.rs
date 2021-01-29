@@ -339,9 +339,9 @@ fn copy_files(
     Ok(())
 }
 
-fn modify_path(path: &PathBuf, replace: &str) -> PathBuf {
+fn modify_path(path: &Path, replace: &str) -> PathBuf {
     if replace.is_empty() || replace == "_" {
-        return path.clone();
+        return path.to_owned();
     }
     let mut new_path = PathBuf::new();
     let repl_parts: Vec<_> = Path::new(replace)
@@ -390,7 +390,7 @@ fn create_project(file: &str) -> Result<(), Box<dyn Error>> {
 
 fn transclude<P>(
     parser: &P,
-    file_name: &PathBuf,
+    file_name: &Path,
     into: Option<&PathBuf>,
 ) -> Result<Document, Box<dyn std::error::Error>>
 where
@@ -440,7 +440,7 @@ fn compile_all<P>(
     parser: &P,
     doc_dir: &Option<PathBuf>,
     code_dir: &Option<PathBuf>,
-    file_name: &PathBuf,
+    file_name: &Path,
     entrypoint: Option<&str>,
     language: Option<&str>,
     settings: &Option<HashMap<String, LanguageSettings>>,
@@ -463,13 +463,13 @@ where
             &document,
             doc_dir,
             code_dir,
-            &file_name,
+            file_name,
             entrypoint,
             language,
             settings,
             track_code_files,
         )?;
-        track_input_files.insert(file_name.clone());
+        track_input_files.insert(file_name.to_owned());
 
         for file in links {
             if !track_input_files.contains(&file) {
@@ -497,7 +497,7 @@ fn compile<P>(
     document: &Document,
     doc_dir: &Option<PathBuf>,
     code_dir: &Option<PathBuf>,
-    file_name: &PathBuf,
+    file_name: &Path,
     entrypoint: Option<&str>,
     language: Option<&str>,
     settings: &Option<HashMap<String, LanguageSettings>>,
@@ -509,7 +509,7 @@ where
 {
     eprintln!("Compiling file {}", file_name.display());
 
-    let mut entries = vec![(entrypoint, file_name.clone())];
+    let mut entries = vec![(entrypoint, file_name.to_owned())];
     let extra_entries = parser.get_entry_points(&document, language);
 
     entries.extend(
@@ -568,21 +568,16 @@ where
                         let mut code_file = File::create(file_path).unwrap();
                         write!(code_file, "{}", code).unwrap()
                     }
-                    Err(err) => match &err {
-                        CompileError::Single {
-                            line_number: _,
-                            kind,
-                        } => match kind {
-                            CompileErrorKind::MissingEntrypoint => {
-                                eprintln!(
-                                    "  --> WARNING: No entrypoint for file {}, skipping code output.",
-                                    sub_file_name.display()
-                                );
-                            }
-                            _ => return Err(Box::new(err)),
-                        },
-                        _ => return Err(Box::new(err)),
-                    },
+                    Err(CompileError::Single {
+                        kind: CompileErrorKind::MissingEntrypoint,
+                        ..
+                    }) => {
+                        eprintln!(
+                            "  --> WARNING: No entrypoint for file {}, skipping code output.",
+                            sub_file_name.display()
+                        );
+                    }
+                    Err(err) => return Err(Box::new(err)),
                 };
             }
             None => eprintln!("WARNING: Missing output location for code, skipping code output."),

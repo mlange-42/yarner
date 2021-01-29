@@ -16,7 +16,7 @@ use crate::document::tranclusion::Transclusion;
 use crate::document::Document;
 use std::error::Error;
 use std::fmt;
-use std::path::PathBuf;
+use std::path::{Path, PathBuf};
 
 /// A `ParserConfig` can be used to customize the built in parsing methods
 pub trait ParserConfig {
@@ -50,8 +50,7 @@ pub trait Parser: ParserConfig {
     fn parse(&self, input: &str) -> Result<Document, Self::Error>;
 
     /// Find all files linked into the document for later compilation and/or transclusion.
-    fn find_links(&self, input: &mut Document, from: &PathBuf)
-        -> Result<Vec<PathBuf>, Self::Error>;
+    fn find_links(&self, input: &mut Document, from: &Path) -> Result<Vec<PathBuf>, Self::Error>;
 
     /// Parses a macro name, returning the name and the extracted variables
     #[allow(clippy::type_complexity)]

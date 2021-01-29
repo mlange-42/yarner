@@ -38,7 +38,7 @@ use regex::Regex;
 use serde::de::Error;
 use serde::{Deserialize, Deserializer};
 use std::fs::File;
-use std::path::PathBuf;
+use std::path::{Path, PathBuf};
 
 /// The config for parsing a Markdown document
 #[derive(Clone, Deserialize, Debug)]
@@ -418,11 +418,7 @@ impl Parser for MdParser {
         Ok(Document::from_iter(document))
     }
 
-    fn find_links(
-        &self,
-        input: &mut Document,
-        from: &PathBuf,
-    ) -> Result<Vec<PathBuf>, Self::Error> {
+    fn find_links(&self, input: &mut Document, from: &Path) -> Result<Vec<PathBuf>, Self::Error> {
         let regex = &self.link_following_pattern; //Regex::new(Self::LINK_PATTERN).unwrap();
         let mut paths = vec![];
         let tree = input.tree_mut();
