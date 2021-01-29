@@ -26,7 +26,7 @@ use crate::document::text::TextBlock;
 use crate::document::tranclusion::Transclusion;
 use crate::document::Document;
 use crate::parser::code::RevCodeBlock;
-use crate::util::{try_collect::TryCollectExt, Fallible};
+use crate::util::{Fallible, TryCollectExt};
 use regex::Regex;
 use serde::de::Error as _;
 use serde::{Deserialize, Deserializer};
@@ -406,7 +406,7 @@ impl MdParser {
                 Parse::Error(error) => Some(Err(error)),
                 Parse::Complete(node) => Some(Ok(node)),
             })
-            .try_collect::<_, _, Vec<_>, Vec<Box<dyn std::error::Error>>>()
+            .try_collect()
             .map_err(|errors| {
                 let mut msg = String::new();
                 for error in errors {

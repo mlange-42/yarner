@@ -123,9 +123,3 @@ impl std::fmt::Display for CompileError {
 }
 
 impl std::error::Error for CompileError {}
-
-impl FromIterator<CompileError> for CompileError {
-    fn from_iter<I: IntoIterator<Item = CompileError>>(iter: I) -> Self {
-        CompileError::Multi(iter.into_iter().collect())
-    }
-}
