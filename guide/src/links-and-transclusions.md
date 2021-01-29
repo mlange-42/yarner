@@ -3,7 +3,7 @@
 For larger projects, not only multiple code files are desirable, but also multiple Markdown source and/or documentation files.
 This chapter explains two features for that purpose.
 
-<!-- toc -->
+[[_TOC_]]
 
 ## Link following
 

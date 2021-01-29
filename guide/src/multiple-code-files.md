@@ -3,7 +3,7 @@
 For most software projects, a single code file is not sufficient. Yarner offers several features for that purpose.
 The most basic, producing multiple code files from a single Markdown document, is described here.
 
-<!-- toc -->
+[[_TOC_]]
 
 ## Multiple files from a single document
 

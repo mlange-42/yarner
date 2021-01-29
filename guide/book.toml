@@ -21,6 +21,6 @@ use-boolean-and = true
 
 [preprocessor.toc]
 command = "mdbook-toc"
-# marker = "<!-- toc -->"
+marker = "[[_TOC_]]"
 max-level = 2
 renderer = ["html"]

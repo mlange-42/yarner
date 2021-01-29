@@ -4,7 +4,7 @@ Yarner's aim is to make it possible to create software from documents written an
 The most important features in that respect are (named) code blocks and macros.
 This chapter gives an introduction for basic use of these features.
 
-<!-- toc -->
+[[_TOC_]]
 
 ## Code blocks
 

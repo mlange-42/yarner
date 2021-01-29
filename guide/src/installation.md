@@ -2,7 +2,7 @@
 
 There are multiple ways to install Yarner:
 
-<!-- toc -->
+[[_TOC_]]
 
 ## Binaries
 

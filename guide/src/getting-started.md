@@ -2,7 +2,7 @@
 
 Yarner is very easy to use from the command line, requiring only two different commands, `yarner create` and `yarner`. This chapter demonstrates how to set up a project and extract sources from Marksdown.
 
-<!-- toc -->
+[[_TOC_]]
 
 ## Create a project
 

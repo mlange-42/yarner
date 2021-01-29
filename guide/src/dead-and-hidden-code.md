@@ -2,7 +2,7 @@
 
 In some cases, it may be desirable to have code blocks that don't go into code output, or code that is hidden in documentation.
 
-<!-- toc -->
+[[_TOC_]]
 
 ## Dead code
 
