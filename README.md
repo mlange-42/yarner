@@ -4,7 +4,9 @@
 
 A language-independent [Literate Programming](https://en.wikipedia.org/wiki/Literate_programming) tool for Markdown. From Markdown documents written and structured for humans, Yarner extracts code blocks into compilable source code. It offers sufficient features and flexibility to be usable also for larger projects with numerous files and multiple languages.
 
-Yarner works with familiar syntax, which can be further customized to suit your needs exactly. See the [examples](examples) directory for full working examples.
+Yarner works with familiar syntax, which can be further customized to suit your needs exactly.
+See the [examples](examples) directory for full working examples.
+See the [**User Guide**](https://mlange-42.github.io/yarner/) for documentation.
 
 ## Installation
 
@@ -18,47 +20,41 @@ Yarner works with familiar syntax, which can be further customized to suit your 
 
 In case you have [Rust](https://www.rust-lang.org/) installed, you can install with `cargo`:
 
-```
-cargo install --git https://github.com/mlange-42/yarner yarner
+```plaintext
+> cargo install --git https://github.com/mlange-42/yarner yarner
 ```
 
 ## Getting started
 
 To set up a new project, use the `create` sub-command. Run the following in your project's base directory:
 
-```
-yarner create README.md
+```plaintext
+> yarner create README.md
 ```
 
 This creates a file `Yarner.toml` with default settings, and a file `README.md.md` as starting point for Literate Programming (don't care for the double extension for now).
 
 The generated file already contains some content to get started with Yarner's basic features. For details, read the following sections.
 
-To "compile" the project (extract code and create documentation), simply run:
+To build the project (extract code and create documentation), simply run:
 
-```
-yarner
+```plaintext
+> yarner
 ```
 
 This creates two sub-directories, one containing the extracted code, and the other containing the final documentation.
 
 Note that the contents of these directories can then be treated as usual, i.e. compiling the code with the normal compiler, or rendering Markdown to HTML or PDF.
 
-> Note: You can move or copy the Yarner executable into your project directory for convenience. Otherwise, you need to specify the path to Yarner in the command, or add it to the PATH environment variable.
-
 ## Features
 
-* Macros
-* Named entrypoints
-* Comment extraction
+* Macros and named code blocks
 * Multiple files, multiple entrypoints
 * File transclusions
-* Multiple languages in one file
-* Meta variable interpolation
+* Reverse mode
+* ...
 
-See [docs/Features.md](docs/Features.md) for a complete list and detailed explanation of all features.
-
-Text sections are simply copied in and written out with no processing except for file transclusions. This allows you to write your documentation however you like.
+See the [**User Guide**](https://mlange-42.github.io/yarner/) for a complete and detailed explanation of all features.
 
 ## Examples
 
@@ -70,7 +66,7 @@ By default, macro invocations start with `// ==>` and end with a period `.`. Bot
 
 Here, we have an unnamed code block as entrypoint, and "draw" code from two other code blocks into the main function. These code blocks are named by their first line of code, starting with `//-`.
 
-~~~
+~~~markdown
 The program starts in the main function. It calculates something and prints the result:
 
 ```rust
@@ -97,7 +93,7 @@ println!("{}", result);
 
 The rendered document looks like this:
 
-----
+<table><tr><td>
 
 The program starts in the main function. It calculates something and prints the result:
 
@@ -121,7 +117,8 @@ Printing the result looks like this:
 //- Print the result
 println!("{}", result);
 ```
-----
+
+</td></tr></table>
 
 The generated code looks like this:
 
@@ -141,7 +138,7 @@ By default, the entrypoint of the program is always the unnamed code block. Howe
 By naming code blocks with prefix `file:` followed by a relative path, multiple code files can be created
 from one source file. Each code block with the `file:` prefix is treated as a separate entry point.
 
-~~~md
+~~~markdown
 ```rust
 //- file:src/lib.rs
 fn say_hello() {
@@ -150,54 +147,11 @@ fn say_hello() {
 ```
 ~~~
 
-[File transclusions](docs/Features.md#file-transclusions) and [Links](docs/Features.md#include-linked-files) are further features that allow for projects with multiple code, documentation and/or source files.
+[File transclusions and links](https://mlange-42.github.io/yarner/links-and-transclusions.html) are further features that allow for projects with multiple code, documentation and/or source files.
 
 ## Configuration
 
 Configuration is provided via a toml configuration file (default: `Yarner.toml`). A file with default configurations is generated through the `create` sub-command. See the comments in these files for details on individual settings. It is also the place to modify Yarner's syntax to suite your needs and preferences.
-
-## Usage
-
-Most command line options can be specified in the project's `Yarner.toml` config file for convenience. Command line options override options from the config file.
-
-```
-Literate programming compiler
-  https://github.com/mlange-42/yarner
-
-The normal workflow is:
- 1) Create a project with
-    > yarner create README.md
- 2) Process the project by running
-    > yarner
-
-USAGE:
-    yarner [FLAGS] [OPTIONS] [input]... [SUBCOMMAND]
-
-FLAGS:
-    -C, --clean      Produces clean code output, without block label comments.
-    -h, --help       Prints help information
-    -V, --version    Prints version information
-
-OPTIONS:
-    -o, --output <code_dir>          Output tangled code files to this directory. If none is specified, uses 'path' ->
-                                     'code' from config file.
-    -c, --config <config_file>       Sets the config file name [default: Yarner.toml]
-    -d, --docs <doc_dir>             Directory to output weaved documentation files to. If none is specified, uses
-                                     'path' -> 'docs' from config file.
-    -e, --entrypoint <entrypoint>    The named entrypoint to use when tangling code. Defaults to the unnamed code block.
-    -l, --language <language>        The language to output the tangled code in. Only code blocks in this language will
-                                     be used.
-    -r, --root <root>                Root directory. If none is specified, uses 'path' -> 'root' from config file.
-                                     Default: current directory.
-
-ARGS:
-    <input>...    The input source file(s) as glob pattern(s). If none are specified, uses 'path' -> 'files' from
-                  config file.
-
-SUBCOMMANDS:
-    create    Creates a yarner project in the current directory
-    help      Prints this message or the help of the given subcommand(s)
-```
 
 ## Acknowledgements
 
