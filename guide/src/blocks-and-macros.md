@@ -41,7 +41,7 @@ Running yarner
 Now creates a file `main.rs` in sub-directory `code`, and a documentation file `main.rs.md` in sub-directory `docs`.
 In this case, `docs/main.rs.md` has the same content as the original file, and `code/main.rs` contains the extracted code block:
 
-```rust
+```rust,noplaypen
 fn main() {
     println!("Hello World!");
 }
@@ -100,7 +100,7 @@ fn say_hello() {
 
 The resulting content of `code/main.rs` would look like this:
 
-```rust
+```rust,noplaypen
 fn main() {
     say_hello();
 }
@@ -152,7 +152,7 @@ fn say_hello() {
 
 The two code blocks would be concatenated and result in this content of `code/main.rs`:
 
-```rust
+```rust,noplaypen
 fn main() {
     say_hello();
 }
