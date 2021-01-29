@@ -14,15 +14,13 @@ use crate::util::Fallible;
 use clap::{crate_version, App, Arg, SubCommand};
 use std::collections::hash_map::Entry::{Occupied, Vacant};
 use std::collections::{HashMap, HashSet};
-use std::error::Error;
-use std::fmt;
 use std::fs::{self, File};
 use std::io::Write;
 use std::path::{Path, PathBuf};
 
 fn main() {
     std::process::exit(match run() {
-        Ok(_) => 0,
+        Ok(()) => 0,
         Err(err) => {
             eprintln!("{}", err);
             1
@@ -30,7 +28,7 @@ fn main() {
     });
 }
 
-fn run() -> Result<(), String> {
+fn run() -> Fallible {
     let app = App::new("Yarner")
         .version(crate_version!())
         .about("Literate programming compiler\n  \
@@ -114,7 +112,7 @@ fn run() -> Result<(), String> {
                 "Successfully created project for {}.\nTo compile the project, run `yarner` from the project directory.",
                 file
             ),
-            Err(err) => return Err(format!("ERROR: Creating project failed for {}: {}", file, err)),
+            Err(err) => return Err(format!("ERROR: Creating project failed for {}: {}", file, err).into()),
         }
 
         return Ok(());
@@ -133,14 +131,16 @@ fn run() -> Result<(), String> {
                             return Err(format!(
                                 "ERROR: Could not parse config file \"{}\": {}",
                                 file_name, error
-                            ));
+                            )
+                            .into());
                         }
                     },
                     Err(error) => {
                         return Err(format!(
                             "ERROR: Could not read config file \"{}\": {}",
                             file_name, error
-                        ));
+                        )
+                        .into());
                     }
                 }
             }
@@ -162,7 +162,8 @@ fn run() -> Result<(), String> {
             "ERROR: --> Unable to set root to \"{}\": {}",
             root.display(),
             err
-        ));
+        )
+        .into());
     }
 
     let reverse = matches.is_present("reverse");
@@ -175,14 +176,12 @@ fn run() -> Result<(), String> {
 
     let doc_dir = matches
         .value_of("doc_dir")
-        .map(|s| s.to_string())
-        .or_else(|| paths.docs.as_ref().map(|s| s.to_string()))
+        .or_else(|| paths.docs.as_deref())
         .map(PathBuf::from);
 
     let code_dir = matches
         .value_of("code_dir")
-        .map(|s| s.to_string())
-        .or_else(|| paths.code.as_ref().map(|s| s.to_string()))
+        .or_else(|| paths.code.as_deref())
         .map(PathBuf::from);
 
     let entrypoint = matches
@@ -194,16 +193,10 @@ fn run() -> Result<(), String> {
         .map(|patterns| patterns.map(|pattern| pattern.to_string()).collect())
         .or_else(|| paths.files.to_owned());
 
-    let input_patterns = match input_patterns {
-        None => {
-            return Err(
-                "ERROR: No inputs provided via arguments or toml file. For help, use:\n\
-                 > yarner -h"
-                    .to_string(),
-            )
-        }
-        Some(patterns) => patterns,
-    };
+    let input_patterns = input_patterns.ok_or(
+        "ERROR: No inputs provided via arguments or toml file. For help, use:\n\
+                 > yarner -h",
+    )?;
 
     let language = matches.value_of("language");
 
@@ -557,22 +550,16 @@ fn modify_path(path: &Path, replace: &str) -> PathBuf {
     new_path
 }
 
-fn create_project(file: &str) -> Result<(), Box<dyn Error>> {
+fn create_project(file: &str) -> Fallible {
     let file_name = format!("{}.md", file);
     let base_path = PathBuf::from(&file_name);
     let toml_path = PathBuf::from("Yarner.toml");
 
     if base_path.exists() {
-        return Err(Box::new(ProjectCreationError(format!(
-            "ERROR: File {} already exists.",
-            base_path.display()
-        ))));
+        return Err(format!("ERROR: File {} already exists.", base_path.display()).into());
     }
     if toml_path.exists() {
-        return Err(Box::new(ProjectCreationError(format!(
-            "ERROR: File {} already exists.",
-            toml_path.display()
-        ))));
+        return Err(format!("ERROR: File {} already exists.", toml_path.display()).into());
     }
 
     let toml = templates::MD_CONFIG.replace("%%MAIN_FILE%%", &file_name);
@@ -625,7 +612,7 @@ fn transclude_dry_run(
             documents.insert(trans.file().clone(), doc);
             trans_so_far.insert(trans.file().clone());
         } else {
-            return Err(Box::new(MultipleTransclusionError(trans.file().clone())));
+            return Err(format!("Multiple transclusions of {}", trans.file().display()).into());
         }
     }
 
@@ -657,7 +644,7 @@ fn transclude(parser: &MdParser, file_name: &Path) -> Fallible<Document> {
 
             trans_so_far.insert(trans.file().clone());
         } else {
-            return Err(Box::new(MultipleTransclusionError(trans.file().clone())));
+            return Err(format!("Multiple transclusions of {}", trans.file().display()).into());
         }
     }
     Ok(document)
@@ -919,26 +906,4 @@ fn compile_reverse(
     }
 
     Ok(())
-}
-
-#[derive(Debug, Clone, PartialEq, Eq)]
-pub struct ProjectCreationError(pub String);
-
-impl Error for ProjectCreationError {}
-
-impl fmt::Display for ProjectCreationError {
-    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        write!(f, "{}", self.0)
-    }
-}
-
-#[derive(Debug, Clone, PartialEq, Eq)]
-pub struct MultipleTransclusionError(pub PathBuf);
-
-impl Error for MultipleTransclusionError {}
-
-impl fmt::Display for MultipleTransclusionError {
-    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        write!(f, "Multiple transclusions of {:?}", self.0)
-    }
 }
