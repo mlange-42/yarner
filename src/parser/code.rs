@@ -1,7 +1,8 @@
 //! The parser for code files.
 
+use super::md::MdParser;
+
 use crate::config::LanguageSettings;
-use crate::parser::ParserConfig;
 use std::collections::hash_map::Entry::{Occupied, Vacant};
 use std::collections::HashMap;
 
@@ -39,10 +40,10 @@ pub struct CodeParser {}
 
 impl CodeParser {
     /// Parse a code file in a specified language
-    pub fn parse<P: ParserConfig>(
+    pub fn parse(
         &self,
         source: &str,
-        parser: &P,
+        parser: &MdParser,
         language: &LanguageSettings,
     ) -> Vec<RevCodeBlock> {
         let start = format!("{} {}", language.comment_start, language.block_start);

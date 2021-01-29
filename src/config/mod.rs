@@ -1,6 +1,6 @@
 //! Config objects, to be read from Yarner.toml
 
-use crate::parser::*;
+use crate::parser::md::MdParser;
 use serde_derive::{Deserialize, Serialize};
 use std::collections::HashMap;
 

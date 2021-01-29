@@ -9,7 +9,7 @@ use super::{CompileError, CompileErrorKind};
 use crate::config::LanguageSettings;
 use crate::document::tranclusion::Transclusion;
 use crate::parser::code::RevCodeBlock;
-use crate::parser::Printer;
+use crate::parser::md::MdParser;
 use std::collections::hash_map::Entry;
 
 /// A `Node` in the `Ast`
@@ -108,7 +108,7 @@ impl Ast {
     }
 
     /// Renders the program this AST is representing in the documentation format
-    pub(crate) fn print_docs<P: Printer>(&self, printer: &P) -> String {
+    pub(crate) fn print_docs(&self, printer: &MdParser) -> String {
         let mut output = String::new();
         for node in &self.nodes {
             match node {
@@ -140,9 +140,9 @@ impl Ast {
     }
 
     /// Renders the program this AST is representing back into the original format, replacing code blocks
-    pub(crate) fn print_reverse<P: Printer>(
+    pub(crate) fn print_reverse(
         &self,
-        printer: &P,
+        printer: &MdParser,
         code_blocks: &HashMap<&Option<String>, &Vec<RevCodeBlock>>,
     ) -> String {
         let mut block_count: HashMap<&Option<String>, usize> = HashMap::new();
