@@ -11,7 +11,7 @@ There are multiple ways to install Yarner:
 2. Unzip somewhere
 3. *Optional:* add directory `yarner` to your `PATH` environmental variable
 
-## From Git using `cargo`
+## From GitHub using `cargo`
 
 In case you have [Rust](https://www.rust-lang.org/) installed, you can install with `cargo`:
 

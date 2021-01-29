@@ -8,6 +8,16 @@ Yarner works with familiar syntax, which can be further customized to suit your 
 See the [examples](examples) directory for full working examples.
 See the [**User Guide**](https://mlange-42.github.io/yarner/) for documentation.
 
+## Features
+
+* Macros and named code blocks
+* Multiple files, multiple entrypoints
+* File transclusions
+* Reverse mode
+* ...
+
+See the [**User Guide**](https://mlange-42.github.io/yarner/) for a complete and detailed explanation of all features.
+
 ## Installation
 
 **Pre-compiled binaries**
@@ -45,16 +55,6 @@ To build the project (extract code and create documentation), simply run:
 This creates two sub-directories, one containing the extracted code, and the other containing the final documentation.
 
 Note that the contents of these directories can then be treated as usual, i.e. compiling the code with the normal compiler, or rendering Markdown to HTML or PDF.
-
-## Features
-
-* Macros and named code blocks
-* Multiple files, multiple entrypoints
-* File transclusions
-* Reverse mode
-* ...
-
-See the [**User Guide**](https://mlange-42.github.io/yarner/) for a complete and detailed explanation of all features.
 
 ## Examples
 
@@ -129,11 +129,11 @@ fn main() {
 }
 ```
 
-A feature to note is that if two code blocks have the same name, they are concatenated, in the order they are written. This can be very useful in defining global variables or listing imports closer to the parts where they are used.
-
 ### Entrypoints
 
-By default, the entrypoint of the program is always the unnamed code block. However, a code block name can be given in `Yarner.toml` or passed to Yarner on the command line. Then, instead of starting at the unnamed code block, it will start at the code block with this name.
+By default, the entrypoint of the program is always the unnamed code block. 
+However, a code block name can be given in `Yarner.toml` or passed to Yarner on the command line. 
+Then, instead of starting at the unnamed code block, it will start at the code block with this name.
 
 By naming code blocks with prefix `file:` followed by a relative path, multiple code files can be created
 from one source file. Each code block with the `file:` prefix is treated as a separate entry point.
@@ -151,7 +151,10 @@ fn say_hello() {
 
 ## Configuration
 
-Configuration is provided via a toml configuration file (default: `Yarner.toml`). A file with default configurations is generated through the `create` sub-command. See the comments in these files for details on individual settings. It is also the place to modify Yarner's syntax to suite your needs and preferences.
+Configuration is provided via a toml configuration file (default: `Yarner.toml`).
+A file with default configurations is generated through the `create` sub-command.
+See the comments in these files or user guide chapters on [configuration](https://mlange-42.github.io/yarner/configuration.html) for details on individual settings.
+It is also the place to modify Yarner's syntax to suite your needs and preferences.
 
 ## Acknowledgements
 

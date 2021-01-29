@@ -8,7 +8,7 @@ In some cases, it may be desirable to have code blocks that don't go into code o
 
 Code blocks like examples may be intended to be excluded from code output. 
 This can be achieved by giving a block a name that is not used in any macro.
-In this example, the code block named `Example` will be absent in the generated code as it is not referenced from anywhere:
+In this example, the code block named `Example` will be absent from the generated code as it is not referenced from anywhere:
 
 ````markdown
 # Dead code example
@@ -33,7 +33,7 @@ Additionally, if the variable `entrypoint` in section `[paths]` of the `Yarner.t
 
 ## Hidden code
 
-Sometines, it can be useful to exclude code that is of limited interest for the reader from documentation output.
+Sometimes, it can be useful to exclude code that is of limited interest for the reader from documentation output.
 This can be achieved by prefixing block names with `hidden:` (the default, configurable):
 
 ````
