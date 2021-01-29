@@ -1,15 +1,21 @@
+pub mod config;
+pub mod document;
+pub mod parser;
+pub mod templates;
+pub mod util;
+
+use crate::config::{AnyConfig, LanguageSettings};
+use crate::document::{CompileError, CompileErrorKind, Document};
+use crate::parser::code::{CodeParser, RevCodeBlock};
+use crate::parser::{ParseError, Parser, ParserConfig, Printer};
 use clap::{crate_version, App, Arg, SubCommand};
 use std::collections::hash_map::Entry::{Occupied, Vacant};
 use std::collections::{HashMap, HashSet};
 use std::error::Error;
+use std::fmt;
 use std::fs::{self, File};
 use std::io::Write;
 use std::path::{Path, PathBuf};
-use yarner::config::{AnyConfig, LanguageSettings};
-use yarner::document::{CompileError, CompileErrorKind, Document};
-use yarner::parser::code::{CodeParser, RevCodeBlock};
-use yarner::parser::{ParseError, Parser, ParserConfig, Printer};
-use yarner::{templates, MultipleTransclusionError, ProjectCreationError};
 
 fn main() {
     std::process::exit(match run() {
@@ -932,4 +938,26 @@ where
     }
 
     Ok(())
+}
+
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct ProjectCreationError(pub String);
+
+impl Error for ProjectCreationError {}
+
+impl fmt::Display for ProjectCreationError {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        write!(f, "{}", self.0)
+    }
+}
+
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct MultipleTransclusionError(pub PathBuf);
+
+impl Error for MultipleTransclusionError {}
+
+impl fmt::Display for MultipleTransclusionError {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        write!(f, "Multiple transclusions of {:?}", self.0)
+    }
 }
