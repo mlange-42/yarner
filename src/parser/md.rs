@@ -2,9 +2,6 @@
 //!
 //! This includes some extensions to support some of the more advanced features of this tool.
 //!
-//! See `examples/md/wc.c.md` for an example of how to use this format with the default config,
-//! which is specified as follows:
-//!
 //! *   Code lines are enclosed in fenced code blocks, using `\`\`\`lang` as the fence.
 //! *   A macro (named code block) separates the name from the language tag ` - `, such as
 //!     `\`\`\`c - Name of the macro`. Note that the hyphen is surrounded by a single space on
@@ -15,16 +12,13 @@
 //! *   Interpolation of is done such as `@{a meta variable}`.
 //! *   Macros (named code blocks) are invoked by `==> Macro name.` (note the period at the end)
 //!
-//! As with all supported styles, all code blocks with the same name are concatenated, in the order
+//! All code blocks with the same name are concatenated, in the order
 //! they are found, and the "unnamed" block is used as the entry point when generating the output
 //! source file. Any code blocks with names which are not invoked will not appear in the compiled
 //! code.
 //!
 //! Currently, the Markdown parser does not support code that is written to the compiled file, but
 //! not rendered in the documentation file.
-
-use serde_derive::Deserialize;
-use std::iter::FromIterator;
 
 use crate::document::ast::Node;
 use crate::document::code::{CodeBlock, Line, Segment, Source};
@@ -34,9 +28,12 @@ use crate::document::Document;
 use crate::parser::code::RevCodeBlock;
 use crate::util::{try_collect::TryCollectExt, Fallible};
 use regex::Regex;
-use serde::de::Error;
+use serde::de::Error as _;
 use serde::{Deserialize, Deserializer};
+use std::error::Error;
+use std::fmt::Write;
 use std::fs::File;
+use std::iter::FromIterator;
 use std::path::{Path, PathBuf};
 
 /// The config for parsing a Markdown document
@@ -235,7 +232,7 @@ impl MdParser {
 
 impl MdParser {
     #[allow(clippy::nonminimal_bool)]
-    pub fn parse(&self, input: &str, path: &Path) -> Result<Document, MdError> {
+    pub fn parse(&self, input: &str, path: &Path) -> Fallible<Document> {
         #[derive(Default)]
         struct State {
             node: Option<Node>,
@@ -244,7 +241,13 @@ impl MdParser {
         enum Parse {
             Incomplete,
             Complete(Node),
-            Error(MdError),
+            Error(Box<dyn Error>),
+        }
+
+        impl Parse {
+            fn error(err: Box<dyn Error>, line: usize) -> Self {
+                Self::Error(format!("{} (line {})", err, line).into())
+            }
         }
 
         let mut state = State::default();
@@ -280,10 +283,9 @@ impl MdParser {
                                 state.node = None;
                                 Some(Parse::Complete(Node::Code(code_block)))
                             } else {
-                                Some(Parse::Error(MdError::Single {
-                                    line_number,
-                                    kind: MdErrorKind::IncorrectIndentation,
-                                }))
+                                Some(Parse::Error(
+                                    format!("Incorrect indentation in line {}", line_number).into(),
+                                ))
                             }
                         }
                         previous => {
@@ -320,10 +322,7 @@ impl MdParser {
                             new_block.add_line(line);
                             state.node = Some(Node::Text(new_block));
                             match self.parse_transclusion(line, path) {
-                                Err(err) => Some(Parse::Error(MdError::Single {
-                                    line_number,
-                                    kind: MdErrorKind::Parse(err),
-                                })),
+                                Err(err) => Some(Parse::error(err, line_number)),
                                 Ok(trans) => match trans {
                                     Some(node) => {
                                         let new_block = TextBlock::new();
@@ -336,10 +335,7 @@ impl MdParser {
                             }
                         }
                         Some(Node::Text(block)) => match self.parse_transclusion(line, path) {
-                            Err(err) => Some(Parse::Error(MdError::Single {
-                                line_number,
-                                kind: MdErrorKind::Parse(err),
-                            })),
+                            Err(err) => Some(Parse::error(err, line_number)),
                             Ok(trans) => match trans {
                                 Some(node) => {
                                     let ret = state.node.take();
@@ -373,10 +369,7 @@ impl MdParser {
                                             block.defaults = defaults;
                                         }
                                         Err(error) => {
-                                            return Some(Parse::Error(MdError::Single {
-                                                line_number,
-                                                kind: MdErrorKind::Parse(error),
-                                            }))
+                                            return Some(Parse::error(error, line_number));
                                         }
                                     };
                                     Some(Parse::Incomplete)
@@ -386,20 +379,16 @@ impl MdParser {
                                     {
                                         Ok(line) => line,
                                         Err(error) => {
-                                            return Some(Parse::Error(MdError::Single {
-                                                line_number,
-                                                kind: MdErrorKind::Parse(error),
-                                            }))
+                                            return Some(Parse::error(error, line_number));
                                         }
                                     };
                                     block.add_line(line);
                                     Some(Parse::Incomplete)
                                 }
                             } else {
-                                Some(Parse::Error(MdError::Single {
-                                    line_number,
-                                    kind: MdErrorKind::IncorrectIndentation,
-                                }))
+                                Some(Parse::Error(
+                                    format!("Incorrect indentation line {}", line_number).into(),
+                                ))
                             }
                         }
                         Some(Node::Transclusion(trans)) => {
@@ -417,7 +406,14 @@ impl MdParser {
                 Parse::Error(error) => Some(Err(error)),
                 Parse::Complete(node) => Some(Ok(node)),
             })
-            .try_collect::<_, _, Vec<_>, MdError>()?;
+            .try_collect::<_, _, Vec<_>, Vec<Box<dyn std::error::Error>>>()
+            .map_err(|errors| {
+                let mut msg = String::new();
+                for error in errors {
+                    writeln!(&mut msg, "{}", error).unwrap();
+                }
+                msg
+            })?;
         if let Some(node) = state.node.take() {
             document.push(node);
         }
@@ -429,7 +425,7 @@ impl MdParser {
         input: &mut Document,
         from: &Path,
         remove_marker: bool,
-    ) -> Result<Vec<PathBuf>, MdError> {
+    ) -> Fallible<Vec<PathBuf>> {
         let regex = &self.link_following_pattern;
         let mut paths = vec![];
         let tree = input.tree_mut();
@@ -784,56 +780,5 @@ impl MdParser {
             }
         }
         output
-    }
-}
-
-/// Kinds of errors that can be encountered while parsing and restructuring the Markdown
-#[derive(Debug)]
-pub enum MdErrorKind {
-    /// A line was un-indented too far, usually indicating an error
-    IncorrectIndentation,
-    /// Generic parse error
-    Parse(Box<dyn std::error::Error>),
-}
-
-/// Errors that were encountered while parsing the Markdown
-#[derive(Debug)]
-pub enum MdError {
-    #[doc(hidden)]
-    Single {
-        line_number: usize,
-        kind: MdErrorKind,
-    },
-    #[doc(hidden)]
-    Multi(Vec<MdError>),
-}
-
-impl std::fmt::Display for MdError {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        match self {
-            MdError::Multi(errors) => {
-                for error in errors {
-                    writeln!(f, "{}", error)?;
-                }
-                Ok(())
-            }
-            MdError::Single { line_number, kind } => {
-                writeln!(f, "{:?} (line {})", kind, line_number)
-            }
-        }
-    }
-}
-
-impl std::error::Error for MdError {}
-
-impl FromIterator<MdError> for MdError {
-    fn from_iter<I: IntoIterator<Item = MdError>>(iter: I) -> Self {
-        MdError::Multi(iter.into_iter().collect())
-    }
-}
-
-impl From<Vec<MdError>> for MdError {
-    fn from(multi: Vec<MdError>) -> Self {
-        MdError::Multi(multi)
     }
 }
