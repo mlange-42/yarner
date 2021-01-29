@@ -19,5 +19,5 @@
   - [Paths](./config-paths.md)
   - [Languages](./config-languages.md)
   - [Command line arguments](./command-line-arguments.md)
-- [Continuous integration]()
+- [Continuous integration](./continuous-integration.md)
 - [mdBook and Yarner]()
