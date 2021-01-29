@@ -20,13 +20,17 @@
 //! Currently, the Markdown parser does not support code that is written to the compiled file, but
 //! not rendered in the documentation file.
 
-use crate::document::ast::Node;
-use crate::document::code::{CodeBlock, Line, Segment, Source};
-use crate::document::text::TextBlock;
-use crate::document::tranclusion::Transclusion;
-use crate::document::Document;
-use crate::parser::code::RevCodeBlock;
+use super::code::RevCodeBlock;
+
+use crate::document::{
+    ast::Node,
+    code::{CodeBlock, Line, Segment, Source},
+    text::TextBlock,
+    tranclusion::Transclusion,
+    Document,
+};
 use crate::util::{Fallible, TryCollectExt};
+use once_cell::sync::Lazy;
 use regex::Regex;
 use serde::de::Error as _;
 use serde::{Deserialize, Deserializer};
@@ -105,6 +109,10 @@ pub struct MdParser {
     pub hidden_prefix: String,
 }
 
+const LINK_PATTERN: &str = r"\[([^\[\]]*)\]\((.*?)\)";
+
+static LINK_REGEX: Lazy<Regex> = Lazy::new(|| Regex::new(LINK_PATTERN).unwrap());
+
 fn from_link_prefix<'de, D>(deserializer: D) -> Result<(String, Regex), D::Error>
 where
     D: Deserializer<'de>,
@@ -112,10 +120,11 @@ where
     let prefix: &str = Deserialize::deserialize(deserializer)?;
     Ok((
         prefix.to_string(),
-        Regex::new(&format!(r"{}\[([^\[\]]*)\]\((.*?)\)", prefix)).map_err(|err| {
+        Regex::new(&format!("{}{}", prefix, LINK_PATTERN)).map_err(|err| {
             D::Error::custom(format!(
-                r"Error compiling Regex pattern {}\[([^\[\]]*)\]\((.*?)\)\n{}",
+                "Error compiling Regex pattern {}{}\n{}",
                 prefix,
+                LINK_PATTERN,
                 err.to_string()
             ))
         })?,
@@ -124,10 +133,6 @@ where
 
 impl Default for MdParser {
     fn default() -> Self {
-        let regex = (
-            String::from("@"),
-            Regex::new(r"@\[([^\[\]]*)\]\((.*?)\)").unwrap(),
-        );
         Self {
             default_language: None,
             fence_sequence: String::from("```"),
@@ -140,7 +145,10 @@ impl Default for MdParser {
             macro_end: String::from("."),
             transclusion_start: String::from("@{{"),
             transclusion_end: String::from("}}"),
-            link_following_pattern: regex,
+            link_following_pattern: (
+                String::from("@"),
+                Regex::new(&format!("@{}", LINK_PATTERN)).unwrap(),
+            ),
             variable_sep: String::from(":"),
             file_prefix: String::from("file:"),
             hidden_prefix: String::from("hidden:"),
@@ -149,53 +157,34 @@ impl Default for MdParser {
 }
 
 impl MdParser {
-    const LINK_PATTERN: &'static str = r"\[([^\[\]]*)\]\((.*?)\)";
-
-    /// Check the validity of the parser configuration
-    pub fn check(&self) -> Result<(), String> {
-        Ok(())
-    }
-
-    /// Creates a default parser with a fallback language
-    pub fn for_language(language: String) -> Self {
-        Self {
-            default_language: Some(language),
-            ..Self::default()
-        }
-    }
-
-    /// Sets the default language of this parser (or does nothing if `None` is passed)
+    /// Sets the default language of the returned parser (or does nothing if `None` is passed)
     pub fn default_language(&self, language: Option<String>) -> Self {
-        if let Some(language) = language {
-            Self {
-                default_language: Some(language),
-                ..self.clone()
-            }
-        } else {
-            self.clone()
+        let mut cloned = self.clone();
+
+        if language.is_some() {
+            cloned.default_language = language;
         }
+
+        cloned
     }
 
     fn parse_transclusion(&self, line: &str, into: &Path) -> Fallible<Option<Node>> {
-        let trim = line.trim();
-        if trim.starts_with(&self.transclusion_start) {
-            if let Some(index) = line.find(&self.transclusion_end) {
-                let trans = &trim[self.transclusion_start.len()..index];
-                let regex = Regex::new(Self::LINK_PATTERN).unwrap();
+        if let Some(rest) = line.trim().strip_prefix(&self.transclusion_start) {
+            if let Some(index) = rest.find(&self.transclusion_end) {
+                let trans = &rest[..index];
 
-                let path: Vec<_> = regex
+                let target = LINK_REGEX
                     .captures_iter(trans)
-                    .map(|m| m.get(2).unwrap().as_str())
-                    .collect();
-
-                let target = path.get(0).unwrap_or(&trans);
+                    .map(|match_| match_.get(2).unwrap().as_str())
+                    .next()
+                    .unwrap_or(&trans);
 
                 let mut path = PathBuf::from(into.parent().unwrap_or_else(|| Path::new(".")));
                 path.push(target);
 
                 Ok(Some(Node::Transclusion(Transclusion::new(
                     path,
-                    line.to_string(),
+                    line.to_owned(),
                 ))))
             } else {
                 Err(format!("Unclosed transclusion in: {}", line).into())
@@ -204,33 +193,7 @@ impl MdParser {
             Ok(None)
         }
     }
-}
 
-impl MdParser {
-    pub fn comment_start(&self) -> &str {
-        &self.comment_start
-    }
-    pub fn interpolation_start(&self) -> &str {
-        &self.interpolation_start
-    }
-    pub fn interpolation_end(&self) -> &str {
-        &self.interpolation_end
-    }
-    pub fn macro_start(&self) -> &str {
-        &self.macro_start
-    }
-    pub fn macro_end(&self) -> &str {
-        &self.macro_end
-    }
-    pub fn variable_sep(&self) -> &str {
-        &self.variable_sep
-    }
-    pub fn file_prefix(&self) -> &str {
-        &self.file_prefix
-    }
-}
-
-impl MdParser {
     #[allow(clippy::nonminimal_bool)]
     pub fn parse(&self, input: &str, path: &Path) -> Fallible<Document> {
         #[derive(Default)]
@@ -484,7 +447,7 @@ impl MdParser {
 
     /// Parses a macro name, returning the name and the extracted variables
     #[allow(clippy::type_complexity)]
-    pub fn parse_name(
+    fn parse_name(
         &self,
         mut input: &str,
         is_call: bool,
@@ -493,9 +456,9 @@ impl MdParser {
         let mut name = String::new();
         let mut vars = vec![];
         let mut optionals = vec![];
-        let start = self.interpolation_start();
-        let end = self.interpolation_end();
-        let sep = self.variable_sep();
+        let start = &self.interpolation_start;
+        let end = &self.interpolation_end;
+        let sep = &self.variable_sep;
         let sep_len = sep.len();
         loop {
             if let Some(start_index) = input.find(start) {
@@ -528,7 +491,7 @@ impl MdParser {
     }
 
     /// Parses a line as code, returning the parsed `Line` object
-    pub fn parse_line(&self, line_number: usize, input: &str) -> Fallible<Line> {
+    fn parse_line(&self, line_number: usize, input: &str) -> Fallible<Line> {
         let orig = input;
         let indent_len = input
             .chars()
@@ -536,20 +499,20 @@ impl MdParser {
             .collect::<String>()
             .len();
         let (indent, rest) = input.split_at(indent_len);
-        let (mut rest, comment) = if let Some(comment_index) = rest.find(self.comment_start()) {
+        let (mut rest, comment) = if let Some(comment_index) = rest.find(&self.comment_start) {
             let (rest, comment) = rest.split_at(comment_index);
             (
                 rest,
-                Some((&comment[self.comment_start().len()..]).to_owned()),
+                Some((&comment[self.comment_start.len()..]).to_owned()),
             )
         } else {
             (rest, None)
         };
 
-        if rest.starts_with(self.macro_start()) {
-            if let Some(end_index) = rest.find(self.macro_end()) {
+        if rest.starts_with(&self.macro_start) {
+            if let Some(end_index) = rest.find(&self.macro_end) {
                 let (name, scope, _names) =
-                    self.parse_name(&rest[self.macro_start().len()..end_index].trim(), true)?;
+                    self.parse_name(&rest[self.macro_start.len()..end_index].trim(), true)?;
                 return Ok(Line {
                     line_number,
                     indent: indent.to_owned(),
@@ -560,8 +523,8 @@ impl MdParser {
         }
 
         let mut source = vec![];
-        let start = self.interpolation_start();
-        let end = self.interpolation_end();
+        let start = &self.interpolation_start;
+        let end = &self.interpolation_end;
         loop {
             if let Some(start_index) = rest.find(start) {
                 if let Some(end_index) = rest[start_index + start.len()..].find(end) {
@@ -597,7 +560,7 @@ impl MdParser {
         language: &Option<&str>,
     ) -> Vec<(String, String)> {
         let mut entries = vec![];
-        let pref = self.file_prefix();
+        let pref = &self.file_prefix;
         for (name, _block) in doc.tree().code_blocks(language) {
             if let Some(name) = name {
                 if let Some(rest) = name.strip_prefix(pref) {
@@ -721,13 +684,13 @@ impl MdParser {
         vars: &[String],
         defaults: &[Option<String>],
     ) -> String {
-        let start = self.interpolation_start();
-        let end = self.interpolation_end();
+        let start = &self.interpolation_start;
+        let end = &self.interpolation_end;
         let var_placeholder = format!("{}{}", start, end);
         for (var, default) in vars.iter().zip(defaults) {
             let mut var_full = var.to_string();
             if let Some(default) = default {
-                var_full.push_str(self.variable_sep());
+                var_full.push_str(&self.variable_sep);
                 var_full.push_str(default);
             }
             let var_name = format!("{}{}{}", start, var_full, end);
@@ -738,8 +701,8 @@ impl MdParser {
 
     /// Fills a name with its placeholders
     pub fn print_macro_call(&self, mut name: String, vars: &[String]) -> String {
-        let start = self.interpolation_start();
-        let end = self.interpolation_end();
+        let start = &self.interpolation_start;
+        let end = &self.interpolation_end;
         let var_placeholder = format!("{}{}", start, end);
         for var in vars {
             let var_name = format!("{}{}{}", start, var, end);
@@ -753,21 +716,21 @@ impl MdParser {
         let mut output = line.indent.to_string();
         match &line.source {
             Source::Macro { name, scope } => {
-                output.push_str(self.macro_start());
-                if !self.macro_start().ends_with(' ') {
+                output.push_str(&self.macro_start);
+                if !self.macro_start.ends_with(' ') {
                     output.push(' ');
                 }
                 output.push_str(&self.print_macro_call(name.clone(), &scope));
-                output.push_str(self.macro_end());
+                output.push_str(&self.macro_end);
             }
             Source::Source(segments) => {
                 for segment in segments {
                     match segment {
                         Segment::Source(source) => output.push_str(source),
                         Segment::MetaVar(name) => {
-                            output.push_str(self.interpolation_start());
+                            output.push_str(&self.interpolation_start);
                             output.push_str(&name);
-                            output.push_str(self.interpolation_end());
+                            output.push_str(&self.interpolation_end);
                         }
                     }
                 }
@@ -775,7 +738,7 @@ impl MdParser {
         }
         if print_comments {
             if let Some(comment) = &line.comment {
-                output.push_str(self.comment_start());
+                output.push_str(&self.comment_start);
                 output.push_str(&comment);
             }
         }

@@ -635,7 +635,7 @@ fn transclude(parser: &MdParser, file_name: &Path) -> Fallible<Document> {
             let full_path = trans.file().to_str().unwrap();
             let path = format!(
                 "{}{}",
-                parser.file_prefix(),
+                parser.file_prefix,
                 &full_path[..full_path.len() - ext.len() - 1]
             );
             document

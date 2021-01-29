@@ -91,9 +91,9 @@ impl CodeParser {
                         let new_line = format!(
                             "{}{} {}{}",
                             " ".repeat(indent),
-                            parser.macro_start(),
+                            parser.macro_start,
                             name,
-                            parser.macro_end()
+                            parser.macro_end,
                         );
                         block.push_line(new_line);
                     }
