@@ -1,15 +1,21 @@
+pub mod config;
+pub mod document;
+pub mod parser;
+pub mod templates;
+pub mod util;
+
+use crate::config::{AnyConfig, LanguageSettings};
+use crate::document::{CompileError, CompileErrorKind, Document};
+use crate::parser::code::{CodeParser, RevCodeBlock};
+use crate::parser::{ParseError, Parser, ParserConfig, Printer};
 use clap::{crate_version, App, Arg, SubCommand};
 use std::collections::hash_map::Entry::{Occupied, Vacant};
 use std::collections::{HashMap, HashSet};
 use std::error::Error;
+use std::fmt;
 use std::fs::{self, File};
 use std::io::Write;
 use std::path::{Path, PathBuf};
-use yarner::config::{AnyConfig, LanguageSettings};
-use yarner::document::{CompileError, CompileErrorKind, Document};
-use yarner::parser::code::{CodeParser, RevCodeBlock};
-use yarner::parser::{ParseError, Parser, ParserConfig, Printer};
-use yarner::{templates, MultipleTransclusionError, ProjectCreationError};
 
 fn main() {
     std::process::exit(match run() {
@@ -527,9 +533,9 @@ fn copy_files(
     Ok(())
 }
 
-fn modify_path(path: &PathBuf, replace: &str) -> PathBuf {
+fn modify_path(path: &Path, replace: &str) -> PathBuf {
     if replace.is_empty() || replace == "_" {
-        return path.clone();
+        return path.to_owned();
     }
     let mut new_path = PathBuf::new();
     let repl_parts: Vec<_> = Path::new(replace)
@@ -578,7 +584,7 @@ fn create_project(file: &str) -> Result<(), Box<dyn Error>> {
 
 fn transclude_dry_run<P>(
     parser: &P,
-    file_name: &PathBuf,
+    file_name: &Path,
     code_dir: &Option<PathBuf>,
     entrypoint: &Option<&str>,
     language: &Option<&str>,
@@ -627,7 +633,7 @@ where
     Ok(document)
 }
 
-fn transclude<P>(parser: &P, file_name: &PathBuf) -> Result<Document, Box<dyn std::error::Error>>
+fn transclude<P>(parser: &P, file_name: &Path) -> Result<Document, Box<dyn std::error::Error>>
 where
     P: Parser + Printer + ParserConfig,
     P::Error: 'static,
@@ -667,7 +673,7 @@ fn compile_all<P>(
     parser: &P,
     doc_dir: &Option<PathBuf>,
     code_dir: &Option<PathBuf>,
-    file_name: &PathBuf,
+    file_name: &Path,
     entrypoint: &Option<&str>,
     language: &Option<&str>,
     settings: &Option<HashMap<String, LanguageSettings>>,
@@ -690,13 +696,13 @@ where
             &document,
             doc_dir,
             code_dir,
-            &file_name,
+            file_name,
             entrypoint,
             language,
             settings,
             track_code_files,
         )?;
-        track_input_files.insert(file_name.clone());
+        track_input_files.insert(file_name.to_owned());
 
         for file in links {
             if !track_input_files.contains(&file) {
@@ -723,7 +729,7 @@ fn compile_all_reverse<P>(
     parser: &P,
     doc_dir: &Option<PathBuf>,
     code_dir: &Option<PathBuf>,
-    file_name: &PathBuf,
+    file_name: &Path,
     entrypoint: &Option<&str>,
     language: &Option<&str>,
     settings: &Option<HashMap<String, LanguageSettings>>,
@@ -754,15 +760,15 @@ where
             parser,
             &document,
             code_dir,
-            &file_name,
+            file_name,
             entrypoint,
             language,
             track_code_files,
         )?;
 
-        documents.insert(file_name.clone(), document);
+        documents.insert(file_name.to_owned(), document);
 
-        track_input_files.insert(file_name.clone());
+        track_input_files.insert(file_name.to_owned());
 
         for file in links {
             if !track_input_files.contains(&file) {
@@ -791,7 +797,7 @@ fn compile<P>(
     document: &Document,
     doc_dir: &Option<PathBuf>,
     code_dir: &Option<PathBuf>,
-    file_name: &PathBuf,
+    file_name: &Path,
     entrypoint: &Option<&str>,
     language: &Option<&str>,
     settings: &Option<HashMap<String, LanguageSettings>>,
@@ -803,7 +809,7 @@ where
 {
     eprintln!("Compiling file {}", file_name.display());
 
-    let mut entries = vec![(entrypoint.as_deref(), file_name.clone())];
+    let mut entries = vec![(entrypoint.as_deref(), file_name.to_owned())];
     let extra_entries = parser.get_entry_points(&document, language);
 
     entries.extend(
@@ -862,21 +868,16 @@ where
                         let mut code_file = File::create(file_path).unwrap();
                         write!(code_file, "{}", code).unwrap()
                     }
-                    Err(err) => match &err {
-                        CompileError::Single {
-                            line_number: _,
-                            kind,
-                        } => match kind {
-                            CompileErrorKind::MissingEntrypoint => {
-                                eprintln!(
-                                    "  --> WARNING: No entrypoint for file {}, skipping code output.",
-                                    sub_file_name.display()
-                                );
-                            }
-                            _ => return Err(Box::new(err)),
-                        },
-                        _ => return Err(Box::new(err)),
-                    },
+                    Err(CompileError::Single {
+                        kind: CompileErrorKind::MissingEntrypoint,
+                        ..
+                    }) => {
+                        eprintln!(
+                            "  --> WARNING: No entrypoint for file {}, skipping code output.",
+                            sub_file_name.display()
+                        );
+                    }
+                    Err(err) => return Err(Box::new(err)),
                 };
             }
             None => eprintln!("WARNING: Missing output location for code, skipping code output."),
@@ -891,7 +892,7 @@ fn compile_reverse<P>(
     parser: &P,
     document: &Document,
     code_dir: &Option<PathBuf>,
-    file_name: &PathBuf,
+    file_name: &Path,
     entrypoint: &Option<&str>,
     language: &Option<&str>,
     track_code_files: &mut HashSet<PathBuf>,
@@ -902,7 +903,7 @@ where
 {
     eprintln!("Compiling file {}", file_name.display());
 
-    let mut entries = vec![(entrypoint.as_deref(), file_name.clone())];
+    let mut entries = vec![(entrypoint.as_deref(), file_name.to_owned())];
     let extra_entries = parser.get_entry_points(&document, language);
 
     entries.extend(
@@ -937,4 +938,26 @@ where
     }
 
     Ok(())
+}
+
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct ProjectCreationError(pub String);
+
+impl Error for ProjectCreationError {}
+
+impl fmt::Display for ProjectCreationError {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        write!(f, "{}", self.0)
+    }
+}
+
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct MultipleTransclusionError(pub PathBuf);
+
+impl Error for MultipleTransclusionError {}
+
+impl fmt::Display for MultipleTransclusionError {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        write!(f, "Multiple transclusions of {:?}", self.0)
+    }
 }

@@ -55,7 +55,7 @@ pub trait Parser: ParserConfig {
     fn find_links(
         &self,
         input: &mut Document,
-        from: &PathBuf,
+        from: &Path,
         remove_marker: bool,
     ) -> Result<Vec<PathBuf>, Self::Error>;
 
