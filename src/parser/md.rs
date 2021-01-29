@@ -26,15 +26,13 @@
 use serde_derive::Deserialize;
 use std::iter::FromIterator;
 
-use super::ParseError;
-
 use crate::document::ast::Node;
 use crate::document::code::{CodeBlock, Line, Segment, Source};
 use crate::document::text::TextBlock;
 use crate::document::tranclusion::Transclusion;
 use crate::document::Document;
 use crate::parser::code::RevCodeBlock;
-use crate::util::try_collect::TryCollectExt;
+use crate::util::{try_collect::TryCollectExt, Fallible};
 use regex::Regex;
 use serde::de::Error;
 use serde::{Deserialize, Deserializer};
@@ -181,7 +179,7 @@ impl MdParser {
         }
     }
 
-    fn parse_transclusion(&self, line: &str, into: &Path) -> Result<Option<Node>, ParseError> {
+    fn parse_transclusion(&self, line: &str, into: &Path) -> Fallible<Option<Node>> {
         let trim = line.trim();
         if trim.starts_with(&self.transclusion_start) {
             if let Some(index) = line.find(&self.transclusion_end) {
@@ -203,7 +201,7 @@ impl MdParser {
                     line.to_string(),
                 ))))
             } else {
-                Err(ParseError::UnclosedTransclusionError(line.to_owned()))
+                Err(format!("Unclosed transclusion in: {}", line).into())
             }
         } else {
             Ok(None)
@@ -377,7 +375,7 @@ impl MdParser {
                                         Err(error) => {
                                             return Some(Parse::Error(MdError::Single {
                                                 line_number,
-                                                kind: error.into(),
+                                                kind: MdErrorKind::Parse(error),
                                             }))
                                         }
                                     };
@@ -390,7 +388,7 @@ impl MdParser {
                                         Err(error) => {
                                             return Some(Parse::Error(MdError::Single {
                                                 line_number,
-                                                kind: error.into(),
+                                                kind: MdErrorKind::Parse(error),
                                             }))
                                         }
                                     };
@@ -494,7 +492,7 @@ impl MdParser {
         &self,
         mut input: &str,
         is_call: bool,
-    ) -> Result<(String, Vec<String>, Vec<Option<String>>), ParseError> {
+    ) -> Fallible<(String, Vec<String>, Vec<Option<String>>)> {
         let orig = input;
         let mut name = String::new();
         let mut vars = vec![];
@@ -523,7 +521,7 @@ impl MdParser {
                     }
                     input = &input[start_index + start.len() + end_index + end.len()..];
                 } else {
-                    return Err(ParseError::UnclosedVariableError(orig.to_owned()));
+                    return Err(format!("Unclosed variable in: {}", orig).into());
                 }
             } else {
                 name.push_str(input);
@@ -534,7 +532,7 @@ impl MdParser {
     }
 
     /// Parses a line as code, returning the parsed `Line` object
-    pub fn parse_line(&self, line_number: usize, input: &str) -> Result<Line, ParseError> {
+    pub fn parse_line(&self, line_number: usize, input: &str) -> Fallible<Line> {
         let orig = input;
         let indent_len = input
             .chars()
@@ -578,7 +576,7 @@ impl MdParser {
                     ));
                     rest = &rest[start_index + start.len() + end_index + end.len()..];
                 } else {
-                    return Err(ParseError::UnclosedVariableError(orig.to_owned()));
+                    return Err(format!("Unclosed variable in: {}", orig).into());
                 }
             } else {
                 if !rest.is_empty() {
@@ -795,10 +793,10 @@ pub enum MdErrorKind {
     /// A line was un-indented too far, usually indicating an error
     IncorrectIndentation,
     /// Generic parse error
-    Parse(ParseError),
+    Parse(Box<dyn std::error::Error>),
 }
 
-/// Errors that were encountered while parsing the HTML
+/// Errors that were encountered while parsing the Markdown
 #[derive(Debug)]
 pub enum MdError {
     #[doc(hidden)]
@@ -837,11 +835,5 @@ impl FromIterator<MdError> for MdError {
 impl From<Vec<MdError>> for MdError {
     fn from(multi: Vec<MdError>) -> Self {
         MdError::Multi(multi)
-    }
-}
-
-impl From<ParseError> for MdErrorKind {
-    fn from(error: ParseError) -> Self {
-        MdErrorKind::Parse(error)
     }
 }
