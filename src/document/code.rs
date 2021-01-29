@@ -2,7 +2,7 @@
 
 use super::{CompileError, CompileErrorKind};
 use crate::config::LanguageSettings;
-use crate::util::try_collect::TryCollectExt;
+use crate::util::TryCollectExt;
 use std::collections::HashMap;
 
 /// A `CodeBlock` is a block of code as defined by the input format.
@@ -109,7 +109,8 @@ impl CodeBlock {
             .iter()
             .map(|line| line.compile_with(code_blocks, &scope, settings))
             .try_collect()
-            .map(|vec: Vec<_>| vec.join("\n"))
+            .map(|lines| lines.join("\n"))
+            .map_err(CompileError::Multi)
     }
 
     fn assign_vars(&self, scope: &[String]) -> HashMap<String, String> {
@@ -205,7 +206,8 @@ impl Line {
                             }),
                     })
                     .try_collect()
-                    .map(|vec: Vec<_>| vec.join(""))?;
+                    .map(|segments| segments.join(""))
+                    .map_err(CompileError::Multi)?;
 
                 if blank_lines && code.trim().is_empty() {
                     Ok("".to_string())
