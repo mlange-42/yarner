@@ -130,31 +130,6 @@ where
     ))
 }
 
-impl Default for MdParser {
-    fn default() -> Self {
-        Self {
-            default_language: None,
-            fence_sequence: String::from("```"),
-            fence_sequence_alt: String::from("~~~"),
-            comments_as_aside: false,
-            comment_start: String::from("//"),
-            interpolation_start: String::from("@{"),
-            interpolation_end: String::from("}"),
-            macro_start: String::from("==> "),
-            macro_end: String::from("."),
-            transclusion_start: String::from("@{{"),
-            transclusion_end: String::from("}}"),
-            link_following_pattern: (
-                String::from("@"),
-                Regex::new(&format!("@{}", LINK_PATTERN)).unwrap(),
-            ),
-            variable_sep: String::from(":"),
-            file_prefix: String::from("file:"),
-            hidden_prefix: String::from("hidden:"),
-        }
-    }
-}
-
 impl MdParser {
     /// Sets the default language of the returned parser (or does nothing if `None` is passed)
     pub fn default_language(&self, language: Option<String>) -> Self {

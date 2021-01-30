@@ -16,11 +16,6 @@ comment_start = "//-"
 # If false, the comments are just written back into the code.
 comments_as_aside = false
 
-# The sequence to identify the start of a meta variable interpolation.
-interpolation_start = "@{"
-# The sequence to identify the end of a meta variable interpolation.
-interpolation_end = "}"
-
 # The sequence to identify the start of a macro invocation.
 macro_start = "// ==>"
 # The sequence to identify the end of a macro invocation.
@@ -35,14 +30,18 @@ transclusion_end = "}}"
 # Should be RegEx-compatible.
 link_prefix = "@"
 
-# The sequence to split variables into name and value.
-variable_sep = ":"
-
 # Prefix for file-specific entry points.
 file_prefix = "file:"
 
 # Name prefix for code blocks not shown in the docs.
 hidden_prefix = "hidden:"
+
+# The sequence to identify the start of a meta variable interpolation.
+interpolation_start = "@{"
+# The sequence to identify the end of a meta variable interpolation.
+interpolation_end = "}"
+# The sequence to split variables into name and value.
+variable_sep = ":"
 
 ## The language to set if there was no automatically detected language. Optional.
 # default_language = "rust"
