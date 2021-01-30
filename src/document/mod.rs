@@ -230,7 +230,7 @@ impl Document {
         })
     }
 
-    fn code_blocks_by_name<'a>(
+    pub fn code_blocks_by_name<'a>(
         &'a self,
         language: Option<&'a str>,
     ) -> HashMap<Option<&'a str>, Vec<&'a CodeBlock>> {

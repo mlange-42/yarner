@@ -558,8 +558,8 @@ impl MdParser {
     ) -> Vec<(String, String)> {
         let mut entries = vec![];
         let pref = &self.file_prefix;
-        for block in doc.code_blocks(language) {
-            if let Some(name) = &block.name {
+        for (name, _block) in doc.code_blocks_by_name(language) {
+            if let Some(name) = name {
                 if let Some(rest) = name.strip_prefix(pref) {
                     entries.push((name.to_owned(), rest.to_owned()))
                 }
