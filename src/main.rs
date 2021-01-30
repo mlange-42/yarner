@@ -95,22 +95,14 @@ The normal workflow is:
             .help("Reverse mode: play back code changes into source files.")
             .required(false)
             .takes_value(false))
-        .subcommand(SubCommand::with_name("create")
+        .subcommand(SubCommand::with_name("init")
             .about("Creates a yarner project in the current directory")
-            .arg(Arg::with_name("main_file")
-                .help("The main file for the document sources, with normal file extension, but without additional Markdown extension.")
-                .value_name("main_file")
-                .takes_value(true)
-                .required(true)
-                .index(1)));
+        );
 
     let matches = app.get_matches();
 
-    if let Some(matches) = matches.subcommand_matches("create") {
-        let main_file = matches.value_of("main_file").unwrap();
-
-        create::create_new_project(main_file)
-            .map_err(|err| format!("Could not create project: {}", err))?;
+    if matches.subcommand_matches("init").is_some() {
+        create::create_new_project().map_err(|err| format!("Could not create project: {}", err))?;
 
         println!("Successfully created project.\nTo compile the project, run 'yarner' from here.",);
 

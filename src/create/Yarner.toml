@@ -55,10 +55,10 @@ code = "code/"
 docs = "docs/"
 
 # The input source file(s) as glob pattern(s).
-files = ["%%MAIN_FILE%%"]
+files = ["README.md"]
 
 ## Entrypoint block name. Optional. If not supplied, unnamed code blocks are used.
-# entrypoint = "Main"
+#entrypoint = "Main"
 
 ## File(s) to include in code output (unprocessed), as glob pattern(s).
 # code_files = ["**/*.rs"]
