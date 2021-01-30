@@ -2,11 +2,12 @@
 
 This examples demonstrates Yarner's most important features by creating a simple but complete [Rust](https://rust-lang.org) project.
 
-## Readme - unnamed entrypoint
+## Readme
 
-Every project should have a readme. Here, we use an unnamed code block to create this file. Unnamed code blocks go to a file with the same name as the containing file, but with the `md` extensions removed. Here, `README.md.md` becomes `README.md`.
+Every project should have a readme. We create a file `README.md` by using a code block named with prefix `file:`.
 
 ```markdown
+//- file:README.md
 # Rust project
 
 This is a simple but complete Rust project with a `README.md` file,
@@ -15,7 +16,7 @@ a `Cargo.toml` file, a `.gitignore` file and some source code.
 
 ## Rust code - macros and multiple files
 
-We create a file `src/main.rs` by using a code block named with prefix `file:`. The function declarations called in `main` are drawn from multiple code blocks named `Functions`.
+We create a file `src/main.rs`, again by using a code block named with prefix `file:`. The function declarations called in `main` are drawn from multiple code blocks named `Functions`.
 
 ```rust
 //- file:src/main.rs
@@ -60,6 +61,16 @@ For a complete Rust project, we need a file `Cargo.toml` and a file `.gitignore`
 
 For the first one, we use file transclusions. In the complied documentation in sub-folder `docs`, The line below will be replaced by the content of the given file.
 
-@{{[Cargo.toml.md](Cargo.toml.md)}}
+The file `Cargo.toml` informs cargo how to build a Rust project.
 
-Files linked with a certain prefix (`@` by default) are also included in the compilation process if the link is relative and the file exists. By linking to file @[.gitignore.md](.gitignore.md), we use this feature to include it into processing. The prefixed is removed in documentation output.
+```toml
+//- file:Cargo.toml
+[package]
+name = "features-demo"
+version = "0.1.0"
+authors = ["Your Name <you@example.com>"]
+edition = "2018"
+```
+
+Files linked with a certain prefix (`@` by default) are also included in the compilation process if the link is relative and the file exists.
+By linking to file [.gitignore.md](.gitignore.md), we use this feature to include it into processing. The prefixed is removed in documentation output.

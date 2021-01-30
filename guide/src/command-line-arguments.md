@@ -14,7 +14,7 @@ Literate programming compiler
 
 The normal workflow is:
  1) Create a project with
-    > yarner create README.md
+    > yarner init
  2) Process the project by running
     > yarner
 
@@ -30,7 +30,7 @@ FLAGS:
 OPTIONS:
     -o, --output <code_dir>          Output tangled code files to this directory. If none is specified, uses 'path' ->
                                      'code' from config file.
-    -c, --config <config_file>       Sets the config file name [default: Yarner.toml]
+    -c, --config <config>            Sets the config file name [default: Yarner.toml]
     -d, --docs <doc_dir>             Directory to output weaved documentation files to. If none is specified, uses
                                      'path' -> 'docs' from config file.
     -e, --entrypoint <entrypoint>    The named entrypoint to use when tangling code. Defaults to the unnamed code block.
@@ -44,6 +44,6 @@ ARGS:
                   config file.
 
 SUBCOMMANDS:
-    create    Creates a yarner project in the current directory
-    help      Prints this message or the help of the given subcommand(s)
+    help    Prints this message or the help of the given subcommand(s)
+    init    Creates a yarner project in the current directory
 ```

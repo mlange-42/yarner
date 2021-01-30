@@ -41,7 +41,7 @@ fn fourth_funtion() {}
 ```
 ````
 
-Not that macro invocations are possible as usual, with no special syntax required.
+Note that macro invocations are possible as usual, with no special syntax required.
 
 Each code block named with the `file:` prefix is treated as separate entrypoint during the build process.
 

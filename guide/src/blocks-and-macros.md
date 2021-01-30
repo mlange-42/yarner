@@ -13,12 +13,12 @@ In the most basic scenario, Yarner extracts code blocks from a Markdown document
 As an example, create a project like this:
 
 ```plaintext
-> yarner create main.rs.md
+> yarner init
 ```
 
-This would create a file `main.rs.md` in your project's directory, and a `Yarner.toml` file with the default settings.
+This creates a file `README.md` in your project's directory, and a `Yarner.toml` file with the default settings.
 
-File `main.rs.md` has some template content, but we want to start with a minimal example:
+File `README.md` has some template content, but we want to start with a minimal example:
 
 ````markdown
 # Simple example
@@ -32,20 +32,33 @@ fn main() {
 ```
 ````
 
-Running yarner with
+Running Yarner with
 
 ```plaintext
 > yarner
 ```
 
-creates a file `main.rs` in sub-directory `code`, and a documentation file `main.rs.md` in sub-directory `docs`.
-In this case, `docs/main.rs.md` has the same content as the original file, and `code/main.rs` contains the extracted code block:
+creates a file `README` in sub-directory `code`, and a documentation file `README.md` in sub-directory `docs`.
+In this case, `docs/README.md` has the same content as the original file, and `code/README` contains the extracted code block:
 
 ```rust,noplaypen
 fn main() {
     println!("Hello World!");
 }
 ```
+
+### File extensions
+
+However, a Rust file without the `.rs` extension is not very useful. We can rename the main file from `README.md` to `main.rs.md`.
+Further, in file `Yarner.toml`, we change option `files` in section `[paths]` to:
+
+```toml
+files = ["main.rs.md"]
+```
+
+Yarner now produces the files `code/main.rs` and `docs/main.rs.md`.
+
+Please note that only the `md` extension is stripped for the code output, while any extension-like parts of the main file name are preserved.
 
 ## Macros
 

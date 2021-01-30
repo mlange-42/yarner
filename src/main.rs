@@ -38,7 +38,7 @@ fn run() -> Fallible {
 
 The normal workflow is:
  1) Create a project with
-    > yarner create README.md
+    > yarner init
  2) Process the project by running
     > yarner"#)
         .arg(Arg::with_name("config")
@@ -272,9 +272,16 @@ fn process_inputs_reverse(
     }
 
     if !any_input {
-        return Err("No input files found. For help, use:\n\
-                 > yarner -h"
-            .to_string());
+        return Err(format!(
+            "No input files found in patterns: {}\n\
+                For help, use:\n\
+                 > yarner -h",
+            input_patterns
+                .iter()
+                .map(|p| format!("\"{}\"", p))
+                .collect::<Vec<_>>()
+                .join(", ")
+        ));
     }
 
     reverse(documents, code_files, &config)?;
@@ -404,9 +411,16 @@ fn process_inputs_forward(
     }
 
     if !any_input {
-        return Err("No input files found. For help, use:\n\
-                 > yarner -h"
-            .to_string());
+        return Err(format!(
+            "No input files found in patterns: {}\n\
+                For help, use:\n\
+                 > yarner -h",
+            input_patterns
+                .iter()
+                .map(|p| format!("\"{}\"", p))
+                .collect::<Vec<_>>()
+                .join(", ")
+        ));
     }
 
     Ok(())

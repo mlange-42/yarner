@@ -29,7 +29,7 @@ fn say_hello("Paul");
 ```
 ````
 
-Additionally, if the variable `entrypoint` in section `[paths]` of the `Yarner.toml` is set, unnamed blocks are excluded from code output.
+Additionally, if the option `entrypoint` in section `[paths]` of the `Yarner.toml` is set, unnamed blocks are excluded from code output.
 
 ## Hidden code
 
@@ -48,3 +48,14 @@ fn hidden() {
 For code output, hidden blocks are treated like regular code blocks.
 
 Only named code blocks can be hidden.
+
+The prefixes `hidden:` and `file:` can be combined, but only in that order:
+
+````
+```rust
+//- hidden:file:secrets.rs
+fn hidden() {
+    
+}
+```
+````
