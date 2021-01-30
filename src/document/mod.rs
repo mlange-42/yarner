@@ -10,6 +10,7 @@ use self::transclusion::Transclusion;
 use crate::config::LanguageSettings;
 use crate::parser::{code::RevCodeBlock, md::MdParser};
 use std::collections::hash_map::{Entry, HashMap};
+use std::fmt::Write;
 
 /// A representation of a `Document` of literate code
 #[derive(Debug)]
@@ -140,6 +141,7 @@ impl Document {
             .unwrap_or("");
         let block_start = settings.map(|s| &s.block_start[..]).unwrap_or("");
         let block_end = settings.map(|s| &s.block_end[..]).unwrap_or("");
+        let block_next = settings.map(|s| &s.block_next[..]).unwrap_or("");
 
         let clean = if let Some(s) = settings {
             s.clean_code
@@ -151,7 +153,7 @@ impl Document {
         let mut result = String::new();
         match code_blocks.get(&entrypoint) {
             Some(blocks) => {
-                for block in blocks {
+                for (idx, block) in blocks.iter().enumerate() {
                     let path = block.source_file.to_owned().unwrap_or_default();
                     let name = if block.is_unnamed {
                         ""
@@ -160,18 +162,27 @@ impl Document {
                     };
 
                     if !clean {
-                        result.push_str(&format!(
-                            "{} {}{}#{}{}\n",
-                            comment_start, block_start, path, name, comment_end,
-                        ));
+                        let sep = if idx == 0 || block.name != blocks[idx - 1].name {
+                            &block_start
+                        } else {
+                            &block_next
+                        };
+                        writeln!(
+                            result,
+                            "{} {}{}#{}{}",
+                            comment_start, sep, path, name, comment_end,
+                        )
+                        .unwrap();
                     }
                     result.push_str(&block.compile(&code_blocks, settings)?);
                     result.push('\n');
-                    if !clean {
-                        result.push_str(&format!(
+                    if !clean && (idx == blocks.len() - 1 || block.name != blocks[idx + 1].name) {
+                        write!(
+                            result,
                             "{} {}{}#{}{}",
                             comment_start, block_end, path, name, comment_end,
-                        ));
+                        )
+                        .unwrap();
                     }
                 }
             }

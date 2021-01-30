@@ -33,6 +33,7 @@ use once_cell::sync::Lazy;
 use regex::Regex;
 use serde::de::Error as _;
 use serde::{Deserialize, Deserializer};
+use std::collections::HashMap;
 use std::error::Error;
 use std::fmt::Write;
 use std::fs::File;
@@ -551,17 +552,17 @@ impl MdParser {
     }
 
     /// Finds all file-specific entry points
-    pub fn get_entry_points(
+    pub fn get_entry_points<'a>(
         &self,
-        doc: &Document,
-        language: Option<&str>,
-    ) -> Vec<(String, String)> {
-        let mut entries = vec![];
+        doc: &'a Document,
+        language: Option<&'a str>,
+    ) -> HashMap<&'a str, &'a str> {
+        let mut entries = HashMap::new();
         let pref = &self.file_prefix;
         for block in doc.code_blocks(language) {
             if let Some(name) = &block.name {
                 if let Some(rest) = name.strip_prefix(pref) {
-                    entries.push((name.to_owned(), rest.to_owned()))
+                    entries.insert(name.as_str(), rest);
                 }
             }
         }
