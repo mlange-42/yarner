@@ -1,31 +1,42 @@
 //! Config objects, to be read from Yarner.toml
 
 use crate::parser::md::MdParser;
+use crate::util::Fallible;
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
+use std::fs::read_to_string;
+use std::path::Path;
+use toml::from_str;
 
-/// Top-leven config
+/// Top-level config
 #[derive(Deserialize, Default, Debug)]
-pub struct AnyConfig {
+pub struct Config {
     /// Config for Markdown parser
     pub parser: MdParser,
     /// Config for paths
-    pub paths: Option<Paths>,
+    #[serde(default)]
+    pub paths: Paths,
     /// Programming language specific settings
-    pub language: Option<HashMap<String, LanguageSettings>>,
+    #[serde(default)]
+    pub language: HashMap<String, LanguageSettings>,
 }
 
-impl AnyConfig {
+impl Config {
+    pub fn read<P: AsRef<Path>>(path: P) -> Fallible<Self> {
+        let buf = read_to_string(path)?;
+        let val = from_str::<Self>(&buf)?;
+
+        val.check()?;
+
+        Ok(val)
+    }
+
     /// Check the validity of the configuration
-    pub fn check(&self) -> Result<(), String> {
-        if let Some(paths) = &self.paths {
-            paths.check()?;
+    fn check(&self) -> Fallible {
+        for language in self.language.values() {
+            language.check()?;
         }
-        if let Some(languages) = &self.language {
-            for language in languages.values() {
-                language.check()?;
-            }
-        }
+
         Ok(())
     }
 }
@@ -53,13 +64,6 @@ pub struct Paths {
     pub entrypoint: Option<String>,
 }
 
-impl Paths {
-    /// Check the validity of the paths configuration
-    pub fn check(&self) -> Result<(), String> {
-        Ok(())
-    }
-}
-
 /// Config for a programming language
 #[derive(Serialize, Deserialize, Default, Debug)]
 pub struct LanguageSettings {
@@ -84,17 +88,17 @@ pub struct LanguageSettings {
 
 impl LanguageSettings {
     /// Check the validity of language settings
-    pub fn check(&self) -> Result<(), String> {
+    fn check(&self) -> Fallible {
         if self.block_start.starts_with(&self.block_next) {
             return Err(
-                "ERROR: Language parameter 'block_start' must not start with the same sequence as 'block_next'"
-                    .to_string(),
+                "Language parameter 'block_start' must not start with the same sequence as 'block_next'"
+                    .into(),
             );
         }
         if self.block_end.starts_with(&self.block_start) {
             return Err(
-                "ERROR: Language parameter 'block_end' must not start with the same sequence as 'block_start'"
-                    .to_string(),
+                "Language parameter 'block_end' must not start with the same sequence as 'block_start'"
+                    .into(),
             );
         }
         Ok(())
