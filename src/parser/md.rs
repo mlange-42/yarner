@@ -23,11 +23,10 @@
 use super::code::RevCodeBlock;
 
 use crate::document::{
-    ast::Node,
     code::{CodeBlock, Line, Segment, Source},
     text::TextBlock,
-    tranclusion::Transclusion,
-    Document,
+    transclusion::Transclusion,
+    Document, Node,
 };
 use crate::util::{Fallible, TryCollectExt};
 use once_cell::sync::Lazy;
@@ -37,7 +36,6 @@ use serde::{Deserialize, Deserializer};
 use std::error::Error;
 use std::fmt::Write;
 use std::fs::File;
-use std::iter::FromIterator;
 use std::path::{Path, PathBuf};
 
 /// The config for parsing a Markdown document
@@ -380,7 +378,7 @@ impl MdParser {
         if let Some(node) = state.node.take() {
             document.push(node);
         }
-        Ok(Document::from_iter(document))
+        Ok(Document::new(document))
     }
 
     pub fn find_links(
@@ -391,9 +389,8 @@ impl MdParser {
     ) -> Fallible<Vec<PathBuf>> {
         let regex = &self.link_following_pattern;
         let mut paths = vec![];
-        let tree = input.tree_mut();
 
-        for block in tree.text_blocks_mut() {
+        for block in input.text_blocks_mut() {
             for line in block.lines_mut().iter_mut() {
                 let mut offset = 0;
                 let mut new_line: Option<String> = None;
@@ -557,12 +554,12 @@ impl MdParser {
     pub fn get_entry_points(
         &self,
         doc: &Document,
-        language: &Option<&str>,
+        language: Option<&str>,
     ) -> Vec<(String, String)> {
         let mut entries = vec![];
         let pref = &self.file_prefix;
-        for (name, _block) in doc.tree().code_blocks(language) {
-            if let Some(name) = name {
+        for block in doc.code_blocks(language) {
+            if let Some(name) = &block.name {
                 if let Some(rest) = name.strip_prefix(pref) {
                     entries.push((name.to_owned(), rest.to_owned()))
                 }
