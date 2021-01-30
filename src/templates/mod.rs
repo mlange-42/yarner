@@ -1,6 +1,6 @@
-//! Doc templates for project creation
+//! Templates for project creation
 
-/// Markdown template
-pub const MD: &str = include_str!("template.md");
-/// Markdown config
-pub const MD_CONFIG: &str = include_str!("Yarner-md.toml");
+/// Document template
+pub const DOCUMENT: &str = include_str!("document.md");
+/// Config template
+pub const CONFIG: &str = include_str!("Yarner.toml");

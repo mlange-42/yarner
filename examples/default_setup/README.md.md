@@ -15,7 +15,7 @@ In the code output, `==> More code.` will be replaced by the following code:
 Have fun with yarner!
 ```
 
-To create code in other files, use `file:<path/to/file>` as block name.
+To create code in other files, use `file:<path/to/file>` as the block name.
 Here, we create a file `main.rs` in subfolder `src`:
 
 ```rust

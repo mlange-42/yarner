@@ -98,7 +98,7 @@ The normal workflow is:
         .subcommand(SubCommand::with_name("create")
             .about("Creates a yarner project in the current directory")
             .arg(Arg::with_name("file")
-                .help("The base file for the doc sources, with normal file extension, but without additional style extension.")
+                .help("The main file for the document sources, with normal file extension, but without additional Markdown extension.")
                 .value_name("file")
                 .takes_value(true)
                 .required(true)
@@ -109,13 +109,9 @@ The normal workflow is:
     if let Some(matches) = matches.subcommand_matches("create") {
         let file = matches.value_of("file").unwrap();
 
-        match create_project(file) {
-            Ok(_) => eprintln!(
-                "Successfully created project for {}.\nTo compile the project, run `yarner` from the project directory.",
-                file
-            ),
-            Err(err) => return Err(format!("Creating project failed for {}: {}", file, err).into()),
-        }
+        create_project(file).map_err(|err| format!("Could not create project: {}", err))?;
+
+        println!("Successfully created project.\nTo compile the project, run 'yarner' from here.",);
 
         return Ok(());
     }
@@ -523,23 +519,25 @@ fn modify_path(path: &Path, replace: &str) -> PathBuf {
 }
 
 fn create_project(file: &str) -> Fallible {
-    let file_name = format!("{}.md", file);
-    let base_path = PathBuf::from(&file_name);
-    let toml_path = PathBuf::from("Yarner.toml");
+    let main_file = format!("{}.md", file);
 
-    if base_path.exists() {
-        return Err(format!("File {} already exists.", base_path.display()).into());
-    }
-    if toml_path.exists() {
-        return Err(format!("File {} already exists.", toml_path.display()).into());
-    }
+    let mut document = fs::OpenOptions::new()
+        .write(true)
+        .create_new(true)
+        .open(&main_file)?;
 
-    let toml = templates::MD_CONFIG.replace("%%MAIN_FILE%%", &file_name);
-    let mut toml_file = File::create(&toml_path)?;
-    toml_file.write_all(&toml.as_bytes())?;
+    let mut config = fs::OpenOptions::new()
+        .write(true)
+        .create_new(true)
+        .open("Yarner.toml")?;
 
-    let mut base_file = File::create(&base_path)?;
-    base_file.write_all(&templates::MD.as_bytes())?;
+    document.write_all(templates::DOCUMENT.as_bytes())?;
+
+    config.write_all(
+        templates::CONFIG
+            .replace("%%MAIN_FILE%%", &main_file)
+            .as_bytes(),
+    )?;
 
     Ok(())
 }
