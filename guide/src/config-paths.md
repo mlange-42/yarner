@@ -18,7 +18,7 @@ files = ["<file>"]
 
 # entrypoint = "Main"
 
-# code_files = ["**/*.rs"] a single "_" if no change is intended at all.
+# code_files = ["**/*.rs"]
 # code_paths = ["_"]
 
 # doc_files = ["**/*.png", "**/*.jpg"]
