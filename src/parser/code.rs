@@ -89,9 +89,14 @@ impl CodeParser {
                 if !is_next {
                     if let (Some(name), Some(block)) = (&name, block_stack.last_mut()) {
                         let new_line = format!(
-                            "{}{} {}{}",
-                            " ".repeat(indent),
+                            "{}{}{}{}{}",
+                            &line[..indent],
                             parser.macro_start,
+                            if parser.macro_start.ends_with(' ') {
+                                ""
+                            } else {
+                                " "
+                            },
                             name,
                             parser.macro_end,
                         );
