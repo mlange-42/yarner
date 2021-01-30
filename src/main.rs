@@ -1,7 +1,7 @@
 pub mod config;
+pub mod create;
 pub mod document;
 pub mod parser;
-pub mod templates;
 pub mod util;
 
 use crate::config::{Config, LanguageSettings};
@@ -44,7 +44,7 @@ The normal workflow is:
         .arg(Arg::with_name("config")
             .short("c")
             .long("config")
-            .value_name("config_file")
+            .value_name("config")
             .help("Sets the config file name")
             .takes_value(true)
             .default_value("Yarner.toml"))
@@ -97,9 +97,9 @@ The normal workflow is:
             .takes_value(false))
         .subcommand(SubCommand::with_name("create")
             .about("Creates a yarner project in the current directory")
-            .arg(Arg::with_name("file")
-                .help("The base file for the doc sources, with normal file extension, but without additional style extension.")
-                .value_name("file")
+            .arg(Arg::with_name("main_file")
+                .help("The main file for the document sources, with normal file extension, but without additional Markdown extension.")
+                .value_name("main_file")
                 .takes_value(true)
                 .required(true)
                 .index(1)));
@@ -107,15 +107,12 @@ The normal workflow is:
     let matches = app.get_matches();
 
     if let Some(matches) = matches.subcommand_matches("create") {
-        let file = matches.value_of("file").unwrap();
+        let main_file = matches.value_of("main_file").unwrap();
 
-        match create_project(file) {
-            Ok(_) => eprintln!(
-                "Successfully created project for {}.\nTo compile the project, run `yarner` from the project directory.",
-                file
-            ),
-            Err(err) => return Err(format!("Creating project failed for {}: {}", file, err).into()),
-        }
+        create::create_new_project(main_file)
+            .map_err(|err| format!("Could not create project: {}", err))?;
+
+        println!("Successfully created project.\nTo compile the project, run 'yarner' from here.",);
 
         return Ok(());
     }
@@ -520,28 +517,6 @@ fn modify_path(path: &Path, replace: &str) -> PathBuf {
         }
     }
     new_path
-}
-
-fn create_project(file: &str) -> Fallible {
-    let file_name = format!("{}.md", file);
-    let base_path = PathBuf::from(&file_name);
-    let toml_path = PathBuf::from("Yarner.toml");
-
-    if base_path.exists() {
-        return Err(format!("File {} already exists.", base_path.display()).into());
-    }
-    if toml_path.exists() {
-        return Err(format!("File {} already exists.", toml_path.display()).into());
-    }
-
-    let toml = templates::MD_CONFIG.replace("%%MAIN_FILE%%", &file_name);
-    let mut toml_file = File::create(&toml_path)?;
-    toml_file.write_all(&toml.as_bytes())?;
-
-    let mut base_file = File::create(&base_path)?;
-    base_file.write_all(&templates::MD.as_bytes())?;
-
-    Ok(())
 }
 
 fn transclude_dry_run(
