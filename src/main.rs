@@ -724,14 +724,10 @@ fn compile(
 ) -> Fallible {
     eprintln!("Compiling file {}", file_name.display());
 
-    let mut entries = vec![(entrypoint.as_deref(), file_name.to_owned())];
-    let extra_entries = parser.get_entry_points(&document, language);
+    let mut entries = parser.get_entry_points(&document, language);
 
-    entries.extend(
-        extra_entries
-            .iter()
-            .map(|(e, p)| (Some(&e[..]), PathBuf::from((*p).to_owned() + ".temp"))),
-    );
+    let file_name_without_ext = file_name.with_extension("");
+    entries.insert(entrypoint, &file_name_without_ext);
 
     match doc_dir {
         Some(doc_dir) => {
@@ -749,10 +745,7 @@ fn compile(
         match code_dir {
             Some(code_dir) => {
                 let mut file_path = code_dir.to_owned();
-                if let Some(par) = sub_file_name.parent() {
-                    file_path.push(par)
-                }
-                file_path.push(sub_file_name.file_stem().unwrap());
+                file_path.push(sub_file_name);
                 if let Some(language) = language {
                     file_path.set_extension(language);
                 }
@@ -812,23 +805,16 @@ fn compile_reverse(
 ) -> Fallible {
     eprintln!("Compiling file {}", file_name.display());
 
-    let mut entries = vec![(entrypoint.as_deref(), file_name.to_owned())];
-    let extra_entries = parser.get_entry_points(&document, language);
+    let mut entries = parser.get_entry_points(&document, language);
 
-    entries.extend(
-        extra_entries
-            .iter()
-            .map(|(e, p)| (Some(&e[..]), PathBuf::from((*p).to_owned() + ".temp"))),
-    );
+    let file_name_without_ext = file_name.with_extension("");
+    entries.insert(entrypoint, &file_name_without_ext);
 
     for (_entrypoint, sub_file_name) in entries {
         match code_dir {
             Some(code_dir) => {
                 let mut file_path = code_dir.to_owned();
-                if let Some(par) = sub_file_name.parent() {
-                    file_path.push(par)
-                }
-                file_path.push(sub_file_name.file_stem().unwrap());
+                file_path.push(sub_file_name);
                 if let Some(language) = language {
                     file_path.set_extension(language);
                 }

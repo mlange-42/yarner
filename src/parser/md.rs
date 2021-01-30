@@ -556,13 +556,13 @@ impl MdParser {
         &self,
         doc: &'a Document,
         language: Option<&'a str>,
-    ) -> HashMap<&'a str, &'a str> {
+    ) -> HashMap<Option<&'a str>, &'a Path> {
         let mut entries = HashMap::new();
         let pref = &self.file_prefix;
         for block in doc.code_blocks(language) {
-            if let Some(name) = &block.name {
+            if let Some(name) = block.name.as_deref() {
                 if let Some(rest) = name.strip_prefix(pref) {
-                    entries.insert(name.as_str(), rest);
+                    entries.insert(Some(name), Path::new(rest));
                 }
             }
         }
