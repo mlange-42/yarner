@@ -9,7 +9,7 @@ use std::path::Path;
 use toml::from_str;
 
 /// Top-level config
-#[derive(Deserialize, Default, Debug)]
+#[derive(Deserialize, Debug)]
 pub struct Config {
     /// Config for Markdown parser
     pub parser: MdParser,

@@ -117,11 +117,9 @@ The normal workflow is:
         return Ok(());
     }
 
-    let mut config = match matches.value_of("config") {
-        None => Config::default(),
-        Some(path) => Config::read(path)
-            .map_err(|err| format!("Could not read config file \"{}\": {}", path, err))?,
-    };
+    let config_path = matches.value_of("config").unwrap();
+    let mut config = Config::read(config_path)
+        .map_err(|err| format!("Could not read config file \"{}\": {}", config_path, err))?;
 
     let clean_code = matches.is_present("clean");
     for lang in config.language.values_mut() {
