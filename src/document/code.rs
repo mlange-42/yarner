@@ -88,8 +88,8 @@ impl CodeBlock {
     /// "Compiles" this code block into its output code
     pub fn compile(
         &self,
-        code_blocks: &HashMap<Option<&str>, Vec<CodeBlock>>,
-        settings: &Option<&LanguageSettings>,
+        code_blocks: &HashMap<Option<&str>, Vec<&CodeBlock>>,
+        settings: Option<&LanguageSettings>,
     ) -> Result<String, CompileError> {
         self.compile_with(code_blocks, HashMap::default(), settings)
     }
@@ -101,9 +101,9 @@ impl CodeBlock {
 
     fn compile_with(
         &self,
-        code_blocks: &HashMap<Option<&str>, Vec<CodeBlock>>,
+        code_blocks: &HashMap<Option<&str>, Vec<&CodeBlock>>,
         scope: HashMap<String, String>,
-        settings: &Option<&LanguageSettings>,
+        settings: Option<&LanguageSettings>,
     ) -> Result<String, CompileError> {
         self.source
             .iter()
@@ -172,9 +172,9 @@ pub struct Line {
 impl Line {
     fn compile_with(
         &self,
-        code_blocks: &HashMap<Option<&str>, Vec<CodeBlock>>,
+        code_blocks: &HashMap<Option<&str>, Vec<&CodeBlock>>,
         scope: &HashMap<String, String>,
-        settings: &Option<&LanguageSettings>,
+        settings: Option<&LanguageSettings>,
     ) -> Result<String, CompileError> {
         let comment_start = settings.map(|s| &s.comment_start[..]).unwrap_or("");
         let comment_end = settings

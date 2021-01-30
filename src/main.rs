@@ -172,8 +172,8 @@ The normal workflow is:
             &config,
             code_dir,
             doc_dir,
-            &entrypoint,
-            &language,
+            entrypoint,
+            language,
         )?;
     } else {
         process_inputs_forward(
@@ -181,8 +181,8 @@ The normal workflow is:
             &config,
             code_dir,
             doc_dir,
-            &entrypoint,
-            &language,
+            entrypoint,
+            language,
         )?;
     }
 
@@ -218,8 +218,8 @@ fn process_inputs_reverse(
     config: &Config,
     code_dir: Option<&Path>,
     doc_dir: Option<&Path>,
-    entrypoint: &Option<&str>,
-    language: &Option<&str>,
+    entrypoint: Option<&str>,
+    language: Option<&str>,
 ) -> Result<(), String> {
     let mut any_input = false;
 
@@ -355,8 +355,8 @@ fn process_inputs_forward(
     config: &Config,
     code_dir: Option<&Path>,
     doc_dir: Option<&Path>,
-    entrypoint: &Option<&str>,
-    language: &Option<&str>,
+    entrypoint: Option<&str>,
+    language: Option<&str>,
 ) -> Result<(), String> {
     let mut any_input = false;
     for pattern in input_patterns {
@@ -548,15 +548,15 @@ fn transclude_dry_run(
     parser: &MdParser,
     file_name: &Path,
     code_dir: Option<&Path>,
-    entrypoint: &Option<&str>,
-    language: &Option<&str>,
+    entrypoint: Option<&str>,
+    language: Option<&str>,
     documents: &mut HashMap<PathBuf, Document>,
     track_code_files: &mut HashSet<PathBuf>,
 ) -> Fallible<Document> {
     let source_main = fs::read_to_string(&file_name)?;
     let document = parser.parse(&source_main, &file_name)?;
 
-    let transclusions = document.tree().transclusions();
+    let transclusions = document.transclusions();
 
     let mut trans_so_far = HashSet::new();
     for trans in transclusions {
@@ -595,7 +595,7 @@ fn transclude(parser: &MdParser, file_name: &Path) -> Fallible<Document> {
     let source_main = fs::read_to_string(&file_name)?;
     let mut document = parser.parse(&source_main, &file_name)?;
 
-    let transclusions = document.tree().transclusions();
+    let transclusions = document.transclusions().cloned().collect::<Vec<_>>();
 
     let mut trans_so_far = HashSet::new();
     for trans in transclusions {
@@ -610,9 +610,7 @@ fn transclude(parser: &MdParser, file_name: &Path) -> Fallible<Document> {
                 parser.file_prefix,
                 &full_path[..full_path.len() - ext.len() - 1]
             );
-            document
-                .tree_mut()
-                .transclude(&trans, doc.into_tree(), &full_path, &path[..]);
+            document.transclude(&trans, doc, &full_path, &path[..]);
 
             trans_so_far.insert(trans.file().clone());
         } else {
@@ -628,8 +626,8 @@ fn compile_all(
     doc_dir: Option<&Path>,
     code_dir: Option<&Path>,
     file_name: &Path,
-    entrypoint: &Option<&str>,
-    language: &Option<&str>,
+    entrypoint: Option<&str>,
+    language: Option<&str>,
     settings: &HashMap<String, LanguageSettings>,
     track_input_files: &mut HashSet<PathBuf>,
     track_code_files: &mut HashSet<PathBuf>,
@@ -639,7 +637,7 @@ fn compile_all(
         let links = parser.find_links(&mut document, file_name, true)?;
 
         let file_str = file_name.to_str().unwrap();
-        document.tree_mut().set_source(file_str);
+        document.set_source(file_str);
 
         compile(
             parser,
@@ -680,8 +678,8 @@ fn compile_all_reverse(
     doc_dir: Option<&Path>,
     code_dir: Option<&Path>,
     file_name: &Path,
-    entrypoint: &Option<&str>,
-    language: &Option<&str>,
+    entrypoint: Option<&str>,
+    language: Option<&str>,
     settings: &HashMap<String, LanguageSettings>,
     track_input_files: &mut HashSet<PathBuf>,
     track_code_files: &mut HashSet<PathBuf>,
@@ -700,7 +698,7 @@ fn compile_all_reverse(
         let links = parser.find_links(&mut document, file_name, false)?;
 
         let file_str = file_name.to_str().unwrap();
-        document.tree_mut().set_source(file_str);
+        document.set_source(file_str);
 
         compile_reverse(
             parser,
@@ -744,8 +742,8 @@ fn compile(
     doc_dir: Option<&Path>,
     code_dir: Option<&Path>,
     file_name: &Path,
-    entrypoint: &Option<&str>,
-    language: &Option<&str>,
+    entrypoint: Option<&str>,
+    language: Option<&str>,
     settings: &HashMap<String, LanguageSettings>,
     track_code_files: &mut HashSet<PathBuf>,
 ) -> Fallible {
@@ -801,7 +799,7 @@ fn compile(
                     track_code_files.insert(file_path.clone());
                 }
 
-                match document.print_code(&entrypoint, language, &settings) {
+                match document.print_code(entrypoint, language, settings) {
                     Ok(code) => {
                         eprintln!("  Writing file {}", file_path.display());
                         fs::create_dir_all(file_path.parent().unwrap()).unwrap();
@@ -833,8 +831,8 @@ fn compile_reverse(
     document: &Document,
     code_dir: Option<&Path>,
     file_name: &Path,
-    entrypoint: &Option<&str>,
-    language: &Option<&str>,
+    entrypoint: Option<&str>,
+    language: Option<&str>,
     track_code_files: &mut HashSet<PathBuf>,
 ) -> Fallible {
     eprintln!("Compiling file {}", file_name.display());
