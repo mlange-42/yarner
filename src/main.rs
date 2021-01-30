@@ -10,7 +10,7 @@ use crate::parser::{
     code::{CodeParser, RevCodeBlock},
     md::MdParser,
 };
-use crate::util::Fallible;
+use crate::util::{modify_path, Fallible};
 use clap::{crate_version, App, Arg, SubCommand};
 use std::collections::hash_map::Entry::{Occupied, Vacant};
 use std::collections::{HashMap, HashSet};
@@ -494,27 +494,6 @@ fn copy_files(
         }
     }
     Ok(())
-}
-
-fn modify_path(path: &Path, replace: &str) -> PathBuf {
-    if replace.is_empty() || replace == "_" {
-        return path.to_owned();
-    }
-    let mut new_path = PathBuf::new();
-    let repl_parts: Vec<_> = Path::new(replace)
-        .components()
-        .map(|c| c.as_os_str())
-        .collect();
-    for (i, comp) in path.components().enumerate() {
-        if repl_parts.len() > i && repl_parts[i] != "_" {
-            if repl_parts[i] != "-" {
-                new_path.push(repl_parts[i]);
-            }
-        } else {
-            new_path.push(comp);
-        }
-    }
-    new_path
 }
 
 fn transclude_dry_run(
