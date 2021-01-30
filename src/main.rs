@@ -1,7 +1,7 @@
 pub mod config;
+pub mod create;
 pub mod document;
 pub mod parser;
-pub mod templates;
 pub mod util;
 
 use crate::config::{Config, LanguageSettings};
@@ -44,7 +44,7 @@ The normal workflow is:
         .arg(Arg::with_name("config")
             .short("c")
             .long("config")
-            .value_name("config_file")
+            .value_name("config")
             .help("Sets the config file name")
             .takes_value(true)
             .default_value("Yarner.toml"))
@@ -97,9 +97,9 @@ The normal workflow is:
             .takes_value(false))
         .subcommand(SubCommand::with_name("create")
             .about("Creates a yarner project in the current directory")
-            .arg(Arg::with_name("file")
+            .arg(Arg::with_name("main_file")
                 .help("The main file for the document sources, with normal file extension, but without additional Markdown extension.")
-                .value_name("file")
+                .value_name("main_file")
                 .takes_value(true)
                 .required(true)
                 .index(1)));
@@ -107,9 +107,10 @@ The normal workflow is:
     let matches = app.get_matches();
 
     if let Some(matches) = matches.subcommand_matches("create") {
-        let file = matches.value_of("file").unwrap();
+        let main_file = matches.value_of("main_file").unwrap();
 
-        create_project(file).map_err(|err| format!("Could not create project: {}", err))?;
+        create::create_new_project(main_file)
+            .map_err(|err| format!("Could not create project: {}", err))?;
 
         println!("Successfully created project.\nTo compile the project, run 'yarner' from here.",);
 
@@ -516,30 +517,6 @@ fn modify_path(path: &Path, replace: &str) -> PathBuf {
         }
     }
     new_path
-}
-
-fn create_project(file: &str) -> Fallible {
-    let main_file = format!("{}.md", file);
-
-    let mut document = fs::OpenOptions::new()
-        .write(true)
-        .create_new(true)
-        .open(&main_file)?;
-
-    let mut config = fs::OpenOptions::new()
-        .write(true)
-        .create_new(true)
-        .open("Yarner.toml")?;
-
-    document.write_all(templates::DOCUMENT.as_bytes())?;
-
-    config.write_all(
-        templates::CONFIG
-            .replace("%%MAIN_FILE%%", &main_file)
-            .as_bytes(),
-    )?;
-
-    Ok(())
 }
 
 fn transclude_dry_run(
