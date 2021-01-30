@@ -10,6 +10,7 @@ use self::transclusion::Transclusion;
 use crate::config::LanguageSettings;
 use crate::parser::{code::RevCodeBlock, md::MdParser};
 use std::collections::hash_map::{Entry, HashMap};
+use std::fmt::Write;
 
 /// A representation of a `Document` of literate code
 #[derive(Debug)]
@@ -161,25 +162,27 @@ impl Document {
                     };
 
                     if !clean {
-                        if idx == 0 || block.name != blocks[idx - 1].name {
-                            result.push_str(&format!(
-                                "{} {}{}#{}{}\n",
-                                comment_start, block_start, path, name, comment_end,
-                            ));
+                        let sep = if idx == 0 || block.name != blocks[idx - 1].name {
+                            &block_start
                         } else {
-                            result.push_str(&format!(
-                                "{} {}{}#{}{}\n",
-                                comment_start, block_next, path, name, comment_end,
-                            ));
-                        }
+                            &block_next
+                        };
+                        writeln!(
+                            result,
+                            "{} {}{}#{}{}",
+                            comment_start, sep, path, name, comment_end,
+                        )
+                        .unwrap();
                     }
                     result.push_str(&block.compile(&code_blocks, settings)?);
                     result.push('\n');
                     if !clean && (idx == blocks.len() - 1 || block.name != blocks[idx + 1].name) {
-                        result.push_str(&format!(
+                        write!(
+                            result,
                             "{} {}{}#{}{}",
                             comment_start, block_end, path, name, comment_end,
-                        ));
+                        )
+                        .unwrap();
                     }
                 }
             }
