@@ -3,8 +3,6 @@
 use super::md::MdParser;
 
 use crate::config::BlockLabels;
-use std::collections::hash_map::Entry::{Occupied, Vacant};
-use std::collections::HashMap;
 
 /// Representation of a code block
 pub struct RevCodeBlock {
@@ -45,7 +43,7 @@ impl CodeParser {
         source: &str,
         parser: &MdParser,
         block_labels: &BlockLabels,
-    ) -> Vec<RevCodeBlock> {
+    ) -> Result<Vec<RevCodeBlock>, String> {
         let start = format!(
             "{} {}",
             block_labels.comment_start, block_labels.block_start
@@ -53,7 +51,6 @@ impl CodeParser {
         let next = format!("{} {}", block_labels.comment_start, block_labels.block_next);
         let end = format!("{} {}", block_labels.comment_start, block_labels.block_end);
 
-        let mut block_count: HashMap<String, usize> = HashMap::new();
         let mut blocks = vec![];
         let mut block_stack: Vec<RevCodeBlock> = vec![];
         for line in source.lines() {
@@ -79,7 +76,7 @@ impl CodeParser {
                     }
                 }
 
-                let mut parts = full_name.splitn(2, &block_labels.name_separator);
+                let mut parts = full_name.splitn(3, &block_labels.name_separator);
                 let file = parts.next().unwrap_or("").to_string();
                 let name = parts.next().and_then(|s| {
                     if s.is_empty() {
@@ -88,6 +85,10 @@ impl CodeParser {
                         Some(s.to_string())
                     }
                 });
+                let index_str = parts.next().unwrap_or("0");
+                let index = index_str.parse::<usize>().map_err(|_| {
+                    format!("Can't parse block index '{}' to an integer", index_str)
+                })?;
 
                 if !is_next {
                     if let (Some(name), Some(block)) = (&name, block_stack.last_mut()) {
@@ -107,14 +108,6 @@ impl CodeParser {
                     }
                 }
 
-                let index = match block_count.entry(full_name) {
-                    Occupied(mut entry) => entry.insert(*entry.get() + 1),
-                    Vacant(entry) => {
-                        entry.insert(1);
-                        0
-                    }
-                };
-
                 let block =
                     RevCodeBlock::new(file, name.clone(), index, line[..indent].to_string());
                 block_stack.push(block);
@@ -132,6 +125,6 @@ impl CodeParser {
             }
         }
 
-        blocks
+        Ok(blocks)
     }
 }

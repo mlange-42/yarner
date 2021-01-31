@@ -9,6 +9,7 @@ use self::transclusion::Transclusion;
 
 use crate::config::LanguageSettings;
 use crate::parser::{code::RevCodeBlock, md::MdParser};
+use std::collections::hash_map::Entry::{Occupied, Vacant};
 use std::collections::hash_map::{Entry, HashMap};
 use std::fmt::Write;
 
@@ -81,7 +82,7 @@ impl Document {
     pub fn print_reverse(
         &self,
         printer: &MdParser,
-        code_blocks: &HashMap<&Option<String>, &Vec<RevCodeBlock>>,
+        code_blocks: &HashMap<(&Option<String>, &usize), &RevCodeBlock>,
     ) -> String {
         let mut block_count: HashMap<&Option<String>, usize> = HashMap::new();
 
@@ -103,14 +104,11 @@ impl Document {
                             0
                         }
                     };
-                    let alt_block = if let Some(blocks) = code_blocks.get(&code_block.name) {
-                        blocks.get(index)
-                    } else {
-                        None
-                    };
+                    let alt_block = code_blocks.get(&(&code_block.name, &index));
+
                     output.push_str(
                         &printer
-                            .print_code_block_reverse(code_block, alt_block)
+                            .print_code_block_reverse(code_block, alt_block.copied())
                             .split('\n')
                             .map(|line| {
                                 if line.is_empty() {
@@ -170,7 +168,16 @@ impl Document {
         let mut result = String::new();
         match code_blocks.get(&entrypoint) {
             Some(blocks) => {
+                let mut block_count: HashMap<&Option<String>, usize> = HashMap::new();
                 for (idx, block) in blocks.iter().enumerate() {
+                    let index = match block_count.entry(&block.name) {
+                        Occupied(mut entry) => entry.insert(*entry.get() + 1),
+                        Vacant(entry) => {
+                            entry.insert(1);
+                            0
+                        }
+                    };
+
                     let path = block.source_file.to_owned().unwrap_or_default();
                     let name = if block.is_unnamed {
                         ""
@@ -186,8 +193,15 @@ impl Document {
                         };
                         writeln!(
                             result,
-                            "{} {}{}{}{}{}",
-                            comment_start, sep, path, block_name_sep, name, comment_end,
+                            "{} {}{}{}{}{}{}{}",
+                            comment_start,
+                            sep,
+                            path,
+                            block_name_sep,
+                            name,
+                            block_name_sep,
+                            index,
+                            comment_end,
                         )
                         .unwrap();
                     }
@@ -196,8 +210,15 @@ impl Document {
                     if !clean && (idx == blocks.len() - 1 || block.name != blocks[idx + 1].name) {
                         write!(
                             result,
-                            "{} {}{}{}{}{}",
-                            comment_start, block_end, path, block_name_sep, name, comment_end,
+                            "{} {}{}{}{}{}{}{}",
+                            comment_start,
+                            block_end,
+                            path,
+                            block_name_sep,
+                            name,
+                            block_name_sep,
+                            index,
+                            comment_end,
                         )
                         .unwrap();
                     }

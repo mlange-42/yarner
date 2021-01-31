@@ -289,7 +289,7 @@ fn reverse(
     code_files: HashSet<PathBuf>,
     config: &Config,
 ) -> Result<(), String> {
-    let mut code_blocks: HashMap<(PathBuf, Option<String>), Vec<RevCodeBlock>> = HashMap::new();
+    let mut code_blocks: HashMap<(PathBuf, Option<String>, usize), RevCodeBlock> = HashMap::new();
 
     let parser = CodeParser {};
     if !config.language.is_empty() {
@@ -302,16 +302,20 @@ fn reverse(
                     .and_then(|lang| lang.block_labels.as_ref())
                 {
                     let source = fs::read_to_string(&file).map_err(|err| err.to_string())?;
-                    let blocks = parser.parse(&source, &config.parser, labels);
+                    let blocks = parser.parse(&source, &config.parser, labels)?;
 
                     for block in blocks.into_iter() {
                         let path = PathBuf::from(&block.file);
-                        match code_blocks.entry((path, block.name.clone())) {
-                            Occupied(mut entry) => {
-                                entry.get_mut().push(block);
+                        match code_blocks.entry((path, block.name.clone(), block.index)) {
+                            Occupied(entry) => {
+                                if entry.get().lines != block.lines {
+                                    return Err(format!("Reverse mode impossible due to multiple, differing occurrences of a code block: {} # {} # {}", &block.file, &block.name.unwrap_or_else(|| "".to_string()), block.index));
+                                } else {
+                                    eprintln!("  WARNING: multiple occurrences of a code block: {} # {} # {}", &block.file, &block.name.unwrap_or_else(|| "".to_string()), block.index)
+                                }
                             }
                             Vacant(entry) => {
-                                entry.insert(vec![block]);
+                                entry.insert(block);
                             }
                         }
                     }
@@ -323,9 +327,9 @@ fn reverse(
     for (path, doc) in documents {
         let blocks: HashMap<_, _> = code_blocks
             .iter()
-            .filter_map(|((p, name), block)| {
+            .filter_map(|((p, name, index), block)| {
                 if p == &path {
-                    Some((name, block))
+                    Some(((name, index), block))
                 } else {
                     None
                 }

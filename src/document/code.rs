@@ -251,13 +251,15 @@ impl Line {
 
                     if !clean {
                         result.push(format!(
-                            "{}{} {}{}{}{}{}",
+                            "{}{} {}{}{}{}{}{}{}",
                             &self.indent,
                             comment_start,
                             if idx == 0 { &block_start } else { &block_next },
                             path,
                             block_name_sep,
                             name,
+                            block_name_sep,
+                            idx,
                             comment_end,
                         ));
                     }
@@ -280,13 +282,15 @@ impl Line {
 
                     if !clean && idx == blocks.len() - 1 {
                         result.push(format!(
-                            "{}{} {}{}{}{}{}",
+                            "{}{} {}{}{}{}{}{}{}",
                             &self.indent,
                             comment_start,
                             &block_end,
                             path,
                             block_name_sep,
                             name,
+                            block_name_sep,
+                            idx,
                             comment_end,
                         ));
                     }
