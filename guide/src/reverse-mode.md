@@ -46,7 +46,7 @@ comment_start = "#"
 ...
 ```
 
-Option `comment_end` is provided for languages that support only block comments and sould be left out in all other cases.
+Option `comment_end` is provided for languages that support only block comments and should be left out in all other cases.
 
 For details on the available options, see chapter [Languages](./config-languages.md).
 
@@ -56,7 +56,7 @@ Files with no language settings for their extension are simply ignored during re
 
 ## Code block labels
 
-Code in output intended for the reverse mode is labeled to allow Yarner to identify its file and code block of origin. You can edit everything between labels, but do not modify or delete the labels themselves!
+Code in output intended for the reverse mode is labelled to allow Yarner to identify its file and code block of origin. You can edit everything between labels, but do not modify or delete the labels themselves!
 
 As an example, a simple Markdown source file `main.rs.md` could have the following content:
 

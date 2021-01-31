@@ -8,7 +8,7 @@ This chapter provides an introduction to their basic usage.
 
 ## Code blocks
 
-In the most basic scenario, Yarner extracts code blocks from a Markdown document and writes them to an equally-named file in the `code` output directoy, with the file's `md` extension stripped off.
+In the most basic scenario, Yarner extracts code blocks from a Markdown document and writes them to an equally-named file in the `code` output directory, with the file's `md` extension stripped off.
 
 As an example, create a project like this:
 
@@ -62,7 +62,7 @@ Please note that only the `md` extension is stripped for the code output, while 
 
 ## Macros
 
-To allow structuring for humans, Yarner uses macros. 
+To allow structuring for humans, Yarner uses macros.
 For that sake, code blocks can be given a name in their first line, by default prefixed with `//-`.
 Here is a code block named `Say hello`:
 

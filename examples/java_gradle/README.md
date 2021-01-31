@@ -65,4 +65,4 @@ application {
 rootProject.name = 'YarnerExample'
 ```
 
-The remaining files required by Gradle are stored in sub-directoy `gradle`. They are copied into the project through the settings in file `Yarner.toml`, section `[paths]` (see options `code_files` and `code_paths`).
+The remaining files required by Gradle are stored in sub-directory `gradle`. They are copied into the project through the settings in file `Yarner.toml`, section `[paths]` (see options `code_files` and `code_paths`).

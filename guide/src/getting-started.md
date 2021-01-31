@@ -1,6 +1,6 @@
 # Getting started
 
-Yarner is very easy to use from the command line, requiring only two different commands, `yarner init` and `yarner`. This chapter demonstrates how to set up a project and extract sources from Marksdown.
+Yarner is very easy to use from the command line, requiring only two different commands, `yarner init` and `yarner`. This chapter demonstrates how to set up a project and extract sources from Markdown.
 
 [[_TOC_]]
 

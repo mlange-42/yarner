@@ -1,6 +1,6 @@
 # Command line arguments
 
-Some configurations can be overwritten using command line agruments.
+Some configurations can be overwritten using command line arguments.
 
 [[_TOC_]]
 

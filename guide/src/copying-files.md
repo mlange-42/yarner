@@ -10,7 +10,7 @@ For such cases, Yarner can automatically copy files into code and documentation 
 
 Section `[paths]` of a project's `Yarner.toml` provides options to list files and patterns for copying files unchanged, `code_files` and `doc_files`. Both accept a list of file names or glob patterns.
 
-As an example, with the following setting Yarner would copy all `.png` and `.jpg` files from directoy `img` to `docs/img`:
+As an example, with the following setting Yarner would copy all `.png` and `.jpg` files from directory `img` to `docs/img`:
 
 ```toml
 doc_files = ["img/*.png", "img/*.jpg"]
@@ -42,5 +42,5 @@ Each entry of e.g. `code_paths` is applied to the corresponding entry in `code_f
 **Possible modifications:**
 
 * Use `foo/bar` to replace the first two path component by `foo` and `bar`.
-* Use `-` (minus) to ommit, and `_` (underscore) to preserve a component.
+* Use `-` (minus) to omit, and `_` (underscore) to preserve a component.
 * Use a single `_` (underscore) if no path change is intended at all.

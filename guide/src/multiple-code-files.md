@@ -7,7 +7,7 @@ The most basic, producing multiple code files from a single Markdown document, i
 
 ## Multiple files from a single document
 
-It is possible to generate multiple code files from a single documentation source file through code blocks named with file paths, prefixed with `file:` (the default, configutable).
+It is possible to generate multiple code files from a single documentation source file through code blocks named with file paths, prefixed with `file:` (the default, configurable).
 
 Besides `main.rs`, a file `main.rs.md` with the following content would also create a file `src/lib.rs`:
 
