@@ -296,9 +296,13 @@ fn reverse(
         for file in code_files {
             let language = file.extension().and_then(|s| s.to_str());
             if let Some(language) = language {
-                if let Some(lang) = config.language.get(language) {
+                if let Some(labels) = config
+                    .language
+                    .get(language)
+                    .and_then(|lang| lang.block_labels.as_ref())
+                {
                     let source = fs::read_to_string(&file).map_err(|err| err.to_string())?;
-                    let blocks = parser.parse(&source, &config.parser, lang);
+                    let blocks = parser.parse(&source, &config.parser, labels);
 
                     for block in blocks.into_iter() {
                         let path = PathBuf::from(&block.file);

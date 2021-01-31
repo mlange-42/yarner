@@ -27,13 +27,15 @@ The `Yarner.toml` file provides a section where settings for multiple languages 
 
 ```toml
 [language.rs]
-comment_start = "//"
-# comment_end = "*/"
-block_start = "<@"
-block_next = "<@>"
-block_end = "@>"
 clear_blank_lines = true
 eof_newline = true
+
+    [language.rs.block_labels]
+    comment_start = "//"
+    # comment_end = "*/"
+    block_start = "<@"
+    block_next = "<@>"
+    block_end = "@>"
 ```
 
 In most cases, only the option `comment_start` needs to be adapted to the line comment sequence of the target language. E.g., Python would require the following:
