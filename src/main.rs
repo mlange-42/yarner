@@ -10,7 +10,7 @@ use crate::parser::{
     code::{CodeParser, RevCodeBlock},
     md::MdParser,
 };
-use crate::util::Fallible;
+use crate::util::{Fallible, JoinExt};
 use clap::{crate_version, App, Arg, SubCommand};
 use std::collections::hash_map::Entry::{Occupied, Vacant};
 use std::collections::{HashMap, HashSet};
@@ -276,11 +276,7 @@ fn process_inputs_reverse(
             "No input files found in patterns: {}\n\
                 For help, use:\n\
                  > yarner -h",
-            input_patterns
-                .iter()
-                .map(|p| format!("\"{}\"", p))
-                .collect::<Vec<_>>()
-                .join(", ")
+            input_patterns.iter().join(", ", "\"")
         ));
     }
 
@@ -415,11 +411,7 @@ fn process_inputs_forward(
             "No input files found in patterns: {}\n\
                 For help, use:\n\
                  > yarner -h",
-            input_patterns
-                .iter()
-                .map(|p| format!("\"{}\"", p))
-                .collect::<Vec<_>>()
-                .join(", ")
+            input_patterns.iter().join(", ", "\"")
         ));
     }
 
