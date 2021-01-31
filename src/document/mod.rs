@@ -155,6 +155,10 @@ impl Document {
             .and_then(|s| s.block_labels.as_ref())
             .map(|l| &l.block_next[..])
             .unwrap_or("");
+        let block_name_sep = settings
+            .and_then(|s| s.block_labels.as_ref())
+            .map(|l| &l.name_separator[..])
+            .unwrap_or("");
 
         let clean = if let Some(s) = settings {
             s.clean_code || s.block_labels.is_none()
@@ -182,8 +186,8 @@ impl Document {
                         };
                         writeln!(
                             result,
-                            "{} {}{}#{}{}",
-                            comment_start, sep, path, name, comment_end,
+                            "{} {}{}{}{}{}",
+                            comment_start, sep, path, block_name_sep, name, comment_end,
                         )
                         .unwrap();
                     }
@@ -192,8 +196,8 @@ impl Document {
                     if !clean && (idx == blocks.len() - 1 || block.name != blocks[idx + 1].name) {
                         write!(
                             result,
-                            "{} {}{}#{}{}",
-                            comment_start, block_end, path, name, comment_end,
+                            "{} {}{}{}{}{}",
+                            comment_start, block_end, path, block_name_sep, name, comment_end,
                         )
                         .unwrap();
                     }

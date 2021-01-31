@@ -196,6 +196,10 @@ impl Line {
             .and_then(|s| s.block_labels.as_ref())
             .map(|l| &l.block_next[..])
             .unwrap_or("");
+        let block_name_sep = settings
+            .and_then(|s| s.block_labels.as_ref())
+            .map(|l| &l.name_separator[..])
+            .unwrap_or("");
 
         let clean = if let Some(s) = settings {
             s.clean_code || s.block_labels.is_none()
@@ -247,11 +251,12 @@ impl Line {
 
                     if !clean {
                         result.push(format!(
-                            "{}{} {}{}#{}{}",
+                            "{}{} {}{}{}{}{}",
                             &self.indent,
                             comment_start,
                             if idx == 0 { &block_start } else { &block_next },
                             path,
+                            block_name_sep,
                             name,
                             comment_end,
                         ));
@@ -275,8 +280,14 @@ impl Line {
 
                     if !clean && idx == blocks.len() - 1 {
                         result.push(format!(
-                            "{}{} {}{}#{}{}",
-                            &self.indent, comment_start, &block_end, path, name, comment_end,
+                            "{}{} {}{}{}{}{}",
+                            &self.indent,
+                            comment_start,
+                            &block_end,
+                            path,
+                            block_name_sep,
+                            name,
+                            comment_end,
                         ));
                     }
                 }

@@ -21,6 +21,7 @@ eof_newline = true
     block_start = "<@"
     block_next = "<@>"
     block_end = "@>"
+    name_separator = "#"
 ```
 
 When language settings are requires to set `clear_blank_lines` or `eof_newline`,

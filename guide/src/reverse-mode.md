@@ -36,6 +36,7 @@ eof_newline = true
     block_start = "<@"
     block_next = "<@>"
     block_end = "@>"
+    name_separator = "#"
 ```
 
 In most cases, only the option `comment_start` needs to be adapted to the line comment sequence of the target language. E.g., Python would require the following:

@@ -96,3 +96,5 @@ files = ["README.md"]
     # block_next = "<@>"
     ## End of block labels.
     # block_end = "@>"
+    ## Separator between block source file and name
+    # name_separator = "#"

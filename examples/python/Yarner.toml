@@ -32,8 +32,9 @@ entrypoint = "Main" # Avoids adding unnamed blocks to code output
 clear_blank_lines = false
 eof_newline = true
 
-    [language.py.block_labels]
-    comment_start = "#"
-    block_start = "<@"
-    block_next = "<@>"
-    block_end = "@>"
+    # [language.py.block_labels]
+    # comment_start = "#"
+    # block_start = "<@"
+    # block_next = "<@>"
+    # block_end = "@>"
+    # name_separator = "#"

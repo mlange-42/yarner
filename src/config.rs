@@ -102,6 +102,8 @@ pub struct BlockLabels {
     pub block_next: String,
     /// End of block labels
     pub block_end: String,
+    /// Separator between block source and name
+    pub name_separator: String,
 }
 
 impl BlockLabels {

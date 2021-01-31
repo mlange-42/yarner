@@ -79,7 +79,7 @@ impl CodeParser {
                     }
                 }
 
-                let mut parts = full_name.splitn(2, '#');
+                let mut parts = full_name.splitn(2, &block_labels.name_separator);
                 let file = parts.next().unwrap_or("").to_string();
                 let name = parts.next().and_then(|s| {
                     if s.is_empty() {
