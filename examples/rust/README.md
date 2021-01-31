@@ -1,6 +1,14 @@
-# Yarner feature demo
+# Rust example
 
 This examples demonstrates Yarner's most important features by creating a simple but complete [Rust](https://rust-lang.org) project.
+
+For help on the Literate Programming syntax, see the [User Guide](https://mlange-42.github.io/yarner/).
+
+To build the project (i.e. generate code and documentation output), run the following command in the current directory:
+
+```
+> yarner
+```
 
 ## Readme
 
@@ -65,3 +73,17 @@ For the first one, we use file transclusions. In the complied documentation in s
 
 Files linked with a certain prefix (`@` by default) are also included in the compilation process if the link is relative and the file exists.
 By linking to file @[.gitignore.md](.gitignore.md), we use this feature to include it into processing. The prefixed is removed in documentation output.
+
+## Reverse mode
+
+This project is set up to enable Yarner's reverse mode. In the generated file `code/src/main.rs`, you will find comment lines that delineate code blocks. Do not delete or modify these lines. Except this limitation, you can modify the file, and afterwards play back changes into the documentation sources with
+
+```
+> yarner --reverse
+```
+
+To get clean code output without block labels, run yarner with option `--clean`:
+
+```
+> yarner --clean
+```

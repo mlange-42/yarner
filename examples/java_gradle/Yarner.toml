@@ -1,0 +1,44 @@
+[parser]
+fence_sequence = "```"
+fence_sequence_alt = "~~~"
+
+comment_start = "//-"
+comments_as_aside = false
+
+macro_start = "// ==>"
+macro_end = "."
+
+transclusion_start = "@{{"
+transclusion_end = "}}"
+
+link_prefix = "@"
+
+file_prefix = "file:"
+hidden_prefix = "hidden:"
+
+interpolation_start = "@{"
+interpolation_end = "}"
+variable_sep = ":"
+
+[paths]
+root = "."
+code = "code/"
+docs = "docs/"
+
+files = ["README.md"]
+entrypoint = "Main" # Avoids writing unnamed blocks to the code output
+
+# Copies the content of folder `gradle` to the code output
+code_files = ["gradle/**/*"]
+# Modifies the path of copied files to place them in the top level directory of the code output
+code_paths = ["-"]
+
+# [language.java]
+clear_blank_lines = true
+eof_newline = true
+
+    # [language.java.block_labels]
+    # comment_start = "//"
+    # block_start = "<@"
+    # block_next = "<@>"
+    # block_end = "@>"
