@@ -38,3 +38,4 @@ but block labels in the target language are not wanted or not supported, leave o
 | `block_start`       | Start sequence of block labels                                                                                                      |
 | `block_next`        | Start of next block with the same name                                                                                              |
 | `block_end`         | End of block labels                                                                                                                 |
+| `name_separator`    | Separator between block source file, name and index (e.g. `// <@main.rs#A clode block#0`)                                                  |
