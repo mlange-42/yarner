@@ -30,29 +30,6 @@ where
 
 impl<I, T, E> TryCollectExt<T, E> for I where I: Iterator<Item = Result<T, E>> {}
 
-pub fn modify_path(path: &Path, replace: &str) -> PathBuf {
-    if replace.is_empty() || replace == "_" {
-        return path.to_owned();
-    }
-
-    let replace = Path::new(replace)
-        .components()
-        .map(|comp| comp.as_os_str())
-        .chain(repeat(OsStr::new("_")));
-
-    let mut modified = PathBuf::new();
-
-    for (comp, replace) in path.components().zip(replace) {
-        if replace == "_" {
-            modified.push(comp);
-        } else if replace != "-" {
-            modified.push(replace);
-        }
-    }
-
-    modified
-}
-
 pub trait JoinExt
 where
     Self: IntoIterator + Sized,
@@ -83,6 +60,29 @@ where
     I: IntoIterator,
     I::Item: Display,
 {
+}
+
+pub fn modify_path(path: &Path, replace: &str) -> PathBuf {
+    if replace.is_empty() || replace == "_" {
+        return path.to_owned();
+    }
+
+    let replace = Path::new(replace)
+        .components()
+        .map(|comp| comp.as_os_str())
+        .chain(repeat(OsStr::new("_")));
+
+    let mut modified = PathBuf::new();
+
+    for (comp, replace) in path.components().zip(replace) {
+        if replace == "_" {
+            modified.push(comp);
+        } else if replace != "-" {
+            modified.push(replace);
+        }
+    }
+
+    modified
 }
 
 #[cfg(test)]
@@ -126,6 +126,29 @@ mod tests {
     }
 
     #[test]
+    fn collect_errs() {
+        assert_eq!(
+            vec![Ok(1), Err(2), Ok(3)].into_iter().try_collect(),
+            Err(vec![2])
+        );
+
+        assert_eq!(
+            vec![Ok(1), Err(2), Err(3)].into_iter().try_collect(),
+            Err(vec![2, 3])
+        );
+    }
+
+    #[test]
+    fn join_strs() {
+        assert_eq!(vec!["foo"].join('\n', ""), "foo");
+        assert_eq!(vec!["foo", "bar"].join(", ", '"'), "\"foo\", \"bar\"");
+        assert_eq!(
+            vec!["foo", "bar", "baz"].join('/', '|'),
+            "|foo|/|bar|/|baz|"
+        );
+    }
+
+    #[test]
     fn drop_component_from_path() {
         assert_eq!(
             modify_path(Path::new("foo/bar/baz.qux"), "-/_/_"),
@@ -149,19 +172,6 @@ mod tests {
     }
 
     #[test]
-    fn collect_errs() {
-        assert_eq!(
-            vec![Ok(1), Err(2), Ok(3)].into_iter().try_collect(),
-            Err(vec![2])
-        );
-
-        assert_eq!(
-            vec![Ok(1), Err(2), Err(3)].into_iter().try_collect(),
-            Err(vec![2, 3])
-        );
-    }
-
-    #[test]
     fn replace_component_in_path() {
         assert_eq!(
             modify_path(Path::new("foo/bar/baz.qux"), "FOO/_/_"),
@@ -181,16 +191,6 @@ mod tests {
         assert_eq!(
             modify_path(Path::new("foo/bar/baz.qux"), "_/_/_/QUX"),
             Path::new("foo/bar/baz.qux")
-        );
-    }
-
-    #[test]
-    fn join_strs() {
-        assert_eq!(vec!["foo"].join("\n", ""), "foo");
-        assert_eq!(vec!["foo", "bar"].join(", ", "'"), "'foo', 'bar'");
-        assert_eq!(
-            vec!["foo", "bar", "baz"].join("/", "|"),
-            "|foo|/|bar|/|baz|"
         );
     }
 }

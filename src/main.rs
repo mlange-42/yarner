@@ -275,7 +275,7 @@ fn process_inputs_reverse(
             "No input files found in patterns: {}\n\
                 For help, use:\n\
                  > yarner -h",
-            input_patterns.iter().join(", ", "\"")
+            input_patterns.iter().join(", ", '"')
         ));
     }
 
@@ -414,7 +414,7 @@ fn process_inputs_forward(
             "No input files found in patterns: {}\n\
                 For help, use:\n\
                  > yarner -h",
-            input_patterns.iter().join(", ", "\"")
+            input_patterns.iter().join(", ", '"')
         ));
     }
 
