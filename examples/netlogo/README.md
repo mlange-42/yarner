@@ -20,6 +20,12 @@ This project is set up to enable Yarner's reverse mode. In the generated model, 
 
 To allow for the reverse mode, NetLogo's `__includes` feature is used. The actual code is not inside the model's main file `Model.nlogo`, but in a separate file `Code.nls`. To edit the code inside NetLogo, us the dropdown `Included files` in the Code tab.
 
+To get clean code output without block labels, run yarner with option `--clean`:
+
+```
+> yarner --clean
+```
+
 **Content**
 
 * [Overview](#overview)
