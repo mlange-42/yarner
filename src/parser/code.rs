@@ -2,7 +2,7 @@
 
 use super::md::MdParser;
 
-use crate::config::LanguageSettings;
+use crate::config::BlockLabels;
 use std::collections::hash_map::Entry::{Occupied, Vacant};
 use std::collections::HashMap;
 
@@ -44,11 +44,14 @@ impl CodeParser {
         &self,
         source: &str,
         parser: &MdParser,
-        language: &LanguageSettings,
+        block_labels: &BlockLabels,
     ) -> Vec<RevCodeBlock> {
-        let start = format!("{} {}", language.comment_start, language.block_start);
-        let next = format!("{} {}", language.comment_start, language.block_next);
-        let end = format!("{} {}", language.comment_start, language.block_end);
+        let start = format!(
+            "{} {}",
+            block_labels.comment_start, block_labels.block_start
+        );
+        let next = format!("{} {}", block_labels.comment_start, block_labels.block_next);
+        let end = format!("{} {}", block_labels.comment_start, block_labels.block_end);
 
         let mut block_count: HashMap<String, usize> = HashMap::new();
         let mut blocks = vec![];
@@ -70,7 +73,7 @@ impl CodeParser {
                 } else {
                     trimmed[start.len()..].trim().to_string()
                 };
-                if let Some(comment_end) = &language.comment_end {
+                if let Some(comment_end) = &block_labels.comment_end {
                     if let Some(idx) = full_name.find(comment_end) {
                         full_name = full_name[..idx].trim().to_string();
                     }

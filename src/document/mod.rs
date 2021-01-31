@@ -135,16 +135,29 @@ impl Document {
         language: Option<&str>,
         settings: Option<&LanguageSettings>,
     ) -> Result<String, CompileError> {
-        let comment_start = settings.map(|s| &s.comment_start[..]).unwrap_or("");
-        let comment_end = settings
-            .and_then(|s| s.comment_end.as_ref().map(|e| &e[..]))
+        let comment_start = settings
+            .and_then(|s| s.block_labels.as_ref())
+            .map(|l| &l.comment_start[..])
             .unwrap_or("");
-        let block_start = settings.map(|s| &s.block_start[..]).unwrap_or("");
-        let block_end = settings.map(|s| &s.block_end[..]).unwrap_or("");
-        let block_next = settings.map(|s| &s.block_next[..]).unwrap_or("");
+        let comment_end = settings
+            .and_then(|s| s.block_labels.as_ref())
+            .and_then(|l| l.comment_end.as_ref().map(|e| &e[..]))
+            .unwrap_or("");
+        let block_start = settings
+            .and_then(|s| s.block_labels.as_ref())
+            .map(|l| &l.block_start[..])
+            .unwrap_or("");
+        let block_end = settings
+            .and_then(|s| s.block_labels.as_ref())
+            .map(|l| &l.block_end[..])
+            .unwrap_or("");
+        let block_next = settings
+            .and_then(|s| s.block_labels.as_ref())
+            .map(|l| &l.block_next[..])
+            .unwrap_or("");
 
         let clean = if let Some(s) = settings {
-            s.clean_code
+            s.clean_code || s.block_labels.is_none()
         } else {
             true
         };

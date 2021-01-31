@@ -67,16 +67,8 @@ pub struct Paths {
 /// Config for a programming language
 #[derive(Serialize, Deserialize, Default, Debug)]
 pub struct LanguageSettings {
-    /// Start of comments in the language
-    pub comment_start: String,
-    /// Optional end of comments in the language
-    pub comment_end: Option<String>,
-    /// Start of block labels
-    pub block_start: String,
-    /// Start of next block of the same name
-    pub block_next: String,
-    /// End of block labels
-    pub block_end: String,
+    /// Label format for blocks in code output
+    pub block_labels: Option<BlockLabels>,
     /// Determines if code lines containing only whitespace characters are printed as blank lines. Default: true.
     pub clear_blank_lines: bool,
     /// Determines if code files should end with a blank line. Default: true.
@@ -88,6 +80,32 @@ pub struct LanguageSettings {
 
 impl LanguageSettings {
     /// Check the validity of language settings
+    fn check(&self) -> Fallible {
+        if let Some(labels) = &self.block_labels {
+            labels.check()
+        } else {
+            Ok(())
+        }
+    }
+}
+
+/// Config for block labels for a programming language
+#[derive(Serialize, Deserialize, Default, Debug)]
+pub struct BlockLabels {
+    /// Start of comments in the language
+    pub comment_start: String,
+    /// Optional end of comments in the language
+    pub comment_end: Option<String>,
+    /// Start of block labels
+    pub block_start: String,
+    /// Start of next block of the same name
+    pub block_next: String,
+    /// End of block labels
+    pub block_end: String,
+}
+
+impl BlockLabels {
+    /// Check the validity of block label settings
     fn check(&self) -> Fallible {
         if self.block_start.starts_with(&self.block_next) {
             return Err(
