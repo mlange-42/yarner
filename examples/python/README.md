@@ -2,6 +2,12 @@
 
 This simple example creates a small python script that asks the user for input and checks if the input is a prime number.
 
+To build the project (i.e. generate code and documentatio output), run the following command in the current directory:
+
+```
+> yarner
+```
+
 ## Program structure
 
 To create code in a certain files, use `file:<path/to/file>` as the block name.
@@ -24,7 +30,7 @@ num = int(input("Enter a number: "))
 
 ## Prime number
 
-We check if the input is a prime number with the following code:
+We check if the input is a prime number and inform the user with the following code:
 
 ```python
 #- Check if the input is a prime number
