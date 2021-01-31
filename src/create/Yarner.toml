@@ -32,7 +32,6 @@ link_prefix = "@"
 
 # Prefix for file-specific entry points.
 file_prefix = "file:"
-
 # Name prefix for code blocks not shown in the docs.
 hidden_prefix = "hidden:"
 
@@ -55,7 +54,7 @@ code = "code/"
 docs = "docs/"
 
 # The input source file(s) as glob pattern(s).
-files = ["%%MAIN_FILE%%"]
+files = ["README.md"]
 
 ## Entrypoint block name. Optional. If not supplied, unnamed code blocks are used.
 # entrypoint = "Main"

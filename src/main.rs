@@ -10,7 +10,7 @@ use crate::parser::{
     code::{CodeParser, RevCodeBlock},
     md::MdParser,
 };
-use crate::util::{modify_path, Fallible};
+use crate::util::{modify_path, Fallible, JoinExt};
 use clap::{crate_version, App, Arg, SubCommand};
 use std::collections::hash_map::Entry::{Occupied, Vacant};
 use std::collections::{HashMap, HashSet};
@@ -24,7 +24,6 @@ fn main() {
         Ok(()) => 0,
         Err(err) => {
             eprintln!("ERROR: {}", err);
-
             1
         }
     });
@@ -38,7 +37,7 @@ fn run() -> Fallible {
 
 The normal workflow is:
  1) Create a project with
-    > yarner create README.md
+    > yarner init
  2) Process the project by running
     > yarner"#)
         .arg(Arg::with_name("config")
@@ -95,22 +94,14 @@ The normal workflow is:
             .help("Reverse mode: play back code changes into source files.")
             .required(false)
             .takes_value(false))
-        .subcommand(SubCommand::with_name("create")
+        .subcommand(SubCommand::with_name("init")
             .about("Creates a yarner project in the current directory")
-            .arg(Arg::with_name("main_file")
-                .help("The main file for the document sources, with normal file extension, but without additional Markdown extension.")
-                .value_name("main_file")
-                .takes_value(true)
-                .required(true)
-                .index(1)));
+        );
 
     let matches = app.get_matches();
 
-    if let Some(matches) = matches.subcommand_matches("create") {
-        let main_file = matches.value_of("main_file").unwrap();
-
-        create::create_new_project(main_file)
-            .map_err(|err| format!("Could not create project: {}", err))?;
+    if matches.subcommand_matches("init").is_some() {
+        create::create_new_project().map_err(|err| format!("Could not create project: {}", err))?;
 
         println!("Successfully created project.\nTo compile the project, run 'yarner' from here.",);
 
@@ -280,9 +271,12 @@ fn process_inputs_reverse(
     }
 
     if !any_input {
-        return Err("No input files found. For help, use:\n\
-                 > yarner -h"
-            .to_string());
+        return Err(format!(
+            "No input files found in patterns: {}\n\
+                For help, use:\n\
+                 > yarner -h",
+            input_patterns.iter().join(", ", "\"")
+        ));
     }
 
     reverse(documents, code_files, &config)?;
@@ -412,9 +406,12 @@ fn process_inputs_forward(
     }
 
     if !any_input {
-        return Err("No input files found. For help, use:\n\
-                 > yarner -h"
-            .to_string());
+        return Err(format!(
+            "No input files found in patterns: {}\n\
+                For help, use:\n\
+                 > yarner -h",
+            input_patterns.iter().join(", ", "\"")
+        ));
     }
 
     Ok(())

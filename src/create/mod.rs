@@ -3,9 +3,7 @@ use std::fs::{remove_file, OpenOptions};
 use std::io::Write;
 use std::mem::forget;
 
-pub fn create_new_project(main_file: &str) -> Fallible {
-    let main_file = format!("{}.md", main_file);
-
+pub fn create_new_project() -> Fallible {
     let mut config = OpenOptions::new()
         .write(true)
         .create_new(true)
@@ -16,13 +14,13 @@ pub fn create_new_project(main_file: &str) -> Fallible {
     let mut document = OpenOptions::new()
         .write(true)
         .create_new(true)
-        .open(&main_file)?;
+        .open("README.md")?;
 
-    let remove_document = RemoveOnDrop(&main_file);
+    let remove_document = RemoveOnDrop("README.md");
 
-    config.write_all(CONFIG.replace("%%MAIN_FILE%%", &main_file).as_bytes())?;
+    config.write_all(CONFIG)?;
 
-    document.write_all(DOCUMENT.as_bytes())?;
+    document.write_all(DOCUMENT)?;
 
     forget(remove_config);
     forget(remove_document);
@@ -38,6 +36,6 @@ impl Drop for RemoveOnDrop<'_> {
     }
 }
 
-const CONFIG: &str = include_str!("Yarner.toml");
+const CONFIG: &[u8] = include_bytes!("Yarner.toml");
 
-const DOCUMENT: &str = include_str!("document.md");
+const DOCUMENT: &[u8] = include_bytes!("README.md");

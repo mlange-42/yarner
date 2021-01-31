@@ -32,8 +32,11 @@ Here are two examples of valid transclusions:
 
 In the documentation output, the transclusion is replaced by the content of the referenced file.
 
-During transclusion, unnamed code blocks are renamed to produce code in the same output file as if the file was not transcluded, but "compiled" directly. E.g. an unnamed code block in file `transcluded.rs.md` is be renamed to `file:transcluded.rs`.
+During transclusion, unnamed code blocks are renamed to produce code in the same output file as if the file was not transcluded, but "compiled" directly.
+E.g. an unnamed code block in file `transcluded.rs.md` is be renamed to `file:transcluded.rs`.
 Note the prefix `file:`. See chapter [Multiple code files](./multiple-code-files.md) for details.
+
+Transclusions are processed before macro evaluation. Thus, code blocks from the transcluded document can be used in the transcluding document, and vice versa.
 
 A transclusion should be the only thing in a line.
 

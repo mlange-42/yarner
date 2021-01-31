@@ -36,15 +36,15 @@ In case you have [Rust](https://www.rust-lang.org/) installed, you can install w
 
 ## Getting started
 
-To set up a new project, use the `create` sub-command. Run the following in your project's base directory:
+To set up a new project, use the `init` sub-command. Run the following in your project's base directory:
 
 ```plaintext
-> yarner create README.md
+> yarner init
 ```
 
-This creates a file `Yarner.toml` with default settings, and a file `README.md.md` as starting point for Literate Programming (don't care for the double extension for now).
+This creates a file `Yarner.toml` with default settings, and a file `README.md` as starting point for Literate Programming.
 
-The generated file already contains some content to get started with Yarner's basic features. For details, read the following sections.
+The generated file already contains some content to get started with Yarner's basic features. For details, see the [User Guide](https://mlange-42.github.io/yarner/).
 
 To build the project (extract code and create documentation), simply run:
 
@@ -52,7 +52,7 @@ To build the project (extract code and create documentation), simply run:
 > yarner
 ```
 
-This creates two sub-directories, one containing the extracted code, and the other containing the final documentation.
+This creates two sub-directories, one containing the extracted code (a minimal but working Rust project), and another containing the final documentation.
 
 Note that the contents of these directories can then be treated as usual, i.e. compiling the code with the normal compiler, or rendering Markdown to HTML or PDF.
 
@@ -152,7 +152,7 @@ fn say_hello() {
 ## Configuration
 
 Configuration is provided via a toml configuration file (default: `Yarner.toml`).
-A file with default configurations is generated through the `create` sub-command.
+A file with default configurations is generated through the `init` sub-command.
 See the comments in these files or user guide chapters on [configuration](https://mlange-42.github.io/yarner/configuration.html) for details on individual settings.
 It is also the place to modify Yarner's syntax to suite your needs and preferences.
 
