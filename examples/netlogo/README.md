@@ -10,22 +10,6 @@ To create the NetLogo model, run the following command in the current directory:
 > yarner
 ```
 
-**Reverse mode**
-
-This project is set up to enable Yarner's reverse mode. In the generated model, you will find comment lines that delineate code blocks. Do not delete or modify these lines. Except this limitation, you can modify the model inside Netlogo, and afterwards play back changes into the documentation sources with
-
-```
-> yarner --reverse
-```
-
-To allow for the reverse mode, NetLogo's `__includes` feature is used. The actual code is not inside the model's main file `Model.nlogo`, but in a separate file `Code.nls`. To edit the code inside NetLogo, us the dropdown `Included files` in the Code tab.
-
-To get clean code output without block labels, run yarner with option `--clean`:
-
-```
-> yarner --clean
-```
-
 **Content**
 
 * [Overview](#overview)
@@ -121,6 +105,22 @@ end
 Grimm V, Berger U, Bastiansen F, Eliassen S, Ginot V, Giske J, Goss-Custard J, Grand T, Heinz S, Huse G, Huth A, Jepsen JU, Jørgensen C, Mooij WM, Müller B, Pe’er G, Piou C, Railsback SF, Robbins AM, Robbins MM, Rossmanith E, Rüger N, Strand E, Souissi S, Stillman RA, Vabø R, Visser U, DeAngelis DL. 2006. **A standard protocol for describing individual-based and agent-based models.** Ecological Modelling 198:115-126. 
 
 Grimm V, Berger U, DeAngelis DL, Polhill G, Giske J, Railsback SF. 2010. **The ODD protocol: a review and first update.** Ecological Modelling 221: 2760-2768
+
+## Reverse mode
+
+This project is set up to enable Yarner's reverse mode. In the generated model, you will find comment lines that delineate code blocks. Do not delete or modify these lines. Except this limitation, you can modify the model inside Netlogo, and afterwards play back changes into the documentation sources with
+
+```
+> yarner --reverse
+```
+
+To allow for the reverse mode, NetLogo's `__includes` feature is used. The actual code is not inside the model's main file `Model.nlogo`, but in a separate file `Code.nls`. To edit the code inside NetLogo, us the dropdown `Included files` in the Code tab.
+
+To get clean code output without block labels, run yarner with option `--clean`:
+
+```
+> yarner --clean
+```
 
 ## Appendix
 

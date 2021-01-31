@@ -2,7 +2,7 @@
 
 This simple example creates a small python script that asks the user for input and checks if the input is a prime number.
 
-To build the project (i.e. generate code and documentatio output), run the following command in the current directory:
+To build the project (i.e. generate code and documentation output), run the following command in the current directory:
 
 ```
 > yarner

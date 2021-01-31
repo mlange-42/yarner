@@ -2,7 +2,7 @@
 
 This example produces a minimalistic Java application. It serves to demonstrate how to create a Java Gradle project.
 
-To build the project (i.e. generate code and documentatio output), run the following command in the current directory:
+To build the project (i.e. generate code and documentation output), run the following command in the current directory:
 
 ```
 > yarner
