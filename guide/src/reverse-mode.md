@@ -14,7 +14,7 @@ Warning: This feature is still experimental and modifies the original Markdown s
 To use the reverse mode, run the following after making changes to generated code files:
 
 ```plaintext
-> yarner --reverse
+> yarner reverse
 ```
 
 Reverse mode requires settings for the target language(s) to be defined. See the following section.
@@ -114,7 +114,7 @@ fn main() {
 }
 ```
 
-In such cases, Yarner emits a warning when called with option `--reverse`. If the occurrences differ, like in the following example of user-modified code output, it aborts with an error.
+In such cases, Yarner emits a warning when called with subcommand `reverse`. If the occurrences differ, like in the following example of user-modified code output, it aborts with an error.
 
 ```rust,noplaypen
 // <@main.rs.md#

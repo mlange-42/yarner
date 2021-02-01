@@ -88,14 +88,11 @@ The normal workflow is:
             .help("Produces clean code output, without block label comments.")
             .required(false)
             .takes_value(false))
-        .arg(Arg::with_name("reverse")
-            .long("reverse")
-            .short("R")
-            .help("Reverse mode: play back code changes into source files.")
-            .required(false)
-            .takes_value(false))
         .subcommand(SubCommand::with_name("init")
             .about("Creates a yarner project in the current directory")
+        )
+        .subcommand(SubCommand::with_name("reverse")
+            .about("Reverse mode: play back code changes into source files")
         );
 
     let matches = app.get_matches();
@@ -149,7 +146,8 @@ The normal workflow is:
                > yarner -h",
         )?;
 
-    let reverse = matches.is_present("reverse");
+    let reverse = matches.subcommand_matches("reverse").is_some();
+
     let language = matches.value_of("language");
 
     if reverse {

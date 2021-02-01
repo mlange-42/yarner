@@ -300,6 +300,7 @@ impl Line {
                         .unwrap();
                     }
                 }
+                result.pop();
                 Ok(result)
             }
         }

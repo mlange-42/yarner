@@ -111,7 +111,7 @@ Grimm V, Berger U, DeAngelis DL, Polhill G, Giske J, Railsback SF. 2010. **The O
 This project is set up to enable Yarner's reverse mode. In the generated model, you will find comment lines that delineate code blocks. Do not delete or modify these lines. Except this limitation, you can modify the model inside NetLogo, and afterwards play back changes into the documentation sources with
 
 ```
-> yarner --reverse
+> yarner reverse
 ```
 
 To allow for the reverse mode, NetLogo's `__includes` feature is used. The actual code is not inside the model's main file `Model.nlogo`, but in a separate file `Code.nls`. To edit the code inside NetLogo, us the dropdown `Included files` in the Code tab.
