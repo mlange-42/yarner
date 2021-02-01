@@ -22,6 +22,7 @@
 
 use super::code::RevCodeBlock;
 
+use crate::config::MetaVariables;
 use crate::document::{
     code::{CodeBlock, Line, Segment, Source},
     text::TextBlock,
@@ -63,14 +64,6 @@ pub struct MdParser {
     ///
     /// Default: `//`
     pub comment_start: String,
-    /// The sequence to identify the start of a meta variable interpolation.
-    ///
-    /// Default: `@{`
-    pub interpolation_start: String,
-    /// The sequence to identify the end of a meta variable interpolation.
-    ///
-    /// Default: `}`
-    pub interpolation_end: String,
     /// The sequence to identify the start of a macro invocation.
     ///
     /// Default: `==>`
@@ -94,10 +87,6 @@ pub struct MdParser {
     #[serde(rename(deserialize = "link_prefix"))]
     #[serde(deserialize_with = "from_link_prefix")]
     pub link_following_pattern: (String, Regex),
-    /// The sequence to split variables into name and value.
-    ///
-    /// Default: `:`
-    pub variable_sep: String,
     /// Prefix for file-specific entry points.
     ///
     /// Default: `file:`
@@ -106,6 +95,9 @@ pub struct MdParser {
     ///
     /// Default: `hidden:`
     pub hidden_prefix: String,
+    /// Settings for meta variable sequences used by the parser.
+    /// If absent, meta variables are not allowed.
+    pub meta_variables: Option<MetaVariables>,
 }
 
 const LINK_PATTERN: &str = r"\[([^\[\]]*)\]\((.*?)\)";
@@ -429,36 +421,40 @@ impl MdParser {
         let mut name = String::new();
         let mut vars = vec![];
         let mut optionals = vec![];
-        let start = &self.interpolation_start;
-        let end = &self.interpolation_end;
-        let sep = &self.variable_sep;
-        let sep_len = sep.len();
-        loop {
-            if let Some(start_index) = input.find(start) {
-                if let Some(end_index) = input[start_index + start.len()..].find(end) {
-                    name.push_str(&input[..start_index]);
-                    name.push_str(&start);
-                    name.push_str(&end);
-                    let var =
-                        &input[start_index + start.len()..start_index + start.len() + end_index];
-                    if is_call {
-                        vars.push(var.to_owned());
-                        optionals.push(None);
-                    } else if let Some(sep_index) = var.find(sep) {
-                        vars.push((&var[..sep_index]).to_owned());
-                        optionals.push(Some((&var[sep_index + sep_len..]).to_owned()));
+        if let Some(var_settings) = &self.meta_variables {
+            let start = &var_settings.interpolation_start;
+            let end = &var_settings.interpolation_end;
+            let sep = &var_settings.value_sep;
+            let sep_len = sep.len();
+            loop {
+                if let Some(start_index) = input.find(start) {
+                    if let Some(end_index) = input[start_index + start.len()..].find(end) {
+                        name.push_str(&input[..start_index]);
+                        name.push_str(&start);
+                        name.push_str(&end);
+                        let var = &input
+                            [start_index + start.len()..start_index + start.len() + end_index];
+                        if is_call {
+                            vars.push(var.to_owned());
+                            optionals.push(None);
+                        } else if let Some(sep_index) = var.find(sep) {
+                            vars.push((&var[..sep_index]).to_owned());
+                            optionals.push(Some((&var[sep_index + sep_len..]).to_owned()));
+                        } else {
+                            vars.push(var.to_owned());
+                            optionals.push(None);
+                        }
+                        input = &input[start_index + start.len() + end_index + end.len()..];
                     } else {
-                        vars.push(var.to_owned());
-                        optionals.push(None);
+                        return Err(format!("Unclosed variable in: {}", orig).into());
                     }
-                    input = &input[start_index + start.len() + end_index + end.len()..];
                 } else {
-                    return Err(format!("Unclosed variable in: {}", orig).into());
+                    name.push_str(input);
+                    break;
                 }
-            } else {
-                name.push_str(input);
-                break;
             }
+        } else {
+            name.push_str(input);
         }
         Ok((name, vars, optionals))
     }
@@ -496,26 +492,31 @@ impl MdParser {
         }
 
         let mut source = vec![];
-        let start = &self.interpolation_start;
-        let end = &self.interpolation_end;
-        loop {
-            if let Some(start_index) = rest.find(start) {
-                if let Some(end_index) = rest[start_index + start.len()..].find(end) {
-                    source.push(Segment::Source((&rest[..start_index]).to_owned()));
-                    source.push(Segment::MetaVar(
-                        (&rest[start_index + start.len()..start_index + start.len() + end_index])
-                            .to_owned(),
-                    ));
-                    rest = &rest[start_index + start.len() + end_index + end.len()..];
+        if let Some(vars_settings) = &self.meta_variables {
+            let start = &vars_settings.interpolation_start;
+            let end = &vars_settings.interpolation_end;
+            loop {
+                if let Some(start_index) = rest.find(start) {
+                    if let Some(end_index) = rest[start_index + start.len()..].find(end) {
+                        source.push(Segment::Source((&rest[..start_index]).to_owned()));
+                        source.push(Segment::MetaVar(
+                            (&rest
+                                [start_index + start.len()..start_index + start.len() + end_index])
+                                .to_owned(),
+                        ));
+                        rest = &rest[start_index + start.len() + end_index + end.len()..];
+                    } else {
+                        return Err(format!("Unclosed variable in: {}", orig).into());
+                    }
                 } else {
-                    return Err(format!("Unclosed variable in: {}", orig).into());
+                    if !rest.is_empty() {
+                        source.push(Segment::Source(rest.to_owned()));
+                    }
+                    break;
                 }
-            } else {
-                if !rest.is_empty() {
-                    source.push(Segment::Source(rest.to_owned()));
-                }
-                break;
             }
+        } else if !rest.is_empty() {
+            source.push(Segment::Source(rest.to_owned()));
         }
 
         Ok(Line {
@@ -657,29 +658,33 @@ impl MdParser {
         vars: &[String],
         defaults: &[Option<String>],
     ) -> String {
-        let start = &self.interpolation_start;
-        let end = &self.interpolation_end;
-        let var_placeholder = format!("{}{}", start, end);
-        for (var, default) in vars.iter().zip(defaults) {
-            let mut var_full = var.to_string();
-            if let Some(default) = default {
-                var_full.push_str(&self.variable_sep);
-                var_full.push_str(default);
+        if let Some(vars_settings) = &self.meta_variables {
+            let start = &vars_settings.interpolation_start;
+            let end = &vars_settings.interpolation_end;
+            let var_placeholder = format!("{}{}", start, end);
+            for (var, default) in vars.iter().zip(defaults) {
+                let mut var_full = var.to_string();
+                if let Some(default) = default {
+                    var_full.push_str(&vars_settings.value_sep);
+                    var_full.push_str(default);
+                }
+                let var_name = format!("{}{}{}", start, var_full, end);
+                name = name.replacen(&var_placeholder, &var_name, 1);
             }
-            let var_name = format!("{}{}{}", start, var_full, end);
-            name = name.replacen(&var_placeholder, &var_name, 1);
         }
         name
     }
 
     /// Fills a name with its placeholders
     pub fn print_macro_call(&self, mut name: String, vars: &[String]) -> String {
-        let start = &self.interpolation_start;
-        let end = &self.interpolation_end;
-        let var_placeholder = format!("{}{}", start, end);
-        for var in vars {
-            let var_name = format!("{}{}{}", start, var, end);
-            name = name.replacen(&var_placeholder, &var_name, 1);
+        if let Some(vars_settings) = &self.meta_variables {
+            let start = &vars_settings.interpolation_start;
+            let end = &vars_settings.interpolation_end;
+            let var_placeholder = format!("{}{}", start, end);
+            for var in vars {
+                let var_name = format!("{}{}{}", start, var, end);
+                name = name.replacen(&var_placeholder, &var_name, 1);
+            }
         }
         name
     }
@@ -701,9 +706,11 @@ impl MdParser {
                     match segment {
                         Segment::Source(source) => output.push_str(source),
                         Segment::MetaVar(name) => {
-                            output.push_str(&self.interpolation_start);
-                            output.push_str(&name);
-                            output.push_str(&self.interpolation_end);
+                            if let Some(vars_settings) = &self.meta_variables {
+                                output.push_str(&vars_settings.interpolation_start);
+                                output.push_str(&name);
+                                output.push_str(&vars_settings.interpolation_end);
+                            }
                         }
                     }
                 }
