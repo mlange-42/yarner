@@ -24,7 +24,6 @@ USAGE:
 FLAGS:
     -C, --clean      Produces clean code output, without block label comments.
     -h, --help       Prints help information
-    -R, --reverse    Reverse mode: play back code changes into source files.
     -V, --version    Prints version information
 
 OPTIONS:
@@ -44,6 +43,7 @@ ARGS:
                   config file.
 
 SUBCOMMANDS:
-    help    Prints this message or the help of the given subcommand(s)
-    init    Creates a yarner project in the current directory
+    help       Prints this message or the help of the given subcommand(s)
+    init       Creates a yarner project in the current directory
+    reverse    Reverse mode: play back code changes into source files
 ```

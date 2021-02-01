@@ -4,6 +4,7 @@ use super::{CompileError, CompileErrorKind};
 use crate::config::LanguageSettings;
 use crate::util::TryCollectExt;
 use std::collections::HashMap;
+use std::fmt::Write;
 
 /// A `CodeBlock` is a block of code as defined by the input format.
 #[derive(Clone, Default, Debug)]
@@ -178,24 +179,25 @@ impl Line {
     ) -> Result<String, CompileError> {
         let comment_start = settings
             .and_then(|s| s.block_labels.as_ref())
-            .map(|l| &l.comment_start[..])
-            .unwrap_or("");
+            .map(|l| l.comment_start.as_str())
+            .unwrap_or_default();
         let comment_end = settings
             .and_then(|s| s.block_labels.as_ref())
-            .and_then(|l| l.comment_end.as_ref().map(|e| &e[..]))
-            .unwrap_or("");
+            .and_then(|l| l.comment_end.as_deref())
+            .unwrap_or_default();
         let block_start = settings
             .and_then(|s| s.block_labels.as_ref())
-            .map(|l| &l.block_start[..])
-            .unwrap_or("");
+            .map(|l| l.block_start.as_str())
+            .unwrap_or_default();
         let block_end = settings
             .and_then(|s| s.block_labels.as_ref())
-            .map(|l| &l.block_end[..])
-            .unwrap_or("");
+            .map(|l| l.block_end.as_str())
+            .unwrap_or_default();
         let block_next = settings
             .and_then(|s| s.block_labels.as_ref())
-            .map(|l| &l.block_next[..])
+            .map(|l| l.block_next.as_str())
             .unwrap_or("");
+        let block_name_sep = '#';
 
         let clean = if let Some(s) = settings {
             s.clean_code || s.block_labels.is_none()
@@ -234,7 +236,7 @@ impl Line {
                     kind: CompileErrorKind::UnknownMacro(name.to_string()),
                 })?;
 
-                let mut result = vec![];
+                let mut result = String::new();
                 for (idx, block) in blocks.iter().enumerate() {
                     let scope = block.assign_vars(&scope[..]);
 
@@ -246,17 +248,24 @@ impl Line {
                     };
 
                     if !clean {
-                        result.push(format!(
-                            "{}{} {}{}#{}{}",
+                        writeln!(
+                            result,
+                            "{}{} {}{}{}{}{}{}{}",
                             &self.indent,
                             comment_start,
                             if idx == 0 { &block_start } else { &block_next },
                             path,
+                            block_name_sep,
                             name,
+                            block_name_sep,
+                            idx,
                             comment_end,
-                        ));
+                        )
+                        .unwrap();
                     }
-                    result.push(
+                    writeln!(
+                        result,
+                        "{}",
                         block
                             .compile_with(code_blocks, scope, settings)
                             .map(|code| {
@@ -271,16 +280,28 @@ impl Line {
                                     .collect::<Vec<_>>()
                                     .join("\n")
                             })?,
-                    );
+                    )
+                    .unwrap();
 
                     if !clean && idx == blocks.len() - 1 {
-                        result.push(format!(
-                            "{}{} {}{}#{}{}",
-                            &self.indent, comment_start, &block_end, path, name, comment_end,
-                        ));
+                        writeln!(
+                            result,
+                            "{}{} {}{}{}{}{}{}{}",
+                            &self.indent,
+                            comment_start,
+                            &block_end,
+                            path,
+                            block_name_sep,
+                            name,
+                            block_name_sep,
+                            idx,
+                            comment_end,
+                        )
+                        .unwrap();
                     }
                 }
-                Ok(result.join("\n"))
+                result.pop();
+                Ok(result)
             }
         }
     }

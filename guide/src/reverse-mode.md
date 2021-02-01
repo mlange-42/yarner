@@ -4,7 +4,7 @@ Programming inside Markdown code blocks may be inconvenient due to missing synta
 Yarner offers a "reverse mode" that lets you edit generated code files, e.g. in an IDE, and to play back changes into the Markdown sources.
 
 <div style="border: 2px solid red; padding: 0.5em;">
-Warning: This feature is still experimental and modifies the original Markdown sources. Make a backup of the sources before using it!<br/>
+Warning: This feature is still experimental and modifies the original Markdown sources. Make a backup of the sources before using it!
 </div>
 
 [[_TOC_]]
@@ -14,7 +14,7 @@ Warning: This feature is still experimental and modifies the original Markdown s
 To use the reverse mode, run the following after making changes to generated code files:
 
 ```plaintext
-> yarner --reverse
+> yarner reverse
 ```
 
 Reverse mode requires settings for the target language(s) to be defined. See the following section.
@@ -84,9 +84,9 @@ With language settings for Rust as given above, the generated code in `main.rs` 
 ```rust,noplaypen
 // <@main.rs.md#
 fn main() {
-    // <@main.rs.md#Say hello
+    // <@main.rs.md#Say hello#0
     println!("Hello World!");
-    // @>main.rs.md#Say hello
+    // @>main.rs.md#Say hello#0
 }
 // @>main.rs.md#
 ```
@@ -101,7 +101,35 @@ For clean code output without block labels, run Yarner with option `--clean`:
 
 Of course, the reverse mode does not work with clean output.
 
-## Limitations - comment extraction
+## Limitations
+
+### Block repetitions
+
+When the same code block is use by multiple macro invocations, it is ambiguous which one to play back into the sources. Here is an example:
+
+```rust,noplaypen
+fn main() {
+    // ==> Say hello.
+    // ==> Say hello.
+}
+```
+
+In such cases, Yarner emits a warning when called with subcommand `reverse`. If the occurrences differ, like in the following example of user-modified code output, it aborts with an error.
+
+```rust,noplaypen
+// <@main.rs.md#
+fn main() {
+    // <@main.rs.md#Say hello#0
+    println!("Hello World!");
+    // @>main.rs.md#Say hello#0
+    // <@main.rs.md#Say hello#0
+    println!("Hello Universe!");
+    // @>main.rs.md#Say hello#0
+}
+// @>main.rs.md#
+```
+
+### Comment extraction
 
 The [Comment extraction](./comment-extraction.md) feature does not work with reverse mode.
 As Yarner's special comments (`//-` by default) are not written to code files, they will be lost during reverse mode.

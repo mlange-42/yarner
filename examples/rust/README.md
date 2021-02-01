@@ -79,7 +79,7 @@ By linking to file @[.gitignore.md](.gitignore.md), we use this feature to inclu
 This project is set up to enable Yarner's reverse mode. In the generated file `code/src/main.rs`, you will find comment lines that delineate code blocks. Do not delete or modify these lines. Except this limitation, you can modify the file, and afterwards play back changes into the documentation sources with
 
 ```
-> yarner --reverse
+> yarner reverse
 ```
 
 To get clean code output without block labels, run yarner with option `--clean`:
