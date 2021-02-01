@@ -13,7 +13,7 @@ By prefixing relative links with `@` (by default, configurable), Yarner can be i
 The file @[linked.md](linked.md) is also part of this project.
 ```
 
-The prefix is stripped from documentation output. The above content would be modified to 
+The prefix is stripped from documentation output. The above content would be modified to
 
 ```markdown
 The file [linked.md](linked.md) is also part of this project.
@@ -42,7 +42,9 @@ A transclusion should be the only thing in a line.
 
 **Transclusions are recursive**, so transcluded files can also transculde other files themselves.
 
-## Limitations - link correction
+## Limitations
+
+### Link correction
 
 Currently, links in transcluded files are not corrected during transclusion.
 This is only a problem when transcluding files from a different directory.
