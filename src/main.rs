@@ -112,6 +112,10 @@ The normal workflow is:
     let mut config = Config::read(config_path)
         .map_err(|err| format!("Could not read config file \"{}\": {}", config_path, err))?;
 
+    config
+        .check()
+        .map_err(|err| format!("Invalid config file \"{}\": {}", config_path, err))?;
+
     let clean_code = matches.is_present("clean");
     for lang in config.language.values_mut() {
         lang.clean_code = clean_code;

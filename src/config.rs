@@ -26,15 +26,26 @@ impl Config {
         let buf = read_to_string(path)?;
         let val = from_str::<Self>(&buf)?;
 
-        val.check()?;
-
         Ok(val)
     }
 
     /// Check the validity of the configuration
-    fn check(&self) -> Fallible {
+    pub fn check(&self) -> Fallible {
+        let mut any_reverse = false;
         for language in self.language.values() {
             language.check()?;
+            if language.block_labels.is_some() {
+                any_reverse = true;
+            }
+        }
+
+        if any_reverse && self.parser.meta_variables.is_some() {
+            return Err(
+                "Reverse mode can't be combined with the meta variables feature.\n\
+            Either disable meta variables by removing section [meta_variables] from the parser config, \
+            or disable reverse mode by removing section [block_labels] from all languages."
+                    .into(),
+            );
         }
 
         Ok(())
