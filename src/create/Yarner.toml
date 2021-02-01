@@ -35,15 +35,17 @@ file_prefix = "file:"
 # Name prefix for code blocks not shown in the docs.
 hidden_prefix = "hidden:"
 
-# The sequence to identify the start of a meta variable interpolation.
-interpolation_start = "@{"
-# The sequence to identify the end of a meta variable interpolation.
-interpolation_end = "}"
-# The sequence to split variables into name and value.
-variable_sep = ":"
-
 ## The language to set if there was no automatically detected language. Optional.
 # default_language = "rust"
+
+    ## Settings for meta variables. Required to enable meta variables, otherwise the feature is turned off.
+    # [parser.meta_variables]
+    ## The sequence to identify the start of a meta variable interpolation.
+    # interpolation_start = "@{"
+    ## The sequence to identify the end of a meta variable interpolation.
+    # interpolation_end = "}"
+    ## The sequence to split variables into name and value.
+    # value_sep = ":"
 
 [paths]
 # Root directory. All paths are relative to this.

@@ -122,3 +122,20 @@ impl BlockLabels {
         Ok(())
     }
 }
+
+/// Config for meta variable sequences used by the parser
+#[derive(Serialize, Deserialize, Default, Debug, Clone)]
+pub struct MetaVariables {
+    /// The sequence to identify the start of a meta variable interpolation.
+    ///
+    /// Default: `@{`
+    pub interpolation_start: String,
+    /// The sequence to identify the end of a meta variable interpolation.
+    ///
+    /// Default: `}`
+    pub interpolation_end: String,
+    /// The sequence to split variables into name and value.
+    ///
+    /// Default: `:`
+    pub value_sep: String,
+}
