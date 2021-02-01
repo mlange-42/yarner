@@ -28,10 +28,6 @@ link_prefix = "@"
 file_prefix = "file:"
 hidden_prefix = "hidden:"
 
-interpolation_start = "@{"
-interpolation_end = "}"
-variable_sep = ":"
-
 # default_language = "rust"
 
     # [parser.meta_variables]

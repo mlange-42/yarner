@@ -16,10 +16,10 @@ link_prefix = "@"
 file_prefix = "file:"
 hidden_prefix = "hidden:"
 
-    # [parser.meta_variables]
-    # interpolation_start = "@{"
-    # interpolation_end = "}"
-    # value_sep = ":"
+    [parser.meta_variables]
+    interpolation_start = "@{"
+    interpolation_end = "}"
+    value_sep = ":"
 
 [paths]
 root = "."

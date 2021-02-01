@@ -57,4 +57,6 @@ However, macros and variables should not be abused to replace the mechanisms of 
 
 ## Limitations
 
-The meta variables do not work with the reverse mode. In case both are enabled, Yarner aborts with an error message.
+Meta variables not work with [Reverse mode](./reverse-mode.md). When playing back from code output to sources, variable names in source macros are eliminated, while variables in code blocks are replaced by their values.
+
+Both features can still be combined by using them only different languages. I.e. use macros only in languages for which section `block_labels` is not given in the `Yarner.toml`.
