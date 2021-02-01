@@ -91,6 +91,10 @@ fn main() {
 // @>main.rs.md#
 ```
 
+## Copied files
+
+If files were copied as explained in chapter [Copying files](./copying-files.md), Yarner detects these in reverse mode and copies them back. I.e. code in copied files can be modified just like code extracted from code blocks, but without the need to care for block labels.
+
 ## Clean code output
 
 For clean code output without block labels, run Yarner with option `--clean`:
@@ -128,6 +132,10 @@ fn main() {
 }
 // @>main.rs.md#
 ```
+
+### Meta variables
+
+The optional [Meta variables](./meta-variables.md) feature does not work with reverse mode. In case both are enabled, Yarner aborts with an error message.
 
 ### Comment extraction
 

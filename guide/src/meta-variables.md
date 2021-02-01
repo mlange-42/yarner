@@ -1,8 +1,10 @@
 # Meta variables
 
+If you consider a macro invocation like a function call, then meta variables are like parameters.
+
 [[_TOC_]]
 
-If you consider a macro invocation like a function call, then meta variables are like parameters.
+## Meta variables
 
 By default, to indicate that a macro includes a meta variable, the name of the variable must be part of the name of the macro, delimited by `@{` and `}`.
 Then that meta variable may be used within the macro by again using its name within the `@{` and `}` in the code.
@@ -28,6 +30,8 @@ Now, to say things to many people:
 ```
 ````
 
+## Default values
+
 Meta variables can have default values:
 
 ````markdown
@@ -50,3 +54,7 @@ Now, to say the default "Hello" to many people:
 These features allow for more flexibility when writing macros, as well as possibly making the intent clearer.
 
 However, macros and variables should not be abused to replace the mechanisms of abstraction provided by the target language. These are preferable as they enforce semantic in addition to purely syntactic structure.
+
+## Limitations
+
+The meta variables do not work with the reverse mode. In case both are enabled, Yarner aborts with an error message.

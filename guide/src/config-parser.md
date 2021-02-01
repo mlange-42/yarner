@@ -34,6 +34,10 @@ variable_sep = ":"
 
 # default_language = "rust"
 
+    # [parser.meta_variables]
+    # interpolation_start = "@{"
+    # interpolation_end = "}"
+    # value_sep = ":"
 ```
 
 ## Options
@@ -49,6 +53,14 @@ variable_sep = ":"
 | `link_prefix`                             | Prefix for links to make Yarner include the linked file in the build process. E.g. `@[Linked file](linked.md)`                                                         |
 | `file_prefix`                             | Prefix to treat block names as target file specifiers. E.g. `//- file:main.rs`                                                                                         |
 | `hidden_prefix`                           | Prefix to hide a code block in documentation output. E.g. `//- hidden:Secret code block`                                                                               |
-| `interpolation_start` `interpolation_end` | Start and end of a meta variable                                                                                                                                       |
-| `variable_sep`                            | Separator between variable name and value                                                                                                                              |
 | `default_language`                        | The default language in case no language is given after the opening fence sequence. Optional                                                                           |
+| `[parser.meta_variables]`                 | Settings for meta variables (see table below). Optional. When absent, meta variables are not supported                                                                 |
+
+**Meta variables**
+
+Section `[parser.meta_variables]` is disabled by default. To enable meta variables, that section with the following settings is required.
+
+| Option                                    | Details                                   |
+| ----------------------------------------- | ----------------------------------------- |
+| `interpolation_start` `interpolation_end` | Start and end of a meta variable          |
+| `variable_sep`                            | Separator between variable name and value |
