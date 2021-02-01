@@ -38,7 +38,7 @@ eof_newline = true
     block_end = "@>"
 ```
 
-In most cases, only the option `comment_start` needs to be adapted to the line comment sequence of the target language. E.g., Python would require the following:
+In most cases, only the option `comment_start` needs to be adapted to the line comment sequence of the target language. E.g., Python requires the following:
 
 ```toml
 [language.py]
@@ -79,7 +79,7 @@ println!("Hello World!");
 ```
 ````
 
-With language settings for Rust as given above, the generated code in `main.rs` would look like this:
+With language settings for Rust as given above, the generated code in `main.rs` looks like this:
 
 ```rust,noplaypen
 // <@main.rs.md#

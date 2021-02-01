@@ -13,7 +13,7 @@ By prefixing relative links with `@` (by default, configurable), Yarner can be i
 The file @[linked.md](linked.md) is also part of this project.
 ```
 
-The prefix is stripped from documentation output. The above content would be modified to 
+The prefix is stripped from documentation output. The above content is modified to
 
 ```markdown
 The file [linked.md](linked.md) is also part of this project.
@@ -59,7 +59,7 @@ As an example, say the main file is `README.md`. It transcludes the file `subdir
 * [File 2](file-2.md)
 ```
 
-This link would not be corrected and is thus broken in the documentation generated from `README.md`.
+This link is not corrected and is thus broken in the documentation generated from `README.md`.
 One could link `subdir/file-2.md` with the path relative to `README.md`:
 
 ```markdown

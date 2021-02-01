@@ -112,7 +112,7 @@ fn say_hello() {
 ```
 ````
 
-The resulting content of `code/main.rs` would look like this:
+The resulting content of `code/main.rs` looks like this:
 
 ```rust,noplaypen
 fn main() {
@@ -164,7 +164,7 @@ fn say_hello() {
 ```
 ````
 
-The two code blocks would be concatenated and result in this content of `code/main.rs`:
+The two code blocks are concatenated and result in this content of `code/main.rs`:
 
 ```rust,noplaypen
 fn main() {

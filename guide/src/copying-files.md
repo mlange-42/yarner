@@ -10,7 +10,7 @@ For such cases, Yarner can automatically copy files into code and documentation 
 
 Section `[paths]` of a project's `Yarner.toml` provides options to list files and patterns for copying files unchanged, `code_files` and `doc_files`. Both accept a list of file names or glob patterns.
 
-As an example, with the following setting Yarner would copy all `.png` and `.jpg` files from directory `img` to `docs/img`:
+As an example, with the following setting Yarner copies all `.png` and `.jpg` files from directory `img` to `docs/img`:
 
 ```toml
 doc_files = ["img/*.png", "img/*.jpg"]
@@ -29,7 +29,7 @@ Through options `code_paths` and `doc_paths`, paths can be modified to some exte
 
 Currently, only replacement of path components as well as omission of components are supported.
 
-As an example, some files may be required to end up at the top level directory of the code output, but should not be at the top level of sources. In the following example, all files and folders from directory `additional-code` would be copied directly into the `code` output folder:
+As an example, some files may be required to end up at the top level directory of the code output, but should not be at the top level of sources. In the following example, all files and folders from directory `additional-code` are copied directly into the `code` output folder:
 
 ```toml
 code_files = ["additional-code/**/*"]
