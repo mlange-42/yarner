@@ -3,6 +3,7 @@
 use super::md::MdParser;
 
 use crate::config::BlockLabels;
+use crate::util::Fallible;
 
 /// Representation of a code block
 pub struct RevCodeBlock {
@@ -43,13 +44,14 @@ impl CodeParser {
         source: &str,
         parser: &MdParser,
         block_labels: &BlockLabels,
-    ) -> Result<Vec<RevCodeBlock>, String> {
+    ) -> Fallible<Vec<RevCodeBlock>> {
         let start = format!(
             "{} {}",
             block_labels.comment_start, block_labels.block_start
         );
         let next = format!("{} {}", block_labels.comment_start, block_labels.block_next);
         let end = format!("{} {}", block_labels.comment_start, block_labels.block_end);
+        let block_name_sep = "#";
 
         let mut blocks = vec![];
         let mut block_stack: Vec<RevCodeBlock> = vec![];
@@ -76,7 +78,7 @@ impl CodeParser {
                     }
                 }
 
-                let mut parts = full_name.splitn(3, &block_labels.name_separator);
+                let mut parts = full_name.splitn(3, block_name_sep);
                 let file = parts.next().unwrap_or("").to_string();
                 let name = parts.next().and_then(|s| {
                     if s.is_empty() {
@@ -85,9 +87,14 @@ impl CodeParser {
                         Some(s.to_string())
                     }
                 });
-                let index_str = parts.next().unwrap_or("0");
+                let index_str = parts
+                    .next()
+                    .ok_or_else(|| format!("Missing block index in {}", full_name))?;
                 let index = index_str.parse::<usize>().map_err(|_| {
-                    format!("Can't parse block index '{}' to an integer", index_str)
+                    format!(
+                        "Can't parse block index '{}' to an integer in {}",
+                        index_str, full_name
+                    )
                 })?;
 
                 if !is_next {

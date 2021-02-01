@@ -42,4 +42,3 @@ eof_newline = true
     # block_start = "<@"
     # block_next = "<@>"
     # block_end = "@>"
-    # name_separator = "#"

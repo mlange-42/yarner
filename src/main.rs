@@ -302,7 +302,9 @@ fn reverse(
                     .and_then(|lang| lang.block_labels.as_ref())
                 {
                     let source = fs::read_to_string(&file).map_err(|err| err.to_string())?;
-                    let blocks = parser.parse(&source, &config.parser, labels)?;
+                    let blocks = parser
+                        .parse(&source, &config.parser, labels)
+                        .map_err(|err| err.to_string())?;
 
                     for block in blocks.into_iter() {
                         let path = PathBuf::from(&block.file);

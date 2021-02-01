@@ -9,8 +9,7 @@ use self::transclusion::Transclusion;
 
 use crate::config::LanguageSettings;
 use crate::parser::{code::RevCodeBlock, md::MdParser};
-use std::collections::hash_map::Entry::{Occupied, Vacant};
-use std::collections::hash_map::{Entry, HashMap};
+use std::collections::hash_map::HashMap;
 use std::fmt::Write;
 
 /// A representation of a `Document` of literate code
@@ -94,16 +93,12 @@ impl Document {
                 }
                 Node::Text(text_block) => output.push_str(&printer.print_text_block(text_block)),
                 Node::Code(code_block) => {
-                    let index = match block_count.entry(&code_block.name) {
-                        Entry::Occupied(mut entry) => {
-                            let old_index = *entry.get();
-                            entry.insert(old_index + 1)
-                        }
-                        Entry::Vacant(entry) => {
-                            entry.insert(1);
-                            0
-                        }
+                    let index = {
+                        let count = block_count.entry(&code_block.name).or_default();
+                        *count += 1;
+                        *count - 1
                     };
+
                     let alt_block = code_blocks.get(&(&code_block.name, &index));
 
                     output.push_str(
@@ -135,28 +130,25 @@ impl Document {
     ) -> Result<String, CompileError> {
         let comment_start = settings
             .and_then(|s| s.block_labels.as_ref())
-            .map(|l| &l.comment_start[..])
-            .unwrap_or("");
+            .map(|l| l.comment_start.as_str())
+            .unwrap_or_default();
         let comment_end = settings
             .and_then(|s| s.block_labels.as_ref())
-            .and_then(|l| l.comment_end.as_ref().map(|e| &e[..]))
-            .unwrap_or("");
+            .and_then(|l| l.comment_end.as_deref())
+            .unwrap_or_default();
         let block_start = settings
             .and_then(|s| s.block_labels.as_ref())
-            .map(|l| &l.block_start[..])
-            .unwrap_or("");
+            .map(|l| l.block_start.as_str())
+            .unwrap_or_default();
         let block_end = settings
             .and_then(|s| s.block_labels.as_ref())
-            .map(|l| &l.block_end[..])
-            .unwrap_or("");
+            .map(|l| l.block_end.as_str())
+            .unwrap_or_default();
         let block_next = settings
             .and_then(|s| s.block_labels.as_ref())
-            .map(|l| &l.block_next[..])
-            .unwrap_or("");
-        let block_name_sep = settings
-            .and_then(|s| s.block_labels.as_ref())
-            .map(|l| &l.name_separator[..])
-            .unwrap_or("");
+            .map(|l| l.block_next.as_str())
+            .unwrap_or_default();
+        let block_name_sep = '#';
 
         let clean = if let Some(s) = settings {
             s.clean_code || s.block_labels.is_none()
@@ -170,12 +162,10 @@ impl Document {
             Some(blocks) => {
                 let mut block_count: HashMap<&Option<String>, usize> = HashMap::new();
                 for (idx, block) in blocks.iter().enumerate() {
-                    let index = match block_count.entry(&block.name) {
-                        Occupied(mut entry) => entry.insert(*entry.get() + 1),
-                        Vacant(entry) => {
-                            entry.insert(1);
-                            0
-                        }
+                    let index = {
+                        let count = block_count.entry(&block.name).or_default();
+                        *count += 1;
+                        *count - 1
                     };
 
                     let path = block.source_file.to_owned().unwrap_or_default();

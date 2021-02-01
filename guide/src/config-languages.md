@@ -21,7 +21,6 @@ eof_newline = true
     block_start = "<@"
     block_next = "<@>"
     block_end = "@>"
-    name_separator = "#"
 ```
 
 When language settings are requires to set `clear_blank_lines` or `eof_newline`,
@@ -38,4 +37,3 @@ but block labels in the target language are not wanted or not supported, leave o
 | `block_start`       | Start sequence of block labels                                                                                                      |
 | `block_next`        | Start of next block with the same name                                                                                              |
 | `block_end`         | End of block labels                                                                                                                 |
-| `name_separator`    | Separator between block source file, name and index (e.g. `// <@main.rs#A clode block#0`)                                                  |
