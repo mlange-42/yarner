@@ -87,7 +87,10 @@ impl CodeParser {
                 });
                 let index_str = parts.next().unwrap_or("0");
                 let index = index_str.parse::<usize>().map_err(|_| {
-                    format!("Can't parse block index '{}' to an integer", index_str)
+                    format!(
+                        "Can't parse block index '{}' to an integer in {}",
+                        index_str, full_name
+                    )
                 })?;
 
                 if !is_next {
