@@ -23,7 +23,7 @@
 use super::code::RevCodeBlock;
 
 use crate::document::{
-    code::{CodeBlock, Line, Segment, Source},
+    code::{CodeBlock, Line, Source},
     text::TextBlock,
     transclusion::Transclusion,
     Document, Node,
@@ -43,68 +43,34 @@ use std::path::{Path, PathBuf};
 #[derive(Clone, Deserialize, Debug)]
 pub struct MdParser {
     /// The sequence that identifies the start and end of a fenced code block
-    ///
-    /// Default: `\`\`\``
     pub fence_sequence: String,
     /// Alternative sequence that identifies the start and end of a fenced code block.
     /// Allows for normal Markdown fences in code blocks
-    ///
-    /// Default: \~\~\~
     pub fence_sequence_alt: String,
     /// Parsed comments are stripped from the code and written to an `<aside></aside>` block after
     /// the code when printing. If false, the comments are just written back into the code.
-    ///
-    /// Default: `false`
     pub comments_as_aside: bool,
     /// The language to set if there was no automatically detected language. Optional
     pub default_language: Option<String>,
     /// The sequence to identify a comment which should be omitted from the compiled code, and may
     /// be rendered as an `<aside>` if `comments_as_aside` is set.
-    ///
-    /// Default: `//`
     pub comment_start: String,
-    /// The sequence to identify the start of a meta variable interpolation.
-    ///
-    /// Default: `@{`
-    pub interpolation_start: String,
-    /// The sequence to identify the end of a meta variable interpolation.
-    ///
-    /// Default: `}`
-    pub interpolation_end: String,
     /// The sequence to identify the start of a macro invocation.
-    ///
-    /// Default: `==>`
     pub macro_start: String,
     /// The sequence to identify the end of a macro invocation.
-    ///
-    /// Default: `.`
     pub macro_end: String,
     /// The sequence to identify the start of a transclusion.
-    ///
-    /// Default: `@{{`
     pub transclusion_start: String,
     /// The sequence to identify the end of a transclusion.
-    ///
-    /// Default: `}}`
     pub transclusion_end: String,
     /// Prefix for links that should be followed during processing.
     /// Should be RegEx-compatible.
-    ///
-    /// Default: `@`
     #[serde(rename(deserialize = "link_prefix"))]
     #[serde(deserialize_with = "from_link_prefix")]
     pub link_following_pattern: (String, Regex),
-    /// The sequence to split variables into name and value.
-    ///
-    /// Default: `:`
-    pub variable_sep: String,
     /// Prefix for file-specific entry points.
-    ///
-    /// Default: `file:`
     pub file_prefix: String,
     /// Name prefix for code blocks not shown in the docs.
-    ///
-    /// Default: `hidden:`
     pub hidden_prefix: String,
 }
 
@@ -290,25 +256,16 @@ impl MdParser {
                                 if block.source.is_empty()
                                     && line.trim().starts_with(&self.comment_start)
                                 {
-                                    let trim = line.trim()[self.comment_start.len()..].trim();
-                                    let name = self.parse_name(trim, false);
-                                    match name {
-                                        Ok((name, vars, defaults)) => {
-                                            let hidden = name.starts_with(&self.hidden_prefix);
-                                            let name = if hidden {
-                                                &name[self.hidden_prefix.len()..]
-                                            } else {
-                                                &name[..]
-                                            };
-                                            block.name = Some(name.to_string());
-                                            block.hidden = hidden;
-                                            block.vars = vars;
-                                            block.defaults = defaults;
-                                        }
-                                        Err(error) => {
-                                            return Some(Parse::error(error, line_number));
-                                        }
+                                    let name = line.trim()[self.comment_start.len()..].trim();
+                                    let hidden = name.starts_with(&self.hidden_prefix);
+                                    let name = if hidden {
+                                        &name[self.hidden_prefix.len()..]
+                                    } else {
+                                        &name[..]
                                     };
+                                    block.name = Some(name.to_string());
+                                    block.hidden = hidden;
+
                                     Some(Parse::Incomplete)
                                 } else {
                                     let line = match self
@@ -418,61 +375,15 @@ impl MdParser {
         Ok(paths)
     }
 
-    /// Parses a macro name, returning the name and the extracted variables
-    #[allow(clippy::type_complexity)]
-    fn parse_name(
-        &self,
-        mut input: &str,
-        is_call: bool,
-    ) -> Fallible<(String, Vec<String>, Vec<Option<String>>)> {
-        let orig = input;
-        let mut name = String::new();
-        let mut vars = vec![];
-        let mut optionals = vec![];
-        let start = &self.interpolation_start;
-        let end = &self.interpolation_end;
-        let sep = &self.variable_sep;
-        let sep_len = sep.len();
-        loop {
-            if let Some(start_index) = input.find(start) {
-                if let Some(end_index) = input[start_index + start.len()..].find(end) {
-                    name.push_str(&input[..start_index]);
-                    name.push_str(&start);
-                    name.push_str(&end);
-                    let var =
-                        &input[start_index + start.len()..start_index + start.len() + end_index];
-                    if is_call {
-                        vars.push(var.to_owned());
-                        optionals.push(None);
-                    } else if let Some(sep_index) = var.find(sep) {
-                        vars.push((&var[..sep_index]).to_owned());
-                        optionals.push(Some((&var[sep_index + sep_len..]).to_owned()));
-                    } else {
-                        vars.push(var.to_owned());
-                        optionals.push(None);
-                    }
-                    input = &input[start_index + start.len() + end_index + end.len()..];
-                } else {
-                    return Err(format!("Unclosed variable in: {}", orig).into());
-                }
-            } else {
-                name.push_str(input);
-                break;
-            }
-        }
-        Ok((name, vars, optionals))
-    }
-
     /// Parses a line as code, returning the parsed `Line` object
     fn parse_line(&self, line_number: usize, input: &str) -> Fallible<Line> {
-        let orig = input;
         let indent_len = input
             .chars()
             .take_while(|ch| ch.is_whitespace())
             .collect::<String>()
             .len();
         let (indent, rest) = input.split_at(indent_len);
-        let (mut rest, comment) = if let Some(comment_index) = rest.find(&self.comment_start) {
+        let (rest, comment) = if let Some(comment_index) = rest.find(&self.comment_start) {
             let (rest, comment) = rest.split_at(comment_index);
             (
                 rest,
@@ -484,44 +395,20 @@ impl MdParser {
 
         if rest.starts_with(&self.macro_start) {
             if let Some(end_index) = rest.find(&self.macro_end) {
-                let (name, scope, _names) =
-                    self.parse_name(&rest[self.macro_start.len()..end_index].trim(), true)?;
+                let name = rest[self.macro_start.len()..end_index].trim();
                 return Ok(Line {
                     line_number,
                     indent: indent.to_owned(),
-                    source: Source::Macro { name, scope },
+                    source: Source::Macro(name.to_owned()),
                     comment,
                 });
-            }
-        }
-
-        let mut source = vec![];
-        let start = &self.interpolation_start;
-        let end = &self.interpolation_end;
-        loop {
-            if let Some(start_index) = rest.find(start) {
-                if let Some(end_index) = rest[start_index + start.len()..].find(end) {
-                    source.push(Segment::Source((&rest[..start_index]).to_owned()));
-                    source.push(Segment::MetaVar(
-                        (&rest[start_index + start.len()..start_index + start.len() + end_index])
-                            .to_owned(),
-                    ));
-                    rest = &rest[start_index + start.len() + end_index + end.len()..];
-                } else {
-                    return Err(format!("Unclosed variable in: {}", orig).into());
-                }
-            } else {
-                if !rest.is_empty() {
-                    source.push(Segment::Source(rest.to_owned()));
-                }
-                break;
             }
         }
 
         Ok(Line {
             line_number,
             indent: indent.to_owned(),
-            source: Source::Source(source),
+            source: Source::Source(rest.to_owned()),
             comment,
         })
     }
@@ -560,7 +447,7 @@ impl MdParser {
         if let Some(name) = &block.name {
             output.push_str(&self.comment_start);
             output.push(' ');
-            output.push_str(&self.print_name(name.clone(), &block.vars, &block.defaults));
+            output.push_str(name);
             output.push('\n');
         }
 
@@ -611,7 +498,7 @@ impl MdParser {
             if block.hidden {
                 output.push_str(&self.hidden_prefix);
             }
-            output.push_str(&self.print_name(name.clone(), &block.vars, &block.defaults));
+            output.push_str(name);
             output.push('\n');
         }
 
@@ -650,63 +537,20 @@ impl MdParser {
         output
     }
 
-    /// Fills a name with its placeholders and defaults
-    pub fn print_name(
-        &self,
-        mut name: String,
-        vars: &[String],
-        defaults: &[Option<String>],
-    ) -> String {
-        let start = &self.interpolation_start;
-        let end = &self.interpolation_end;
-        let var_placeholder = format!("{}{}", start, end);
-        for (var, default) in vars.iter().zip(defaults) {
-            let mut var_full = var.to_string();
-            if let Some(default) = default {
-                var_full.push_str(&self.variable_sep);
-                var_full.push_str(default);
-            }
-            let var_name = format!("{}{}{}", start, var_full, end);
-            name = name.replacen(&var_placeholder, &var_name, 1);
-        }
-        name
-    }
-
-    /// Fills a name with its placeholders
-    pub fn print_macro_call(&self, mut name: String, vars: &[String]) -> String {
-        let start = &self.interpolation_start;
-        let end = &self.interpolation_end;
-        let var_placeholder = format!("{}{}", start, end);
-        for var in vars {
-            let var_name = format!("{}{}{}", start, var, end);
-            name = name.replacen(&var_placeholder, &var_name, 1);
-        }
-        name
-    }
-
     /// Prints a line of a code block
     pub fn print_line(&self, line: &Line, print_comments: bool) -> String {
         let mut output = line.indent.to_string();
         match &line.source {
-            Source::Macro { name, scope } => {
+            Source::Macro(name) => {
                 output.push_str(&self.macro_start);
                 if !self.macro_start.ends_with(' ') {
                     output.push(' ');
                 }
-                output.push_str(&self.print_macro_call(name.clone(), &scope));
+                output.push_str(name);
                 output.push_str(&self.macro_end);
             }
-            Source::Source(segments) => {
-                for segment in segments {
-                    match segment {
-                        Segment::Source(source) => output.push_str(source),
-                        Segment::MetaVar(name) => {
-                            output.push_str(&self.interpolation_start);
-                            output.push_str(&name);
-                            output.push_str(&self.interpolation_end);
-                        }
-                    }
-                }
+            Source::Source(string) => {
+                output.push_str(string);
             }
         }
         if print_comments {
