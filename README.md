@@ -153,8 +153,7 @@ fn say_hello() {
 
 Configuration is provided via a toml configuration file (default: `Yarner.toml`).
 A file with default configurations is generated through the `init` sub-command.
-See the comments in these files or user guide chapters on [configuration](https://mlange-42.github.io/yarner/configuration.html) for details on individual settings.
-It is also the place to modify Yarner's syntax to suite your needs and preferences.
+See the user guide chapters [configuration](https://mlange-42.github.io/yarner/configuration.html) for details on individual settings.
 
 ## Acknowledgements
 

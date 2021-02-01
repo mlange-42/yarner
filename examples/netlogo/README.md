@@ -124,7 +124,7 @@ To get clean code output without block labels, run yarner with option `--clean`:
 
 ## Appendix
 
-The @[Appendix](appendix.md) is used to create the `.nlogo` with UI elements, turtle shapes, etc.
+### Code tab
 
 The content of the code tab is created by simply drawing together all blocks shown above:
 
@@ -135,3 +135,8 @@ The content of the code tab is created by simply drawing together all blocks sho
 ; ==> Go.
 ; ==> Submodels.
 ```
+
+### NetLogo file
+
+In the main `nlogo` file, we only "include" an `nls` file to allow for the reverse mode.
+The file `Model.nlogo` is simply copied from the `nlogo` directory via option `code_files` in the `[paths]` section of the `Yarner.toml`.
