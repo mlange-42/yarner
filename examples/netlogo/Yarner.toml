@@ -2,8 +2,7 @@
 fence_sequence = "```"
 fence_sequence_alt = "~~~"
 
-comment_start = ";-"
-comments_as_aside = false
+block_name_prefix = ";-"
 
 macro_start = "; ==>"
 macro_end = "."

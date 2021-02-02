@@ -26,13 +26,12 @@ impl Config {
         let buf = read_to_string(path)?;
         let val = from_str::<Self>(&buf)?;
 
-        val.check()?;
-
         Ok(val)
     }
 
     /// Check the validity of the configuration
-    fn check(&self) -> Fallible {
+    pub fn check(&self) -> Fallible {
+        self.parser.check()?;
         for language in self.language.values() {
             language.check()?;
         }

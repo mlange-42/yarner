@@ -10,8 +10,6 @@
 - [Links and transclusions](./links-and-transclusions.md)
 - [Copying files](./copying-files.md)
 - [Reverse mode](./reverse-mode.md)
-- [Special features](./special-features.md)
-  - [Comment extraction](./comment-extraction.md)
 - [Configuration](./configuration.md)
   - [Parser](./config-parser.md)
   - [Paths](./config-paths.md)
