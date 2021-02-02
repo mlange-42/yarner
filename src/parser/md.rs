@@ -50,11 +50,7 @@ pub struct MdParser {
     /// The language to set if there was no automatically detected language. Optional
     pub default_language: Option<String>,
     /// Temporary switch to disable comment extraction
-    #[serde(skip)]
-    pub allow_comment_extraction: bool,
-    /// Parsed comments are stripped from the code and written to an `<aside></aside>` block after
-    /// the code when printing. If false, the comments are just written back into the code.
-    #[serde(skip)]
+    #[serde(default)]
     pub comments_as_aside: bool,
     /// The sequence to identify a comment which should be omitted from the compiled code, and may
     /// be rendered as an `<aside>` if `comments_as_aside` is set.
@@ -101,6 +97,15 @@ where
 }
 
 impl MdParser {
+    pub fn check(&self) -> Result<(), String> {
+        if self.comments_as_aside {
+            Err(r#"Comment extraction is temporarily disabled.
+Please comment out option `comments_as_aside` until the next version, and rename `comment_start` to `block_name_prefix`"#.to_string())
+        } else {
+            Ok(())
+        }
+    }
+
     /// Sets the default language of the returned parser (or does nothing if `None` is passed)
     pub fn default_language(&self, language: Option<String>) -> Self {
         let mut cloned = self.clone();
@@ -260,20 +265,14 @@ impl MdParser {
                                 if block.source.is_empty()
                                     && line.trim().starts_with(&self.block_name_prefix)
                                 {
-                                    let mut name =
-                                        line.trim()[self.block_name_prefix.len()..].trim();
+                                    let name = line.trim()[self.block_name_prefix.len()..].trim();
 
-                                    let hidden = if let Some(stripped) =
-                                        name.strip_prefix(&self.hidden_prefix)
-                                    {
-                                        name = stripped;
-                                        true
+                                    if let Some(stripped) = name.strip_prefix(&self.hidden_prefix) {
+                                        block.name = Some(stripped.to_string());
+                                        block.hidden = true;
                                     } else {
-                                        false
+                                        block.name = Some(name.to_string());
                                     };
-
-                                    block.name = Some(name.to_string());
-                                    block.hidden = hidden;
 
                                     Some(Parse::Incomplete)
                                 } else {
@@ -393,20 +392,17 @@ impl MdParser {
             .len();
         let (indent, rest) = input.split_at(indent_len);
 
-        // TODO: Temporarily disables comment extraction. Remove outer-most if/else to enable by default.
-        let (rest, comment) = if self.allow_comment_extraction {
-            if let Some(comment_index) = rest.find(&self.block_name_prefix) {
-                let (rest, comment) = rest.split_at(comment_index);
-                (
-                    rest,
-                    Some((&comment[self.block_name_prefix.len()..]).to_owned()),
-                )
-            } else {
-                (rest, None)
-            }
+        // TODO: Temporarily disables comment extraction.
+        let (rest, comment) = (rest, None);
+        /*let (rest, comment) = if let Some(comment_index) = rest.find(&self.block_name_prefix) {
+            let (rest, comment) = rest.split_at(comment_index);
+            (
+                rest,
+                Some((&comment[self.block_name_prefix.len()..]).to_owned()),
+            )
         } else {
             (rest, None)
-        };
+        };*/
 
         if let Some(stripped) = rest.strip_prefix(&self.macro_start) {
             if let Some(name) = stripped.strip_suffix(&self.macro_end) {
