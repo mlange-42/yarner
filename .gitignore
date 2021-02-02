@@ -1,2 +1,5 @@
 /target
+/guide/public
+/examples/**/code/
+/examples/**/docs/
 **/*.rs.bk

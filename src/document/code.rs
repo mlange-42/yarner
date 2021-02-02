@@ -2,8 +2,9 @@
 
 use super::{CompileError, CompileErrorKind};
 use crate::config::LanguageSettings;
-use crate::util::try_collect::TryCollectExt;
+use crate::util::TryCollectExt;
 use std::collections::HashMap;
+use std::fmt::Write;
 
 /// A `CodeBlock` is a block of code as defined by the input format.
 #[derive(Clone, Default, Debug)]
@@ -12,10 +13,8 @@ pub struct CodeBlock {
     pub indent: String,
     /// The name of this code block
     pub name: Option<String>,
-    /// The variables extracted from the name
-    pub vars: Vec<String>,
-    /// The variables' default values extracted from the name
-    pub defaults: Vec<Option<String>>,
+    /// Whether the code block was originally unnamed
+    pub is_unnamed: bool,
     /// The language this block was written in
     pub language: Option<String>,
     /// Marks the code block as hidden from docs
@@ -43,11 +42,9 @@ impl CodeBlock {
     }
 
     /// Names this code block
-    pub fn named(self, name: String, vars: Vec<String>, defaults: Vec<Option<String>>) -> Self {
+    pub fn named(self, name: String) -> Self {
         Self {
             name: Some(name),
-            vars,
-            defaults,
             ..self
         }
     }
@@ -86,10 +83,10 @@ impl CodeBlock {
     /// "Compiles" this code block into its output code
     pub fn compile(
         &self,
-        code_blocks: &HashMap<Option<&str>, Vec<CodeBlock>>,
+        code_blocks: &HashMap<Option<&str>, Vec<&CodeBlock>>,
         settings: Option<&LanguageSettings>,
     ) -> Result<String, CompileError> {
-        self.compile_with(code_blocks, HashMap::default(), settings)
+        self.compile_with(code_blocks, settings)
     }
 
     /// Returns the line number of the first line in this code block
@@ -99,86 +96,25 @@ impl CodeBlock {
 
     fn compile_with(
         &self,
-        code_blocks: &HashMap<Option<&str>, Vec<CodeBlock>>,
-        scope: HashMap<String, String>,
+        code_blocks: &HashMap<Option<&str>, Vec<&CodeBlock>>,
         settings: Option<&LanguageSettings>,
     ) -> Result<String, CompileError> {
-        let name = self.name.to_owned().unwrap_or_else(|| "".to_string());
-        let comment_end = settings
-            .map(|s| s.comment_end.to_owned().unwrap_or_else(|| "".to_string()))
-            .unwrap_or_else(|| "".to_string());
-        let path = self.source_file.to_owned().unwrap_or_default();
         self.source
             .iter()
-            .map(|line| line.compile_with(code_blocks, &scope, settings))
+            .map(|line| line.compile_with(code_blocks, settings))
             .try_collect()
-            .map(|vec: Vec<_>| vec.join("\n"))
-            .map(|block: String| {
-                if let Some(s) = settings {
-                    if !s.clean_code {
-                        format!(
-                            "{} {}{}#{}{}\n{}\n{} {}{}#{}{}",
-                            s.comment_start,
-                            s.block_start,
-                            path,
-                            name,
-                            comment_end,
-                            block,
-                            s.comment_start,
-                            s.block_end,
-                            path,
-                            name,
-                            comment_end,
-                        )
-                    } else {
-                        block
-                    }
-                } else {
-                    block
-                }
-            })
+            .map(|lines| lines.join("\n"))
+            .map_err(CompileError::Multi)
     }
-
-    fn assign_vars(&self, scope: &[String]) -> HashMap<String, String> {
-        self.vars
-            .iter()
-            .zip(&self.defaults)
-            .zip(scope)
-            .map(|((name, default), value)| {
-                (
-                    name.clone(),
-                    if value.is_empty() {
-                        default.clone().unwrap_or_else(|| value.clone())
-                    } else {
-                        value.clone()
-                    },
-                )
-            })
-            .collect()
-    }
-}
-
-/// A `Segment` is some of the raw source text.
-#[derive(Clone, Debug)]
-pub enum Segment {
-    /// Raw source text
-    Source(String),
-    /// A meta variable, to be interpolated by the literate compiler
-    MetaVar(String),
 }
 
 /// A `Source` represents the source code on a line.
 #[derive(Clone, Debug)]
 pub enum Source {
     /// A macro invocation, resolved by the literate compiler
-    Macro {
-        /// The name of the macro
-        name: String,
-        /// The meta-variable values to interpolate
-        scope: Vec<String>,
-    },
+    Macro(String),
     /// Source text, possibly including meta variable interpolations
-    Source(Vec<Segment>),
+    Source(String),
 }
 
 /// A `Line` defines a line of code.
@@ -198,61 +134,107 @@ pub struct Line {
 impl Line {
     fn compile_with(
         &self,
-        code_blocks: &HashMap<Option<&str>, Vec<CodeBlock>>,
-        scope: &HashMap<String, String>,
+        code_blocks: &HashMap<Option<&str>, Vec<&CodeBlock>>,
         settings: Option<&LanguageSettings>,
     ) -> Result<String, CompileError> {
+        let comment_start = settings
+            .and_then(|s| s.block_labels.as_ref())
+            .map(|l| l.comment_start.as_str())
+            .unwrap_or_default();
+        let comment_end = settings
+            .and_then(|s| s.block_labels.as_ref())
+            .and_then(|l| l.comment_end.as_deref())
+            .unwrap_or_default();
+        let block_start = settings
+            .and_then(|s| s.block_labels.as_ref())
+            .map(|l| l.block_start.as_str())
+            .unwrap_or_default();
+        let block_end = settings
+            .and_then(|s| s.block_labels.as_ref())
+            .map(|l| l.block_end.as_str())
+            .unwrap_or_default();
+        let block_next = settings
+            .and_then(|s| s.block_labels.as_ref())
+            .map(|l| l.block_next.as_str())
+            .unwrap_or("");
+        let block_name_sep = '#';
+
+        let clean = if let Some(s) = settings {
+            s.clean_code || s.block_labels.is_none()
+        } else {
+            true
+        };
+
         let blank_lines = settings.map(|s| s.clear_blank_lines).unwrap_or(true);
         match &self.source {
-            Source::Source(segments) => {
-                let code = segments
-                    .iter()
-                    .map(|segment| match segment {
-                        Segment::Source(source) => Ok(source.clone()),
-                        Segment::MetaVar(name) => scope
-                            .get(&name[..])
-                            .map(|var| var.to_owned())
-                            .ok_or(CompileError::Single {
-                                line_number: self.line_number,
-                                kind: CompileErrorKind::UnknownMetaVariable(name.to_string()),
-                            }),
-                    })
-                    .try_collect()
-                    .map(|vec: Vec<_>| vec.join(""))?;
-
-                if blank_lines && code.trim().is_empty() {
+            Source::Source(string) => {
+                if blank_lines && string.trim().is_empty() {
                     Ok("".to_string())
                 } else {
-                    Ok(format!("{}{}", self.indent, code))
+                    Ok(format!("{}{}", self.indent, string))
                 }
             }
-            Source::Macro { name, scope } => {
+            Source::Macro(name) => {
                 let blocks = code_blocks.get(&Some(name)).ok_or(CompileError::Single {
                     line_number: self.line_number,
                     kind: CompileErrorKind::UnknownMacro(name.to_string()),
                 })?;
 
-                let mut result = vec![];
-                for block in blocks {
-                    let scope = block.assign_vars(&scope[..]);
-                    result.push(
-                        block
-                            .compile_with(code_blocks, scope, settings)
-                            .map(|code| {
-                                code.split('\n')
-                                    .map(|line| {
-                                        if blank_lines && line.trim().is_empty() {
-                                            "".to_string()
-                                        } else {
-                                            format!("{}{}", self.indent, line)
-                                        }
-                                    })
-                                    .collect::<Vec<_>>()
-                                    .join("\n")
-                            })?,
-                    );
+                let mut result = String::new();
+                for (idx, block) in blocks.iter().enumerate() {
+                    let path = block.source_file.to_owned().unwrap_or_default();
+                    let name = if block.is_unnamed {
+                        ""
+                    } else {
+                        block.name.as_ref().map(|n| &n[..]).unwrap_or("")
+                    };
+
+                    if !clean {
+                        writeln!(
+                            result,
+                            "{}{} {}{}{}{}{}{}{}",
+                            &self.indent,
+                            comment_start,
+                            if idx == 0 { &block_start } else { &block_next },
+                            path,
+                            block_name_sep,
+                            name,
+                            block_name_sep,
+                            idx,
+                            comment_end,
+                        )
+                        .unwrap();
+                    }
+
+                    let code = block.compile_with(code_blocks, settings)?;
+                    for line in code.lines() {
+                        if blank_lines && line.trim().is_empty() {
+                            writeln!(result).unwrap();
+                        } else {
+                            write!(result, "{}", self.indent).unwrap();
+                            writeln!(result, "{}", line).unwrap();
+                        }
+                    }
+
+                    if !clean && idx == blocks.len() - 1 {
+                        writeln!(
+                            result,
+                            "{}{} {}{}{}{}{}{}{}",
+                            &self.indent,
+                            comment_start,
+                            &block_end,
+                            path,
+                            block_name_sep,
+                            name,
+                            block_name_sep,
+                            idx,
+                            comment_end,
+                        )
+                        .unwrap();
+                    }
                 }
-                Ok(result.join("\n"))
+                result.pop();
+                Ok(result)
             }
         }
     }

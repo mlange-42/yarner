@@ -1,0 +1,43 @@
+[parser]
+fence_sequence = "```"
+fence_sequence_alt = "~~~"
+
+block_name_prefix = "//-"
+
+macro_start = "// ==>"
+macro_end = "."
+
+transclusion_start = "@{{"
+transclusion_end = "}}"
+
+link_prefix = "@"
+
+file_prefix = "file:"
+hidden_prefix = "hidden:"
+
+# default_language = "rust"
+
+[paths]
+root = "."
+code = "code/"
+docs = "docs/"
+
+files = ["README.md"]
+# entrypoint = "Main"
+
+# code_files = ["**/*.rs"]
+# code_paths = ["_"]
+
+# doc_files = ["**/*.png", "**/*.jpg"]
+# doc_paths = ["_"]
+
+# [language.rs]
+# clear_blank_lines = true
+# eof_newline = true
+
+    # [language.rs.block_labels]
+    # comment_start = "//"
+    ## comment_end = "*/"
+    # block_start = "<@"
+    # block_next = "<@>"
+    # block_end = "@>"

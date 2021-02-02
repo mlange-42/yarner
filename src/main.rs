@@ -1,40 +1,49 @@
+pub mod config;
+pub mod create;
+pub mod document;
+pub mod parser;
+pub mod util;
+
+use crate::config::{Config, LanguageSettings};
+use crate::document::{CompileError, CompileErrorKind, Document};
+use crate::parser::{
+    code::{CodeParser, RevCodeBlock},
+    md::MdParser,
+};
+use crate::util::{modify_path, Fallible, JoinExt};
 use clap::{crate_version, App, Arg, SubCommand};
 use std::collections::hash_map::Entry::{Occupied, Vacant};
 use std::collections::{HashMap, HashSet};
-use std::error::Error;
+use std::env::set_current_dir;
 use std::fs::{self, File};
 use std::io::Write;
 use std::path::{Path, PathBuf};
-use yarner::config::{AnyConfig, LanguageSettings};
-use yarner::document::{CompileError, CompileErrorKind, Document};
-use yarner::parser::{ParseError, Parser, ParserConfig, Printer};
-use yarner::{templates, MultipleTransclusionError, ProjectCreationError};
 
 fn main() {
     std::process::exit(match run() {
-        Ok(_) => 0,
+        Ok(()) => 0,
         Err(err) => {
-            eprintln!("{}", err);
+            eprintln!("ERROR: {}", err);
             1
         }
     });
 }
 
-fn run() -> Result<(), String> {
+fn run() -> Fallible {
     let app = App::new("Yarner")
         .version(crate_version!())
-        .about("Literate programming compiler\n  \
-                  https://github.com/mlange-42/yarner\n\
-                \n\
-                The normal workflow is:\n \
-                1) Create a project with\n    \
-                  > yarner create README.md\n \
-                2) Process the project by running\n    \
-                  > yarner")
+        .about(r#"Literate programming compiler
+  https://github.com/mlange-42/yarner
+
+The normal workflow is:
+ 1) Create a project with
+    > yarner init
+ 2) Process the project by running
+    > yarner"#)
         .arg(Arg::with_name("config")
             .short("c")
             .long("config")
-            .value_name("config_file")
+            .value_name("config")
             .help("Sets the config file name")
             .takes_value(true)
             .default_value("Yarner.toml"))
@@ -79,120 +88,138 @@ fn run() -> Result<(), String> {
             .help("Produces clean code output, without block label comments.")
             .required(false)
             .takes_value(false))
-        .subcommand(SubCommand::with_name("create")
+        .subcommand(SubCommand::with_name("init")
             .about("Creates a yarner project in the current directory")
-            .arg(Arg::with_name("file")
-                .help("The base file for the doc sources, with normal file extension, but without additional style extension.")
-                .value_name("file")
-                .takes_value(true)
-                .required(true)
-                .index(1))
+        )
+        .subcommand(SubCommand::with_name("reverse")
+            .about("Reverse mode: play back code changes into source files")
         );
 
-    let matches = app.clone().get_matches();
+    let matches = app.get_matches();
 
-    if let Some(matches) = matches.subcommand_matches("create") {
-        let file = matches.value_of("file").unwrap();
+    if matches.subcommand_matches("init").is_some() {
+        create::create_new_project().map_err(|err| format!("Could not create project: {}", err))?;
 
-        match create_project(file) {
-            Ok(_) => eprintln!(
-                "Successfully created project for {}.\nTo compile the project, run `yarner` from the project directory.",
-                file
-            ),
-            Err(err) => return Err(format!("ERROR: Creating project failed for {}: {}", file, err)),
-        }
+        println!("Successfully created project.\nTo compile the project, run 'yarner' from here.",);
 
         return Ok(());
     }
 
-    let mut any_config: AnyConfig = match matches.value_of("config") {
-        None => AnyConfig::default(),
-        Some(file_name) => {
-            if matches.occurrences_of("config") == 0 && !PathBuf::from(file_name).exists() {
-                AnyConfig::default()
-            } else {
-                match fs::read_to_string(file_name) {
-                    Ok(config) => match toml::from_str(&config) {
-                        Ok(config) => config,
-                        Err(error) => {
-                            return Err(format!(
-                                "ERROR: Could not parse config file \"{}\": {}",
-                                file_name, error
-                            ));
-                        }
-                    },
-                    Err(error) => {
-                        return Err(format!(
-                            "ERROR: Could not read config file \"{}\": {}",
-                            file_name, error
-                        ));
-                    }
-                }
-            }
-        }
-    };
-    let paths = any_config.paths.unwrap_or_default();
+    let config_path = matches.value_of("config").unwrap();
+    let mut config = Config::read(config_path)
+        .map_err(|err| format!("Could not read config file \"{}\": {}", config_path, err))?;
+
+    config
+        .check()
+        .map_err(|err| format!("Invalid config file \"{}\": {}", config_path, err))?;
+
+    let clean_code = matches.is_present("clean");
+    for lang in config.language.values_mut() {
+        lang.clean_code = clean_code;
+    }
 
     let root = matches
         .value_of("root")
-        .map(|s| s.to_string())
-        .or_else(|| paths.root.as_ref().map(|s| s.to_string()))
-        .map_or_else(|| PathBuf::from("."), PathBuf::from);
+        .or_else(|| config.paths.root.as_deref());
 
-    if let Err(err) = std::env::set_current_dir(&root) {
-        return Err(format!(
-            "ERROR: --> Unable to set root to \"{}\": {}",
-            root.display(),
-            err
-        ));
-    }
-
-    let clean_code = matches.is_present("clean");
-    if let Some(languages) = &mut any_config.language {
-        for lang in languages.values_mut() {
-            lang.clean_code = clean_code;
-        }
+    if let Some(path) = root {
+        set_current_dir(path)
+            .map_err(|err| format!("Unable to set root to \"{}\": {}", path, err))?;
     }
 
     let doc_dir = matches
         .value_of("doc_dir")
-        .map(|s| s.to_string())
-        .or_else(|| paths.docs.as_ref().map(|s| s.to_string()))
-        .map(PathBuf::from);
+        .or_else(|| config.paths.docs.as_deref())
+        .map(Path::new);
 
     let code_dir = matches
         .value_of("code_dir")
-        .map(|s| s.to_string())
-        .or_else(|| paths.code.as_ref().map(|s| s.to_string()))
-        .map(PathBuf::from);
+        .or_else(|| config.paths.code.as_deref())
+        .map(Path::new);
 
     let entrypoint = matches
         .value_of("entrypoint")
-        .or_else(|| paths.entrypoint.as_deref());
+        .or_else(|| config.paths.entrypoint.as_deref());
 
-    let input_patterns: Option<Vec<_>> = matches
+    let input_patterns = matches
         .values_of("input")
-        .map(|patterns| patterns.map(|pattern| pattern.to_string()).collect())
-        .or_else(|| paths.files.to_owned());
+        .map(|patterns| patterns.map(|pattern| pattern.to_owned()).collect())
+        .or_else(|| config.paths.files.clone())
+        .ok_or(
+            "No inputs provided via arguments or toml file. For help, use:\n\
+               > yarner -h",
+        )?;
 
-    let input_patterns = match input_patterns {
-        None => {
-            return Err(
-                "ERROR: No inputs provided via arguments or toml file. For help, use:\n\
-                 > yarner -h"
-                    .to_string(),
-            )
+    let reverse = matches.subcommand_matches("reverse").is_some();
+
+    let language = matches.value_of("language");
+
+    if reverse {
+        process_inputs_reverse(
+            &input_patterns,
+            &config,
+            code_dir,
+            doc_dir,
+            entrypoint,
+            language,
+        )?;
+    } else {
+        process_inputs_forward(
+            &input_patterns,
+            &config,
+            code_dir,
+            doc_dir,
+            entrypoint,
+            language,
+        )?;
+    }
+
+    if let Some(code_dir) = code_dir {
+        if let Some(code_file_patterns) = &config.paths.code_files {
+            copy_files(
+                code_file_patterns,
+                config.paths.code_paths.as_deref(),
+                code_dir,
+                reverse,
+            )?;
         }
-        Some(patterns) => patterns,
-    };
+    }
 
+    if !reverse {
+        if let Some(doc_dir) = doc_dir {
+            if let Some(doc_file_patterns) = &config.paths.doc_files {
+                copy_files(
+                    doc_file_patterns,
+                    config.paths.doc_paths.as_deref(),
+                    doc_dir,
+                    false,
+                )?;
+            }
+        }
+    }
+
+    Ok(())
+}
+
+fn process_inputs_reverse(
+    input_patterns: &[String],
+    config: &Config,
+    code_dir: Option<&Path>,
+    doc_dir: Option<&Path>,
+    entrypoint: Option<&str>,
+    language: Option<&str>,
+) -> Result<(), String> {
     let mut any_input = false;
+
+    let mut documents: HashMap<PathBuf, Document> = HashMap::new();
+    let mut code_files: HashSet<PathBuf> = HashSet::new();
+
     for pattern in input_patterns {
         let paths = match glob::glob(&pattern) {
             Ok(p) => p,
             Err(err) => {
                 return Err(format!(
-                    "ERROR: --> Unable to process glob pattern \"{}\": {}",
+                    "Unable to process glob pattern \"{}\": {}",
                     pattern, err
                 ))
             }
@@ -202,7 +229,7 @@ fn run() -> Result<(), String> {
                 Ok(p) => p,
                 Err(err) => {
                     return Err(format!(
-                        "ERROR: --> Unable to process glob pattern \"{}\": {}",
+                        "Unable to process glob pattern \"{}\": {}",
                         pattern, err
                     ))
                 }
@@ -221,48 +248,184 @@ fn run() -> Result<(), String> {
                     (file_name, code_type)
                 };
 
-                let language = matches.value_of("language");
+                let parser = config.parser.default_language(code_type);
 
-                let parser = any_config.parser.default_language(code_type);
-
-                if let Err(error) = compile_all(
+                if let Err(error) = compile_all_reverse(
                     &parser,
-                    &doc_dir,
-                    &code_dir,
+                    doc_dir,
+                    code_dir,
                     &file_name,
                     entrypoint,
                     language,
-                    &any_config.language,
+                    &config.language,
                     &mut HashSet::new(),
-                    &mut HashSet::new(),
+                    &mut code_files,
+                    &mut documents,
                 ) {
-                    eprintln!(
-                        "ERROR: Failed to compile source file \"{}\": {}",
+                    return Err(format!(
+                        "Failed to compile source file \"{}\": {}",
                         file_name.display(),
                         error
-                    );
-                    continue;
+                    ));
                 }
             }
         }
     }
 
     if !any_input {
-        return Err("ERROR: No input files found. For help, use:\n\
-                 > yarner -h"
-            .to_string());
+        return Err(format!(
+            "No input files found in patterns: {}\n\
+                For help, use:\n\
+                 > yarner -h",
+            input_patterns.iter().join(", ", '"')
+        ));
     }
 
-    if let Some(code_dir) = code_dir {
-        if let Some(code_file_patterns) = &paths.code_files {
-            copy_files(code_file_patterns, &paths.code_paths, code_dir)?;
+    reverse(documents, code_files, &config)?;
+
+    Ok(())
+}
+
+fn reverse(
+    documents: HashMap<PathBuf, Document>,
+    code_files: HashSet<PathBuf>,
+    config: &Config,
+) -> Result<(), String> {
+    let mut code_blocks: HashMap<(PathBuf, Option<String>, usize), RevCodeBlock> = HashMap::new();
+
+    let parser = CodeParser {};
+    if !config.language.is_empty() {
+        for file in code_files {
+            let language = file.extension().and_then(|s| s.to_str());
+            if let Some(language) = language {
+                if let Some(labels) = config
+                    .language
+                    .get(language)
+                    .and_then(|lang| lang.block_labels.as_ref())
+                {
+                    let source = fs::read_to_string(&file).map_err(|err| err.to_string())?;
+                    let blocks = parser
+                        .parse(&source, &config.parser, labels)
+                        .map_err(|err| err.to_string())?;
+
+                    for block in blocks.into_iter() {
+                        let path = PathBuf::from(&block.file);
+                        match code_blocks.entry((path, block.name.clone(), block.index)) {
+                            Occupied(entry) => {
+                                if entry.get().lines != block.lines {
+                                    return Err(format!("Reverse mode impossible due to multiple, differing occurrences of a code block: {} # {} # {}", &block.file, &block.name.unwrap_or_else(|| "".to_string()), block.index));
+                                } else {
+                                    eprintln!("  WARNING: multiple occurrences of a code block: {} # {} # {}", &block.file, &block.name.unwrap_or_else(|| "".to_string()), block.index)
+                                }
+                            }
+                            Vacant(entry) => {
+                                entry.insert(block);
+                            }
+                        }
+                    }
+                }
+            }
         }
     }
 
-    if let Some(doc_dir) = doc_dir {
-        if let Some(doc_file_patterns) = &paths.doc_files {
-            copy_files(doc_file_patterns, &paths.doc_paths, doc_dir)?;
+    for (path, doc) in documents {
+        let blocks: HashMap<_, _> = code_blocks
+            .iter()
+            .filter_map(|((p, name, index), block)| {
+                if p == &path {
+                    Some(((name, index), block))
+                } else {
+                    None
+                }
+            })
+            .collect();
+
+        if !blocks.is_empty() {
+            let print = doc.print_reverse(&config.parser, &blocks);
+            eprintln!("  Writing back to file {}", path.display());
+            let mut file = File::create(path).unwrap();
+            write!(file, "{}", print).unwrap()
+        } else {
+            eprintln!("  Skipping file {}", path.display());
         }
+    }
+
+    Ok(())
+}
+
+fn process_inputs_forward(
+    input_patterns: &[String],
+    config: &Config,
+    code_dir: Option<&Path>,
+    doc_dir: Option<&Path>,
+    entrypoint: Option<&str>,
+    language: Option<&str>,
+) -> Result<(), String> {
+    let mut any_input = false;
+    for pattern in input_patterns {
+        let paths = match glob::glob(&pattern) {
+            Ok(p) => p,
+            Err(err) => {
+                return Err(format!(
+                    "Unable to process glob pattern \"{}\": {}",
+                    pattern, err
+                ))
+            }
+        };
+        for path in paths {
+            let input = match path {
+                Ok(p) => p,
+                Err(err) => {
+                    return Err(format!(
+                        "Unable to process glob pattern \"{}\": {}",
+                        pattern, err
+                    ))
+                }
+            };
+            if input.is_file() {
+                any_input = true;
+                let (file_name, code_type) = {
+                    let file_name = PathBuf::from(&input);
+
+                    let code_type = input.file_stem().and_then(|stem| {
+                        PathBuf::from(stem)
+                            .extension()
+                            .and_then(|osstr| osstr.to_str())
+                            .map(|s| s.to_owned())
+                    });
+                    (file_name, code_type)
+                };
+
+                let parser = config.parser.default_language(code_type);
+
+                if let Err(error) = compile_all(
+                    &parser,
+                    doc_dir,
+                    code_dir,
+                    &file_name,
+                    entrypoint,
+                    language,
+                    &config.language,
+                    &mut HashSet::new(),
+                    &mut HashSet::new(),
+                ) {
+                    return Err(format!(
+                        "Failed to compile source file \"{}\": {}",
+                        file_name.display(),
+                        error
+                    ));
+                }
+            }
+        }
+    }
+
+    if !any_input {
+        return Err(format!(
+            "No input files found in patterns: {}\n\
+                For help, use:\n\
+                 > yarner -h",
+            input_patterns.iter().join(", ", '"')
+        ));
     }
 
     Ok(())
@@ -270,8 +433,9 @@ fn run() -> Result<(), String> {
 
 fn copy_files(
     patterns: &[String],
-    path_mod: &Option<Vec<String>>,
-    target_dir: PathBuf,
+    path_mod: Option<&[String]>,
+    target_dir: &Path,
+    reverse: bool,
 ) -> Result<(), String> {
     match path_mod {
         Some(path_mod) if patterns.len() != path_mod.len() => {
@@ -288,7 +452,7 @@ fn copy_files(
             Ok(p) => p,
             Err(err) => {
                 return Err(format!(
-                    "ERROR: --> Unable to parse glob pattern \"{}\" (at index {}): {}",
+                    "Unable to parse glob pattern \"{}\" (at index {}): {}",
                     file_pattern, err.pos, err
                 ))
             }
@@ -298,11 +462,11 @@ fn copy_files(
                 Ok(p) => p,
                 Err(err) => {
                     return Err(format!(
-                    "ERROR: --> Unable to access result found by glob pattern \"{}\" (at {}): {}",
-                    file_pattern,
-                    err.path().display(),
-                    err
-                ))
+                        "Unable to access result found by glob pattern \"{}\" (at {}): {}",
+                        file_pattern,
+                        err.path().display(),
+                        err
+                    ))
                 }
             };
             if file.is_file() {
@@ -310,7 +474,7 @@ fn copy_files(
                 match track_copy_dest.entry(out_path.clone()) {
                     Occupied(entry) => {
                         return Err(format!(
-                            "ERROR: Attempted to copy multiple code files to {}: from {} and {}",
+                            "Attempted to copy multiple code files to {}: from {} and {}",
                             out_path.display(),
                             entry.get().display(),
                             file.display()
@@ -320,18 +484,22 @@ fn copy_files(
                         entry.insert(file.clone());
                     }
                 }
-                eprintln!("Copying file {} to {}", file.display(), out_path.display());
 
-                let mut file_path = target_dir.clone();
+                let mut file_path = target_dir.to_owned();
                 file_path.push(out_path);
 
-                fs::create_dir_all(file_path.parent().unwrap()).unwrap();
-                if let Err(err) = fs::copy(&file, &file_path) {
-                    return Err(format!(
-                        "ERROR: --> Error copying file {}: {}",
-                        file.display(),
-                        err
-                    ));
+                if !reverse {
+                    fs::create_dir_all(file_path.parent().unwrap()).unwrap();
+                }
+                let (from, to) = if reverse {
+                    eprintln!("Copying file {} to {}", file_path.display(), file.display());
+                    (&file_path, &file)
+                } else {
+                    eprintln!("Copying file {} to {}", file.display(), file_path.display());
+                    (&file, &file_path)
+                };
+                if let Err(err) = fs::copy(&from, &to) {
+                    return Err(format!("Error copying file {}: {}", file.display(), err));
                 }
             }
         }
@@ -339,137 +507,113 @@ fn copy_files(
     Ok(())
 }
 
-fn modify_path(path: &PathBuf, replace: &str) -> PathBuf {
-    if replace.is_empty() || replace == "_" {
-        return path.clone();
-    }
-    let mut new_path = PathBuf::new();
-    let repl_parts: Vec<_> = Path::new(replace)
-        .components()
-        .map(|c| c.as_os_str())
-        .collect();
-    for (i, comp) in path.components().enumerate() {
-        if repl_parts.len() > i && repl_parts[i] != "_" {
-            if repl_parts[i] != "-" {
-                new_path.push(repl_parts[i]);
-            }
-        } else {
-            new_path.push(comp);
-        }
-    }
-    new_path
-}
+fn transclude_dry_run(
+    parser: &MdParser,
+    file_name: &Path,
+    code_dir: Option<&Path>,
+    entrypoint: Option<&str>,
+    language: Option<&str>,
+    documents: &mut HashMap<PathBuf, Document>,
+    track_code_files: &mut HashSet<PathBuf>,
+) -> Fallible<Document> {
+    let source_main = fs::read_to_string(&file_name)?;
+    let document = parser.parse(&source_main, &file_name)?;
 
-fn create_project(file: &str) -> Result<(), Box<dyn Error>> {
-    let file_name = format!("{}.md", file);
-    let base_path = PathBuf::from(&file_name);
-    let toml_path = PathBuf::from("Yarner.toml");
-
-    if base_path.exists() {
-        return Err(Box::new(ProjectCreationError(format!(
-            "ERROR: File {} already exists.",
-            base_path.display()
-        ))));
-    }
-    if toml_path.exists() {
-        return Err(Box::new(ProjectCreationError(format!(
-            "ERROR: File {} already exists.",
-            toml_path.display()
-        ))));
-    }
-
-    let toml = templates::MD_CONFIG.replace("%%MAIN_FILE%%", &file_name);
-    let mut toml_file = File::create(&toml_path)?;
-    toml_file.write_all(&toml.as_bytes())?;
-
-    let mut base_file = File::create(&base_path)?;
-    base_file.write_all(&templates::MD.as_bytes())?;
-
-    Ok(())
-}
-
-fn transclude<P>(
-    parser: &P,
-    file_name: &PathBuf,
-    into: Option<&PathBuf>,
-) -> Result<Document, Box<dyn std::error::Error>>
-where
-    P: Parser + Printer + ParserConfig,
-    P::Error: 'static,
-{
-    let file = match into {
-        Some(into) => {
-            let mut path = into.parent().unwrap().to_path_buf();
-            path.push(file_name);
-            path
-        }
-        None => file_name.to_owned(),
-    };
-    let source_main = fs::read_to_string(&file)?;
-    let mut document = parser.parse(&source_main)?;
-
-    let transclusions = document.tree().transclusions();
+    let transclusions = document.transclusions();
 
     let mut trans_so_far = HashSet::new();
     for trans in transclusions {
         if !trans_so_far.contains(trans.file()) {
-            let doc = transclude(parser, trans.file(), Some(&file))?;
+            let doc = transclude_dry_run(
+                parser,
+                trans.file(),
+                code_dir,
+                entrypoint,
+                language,
+                documents,
+                track_code_files,
+            )?;
+
+            compile_reverse(
+                parser,
+                &doc,
+                code_dir,
+                trans.file(),
+                entrypoint,
+                language,
+                track_code_files,
+            )?;
+
+            documents.insert(trans.file().clone(), doc);
+            trans_so_far.insert(trans.file().clone());
+        } else {
+            return Err(format!("Multiple transclusions of {}", trans.file().display()).into());
+        }
+    }
+
+    Ok(document)
+}
+
+fn transclude(parser: &MdParser, file_name: &Path) -> Fallible<Document> {
+    let source_main = fs::read_to_string(&file_name)?;
+    let mut document = parser.parse(&source_main, &file_name)?;
+
+    let transclusions = document.transclusions().cloned().collect::<Vec<_>>();
+
+    let mut trans_so_far = HashSet::new();
+    for trans in transclusions {
+        if !trans_so_far.contains(trans.file()) {
+            let doc = transclude(parser, trans.file())?;
 
             // TODO: handle unwrap as error
             let ext = trans.file().extension().unwrap().to_str().unwrap();
             let full_path = trans.file().to_str().unwrap();
             let path = format!(
                 "{}{}",
-                parser.file_prefix(),
+                parser.file_prefix,
                 &full_path[..full_path.len() - ext.len() - 1]
             );
-            document
-                .tree_mut()
-                .transclude(&trans, doc.into_tree(), &full_path, &path[..]);
+            document.transclude(&trans, doc, &full_path, &path[..]);
 
             trans_so_far.insert(trans.file().clone());
         } else {
-            return Err(Box::new(MultipleTransclusionError(trans.file().clone())));
+            return Err(format!("Multiple transclusions of {}", trans.file().display()).into());
         }
     }
     Ok(document)
 }
 
 #[allow(clippy::too_many_arguments)]
-fn compile_all<P>(
-    parser: &P,
-    doc_dir: &Option<PathBuf>,
-    code_dir: &Option<PathBuf>,
-    file_name: &PathBuf,
+fn compile_all(
+    parser: &MdParser,
+    doc_dir: Option<&Path>,
+    code_dir: Option<&Path>,
+    file_name: &Path,
     entrypoint: Option<&str>,
     language: Option<&str>,
-    settings: &Option<HashMap<String, LanguageSettings>>,
+    settings: &HashMap<String, LanguageSettings>,
     track_input_files: &mut HashSet<PathBuf>,
     track_code_files: &mut HashSet<PathBuf>,
-) -> Result<(), Box<dyn std::error::Error>>
-where
-    P: Parser + Printer,
-    P::Error: 'static,
-{
+) -> Fallible {
     if !track_input_files.contains(file_name) {
-        let mut document = transclude(parser, file_name, None)?;
-        let links = parser.find_links(&mut document, file_name)?;
+        let mut document = transclude(parser, file_name)?;
+        let links = parser.find_links(&mut document, file_name, true)?;
 
         let file_str = file_name.to_str().unwrap();
-        document.tree_mut().set_source(file_str);
+        document.set_source(file_str);
 
         compile(
             parser,
             &document,
             doc_dir,
             code_dir,
-            &file_name,
+            file_name,
             entrypoint,
             language,
             settings,
             track_code_files,
         )?;
-        track_input_files.insert(file_name.clone());
+        track_input_files.insert(file_name.to_owned());
 
         for file in links {
             if !track_input_files.contains(&file) {
@@ -492,36 +636,91 @@ where
 }
 
 #[allow(clippy::too_many_arguments)]
-fn compile<P>(
-    parser: &P,
-    document: &Document,
-    doc_dir: &Option<PathBuf>,
-    code_dir: &Option<PathBuf>,
-    file_name: &PathBuf,
+fn compile_all_reverse(
+    parser: &MdParser,
+    doc_dir: Option<&Path>,
+    code_dir: Option<&Path>,
+    file_name: &Path,
     entrypoint: Option<&str>,
     language: Option<&str>,
-    settings: &Option<HashMap<String, LanguageSettings>>,
+    settings: &HashMap<String, LanguageSettings>,
+    track_input_files: &mut HashSet<PathBuf>,
     track_code_files: &mut HashSet<PathBuf>,
-) -> Result<(), Box<dyn std::error::Error>>
-where
-    P: Parser + Printer,
-    P::Error: 'static,
-{
+    documents: &mut HashMap<PathBuf, Document>,
+) -> Fallible {
+    if !track_input_files.contains(file_name) {
+        let mut document = transclude_dry_run(
+            parser,
+            file_name,
+            code_dir,
+            entrypoint,
+            language,
+            documents,
+            track_code_files,
+        )?;
+        let links = parser.find_links(&mut document, file_name, false)?;
+
+        let file_str = file_name.to_str().unwrap();
+        document.set_source(file_str);
+
+        compile_reverse(
+            parser,
+            &document,
+            code_dir,
+            file_name,
+            entrypoint,
+            language,
+            track_code_files,
+        )?;
+
+        documents.insert(file_name.to_owned(), document);
+
+        track_input_files.insert(file_name.to_owned());
+
+        for file in links {
+            if !track_input_files.contains(&file) {
+                compile_all_reverse(
+                    parser,
+                    doc_dir,
+                    code_dir,
+                    &file,
+                    entrypoint,
+                    language,
+                    settings,
+                    track_input_files,
+                    track_code_files,
+                    documents,
+                )?;
+            }
+        }
+    }
+
+    Ok(())
+}
+
+#[allow(clippy::too_many_arguments)]
+fn compile(
+    parser: &MdParser,
+    document: &Document,
+    doc_dir: Option<&Path>,
+    code_dir: Option<&Path>,
+    file_name: &Path,
+    entrypoint: Option<&str>,
+    language: Option<&str>,
+    settings: &HashMap<String, LanguageSettings>,
+    track_code_files: &mut HashSet<PathBuf>,
+) -> Fallible {
     eprintln!("Compiling file {}", file_name.display());
 
-    let mut entries = vec![(entrypoint, file_name.clone())];
-    let extra_entries = parser.get_entry_points(&document, language);
+    let mut entries = parser.get_entry_points(&document, language);
 
-    entries.extend(
-        extra_entries
-            .iter()
-            .map(|(e, p)| (Some(&e[..]), PathBuf::from((*p).to_owned() + ".temp"))),
-    );
+    let file_name_without_ext = file_name.with_extension("");
+    entries.insert(entrypoint, &file_name_without_ext);
 
     match doc_dir {
         Some(doc_dir) => {
             let documentation = document.print_docs(parser);
-            let mut file_path = doc_dir.clone();
+            let mut file_path = doc_dir.to_owned();
             file_path.push(file_name);
             fs::create_dir_all(file_path.parent().unwrap()).unwrap();
             let mut doc_file = File::create(file_path).unwrap();
@@ -533,11 +732,8 @@ where
     for (entrypoint, sub_file_name) in entries {
         match code_dir {
             Some(code_dir) => {
-                let mut file_path = code_dir.clone();
-                if let Some(par) = sub_file_name.parent() {
-                    file_path.push(par)
-                }
-                file_path.push(sub_file_name.file_stem().unwrap());
+                let mut file_path = code_dir.to_owned();
+                file_path.push(sub_file_name);
                 if let Some(language) = language {
                     file_path.set_extension(language);
                 }
@@ -547,43 +743,79 @@ where
                     .and_then(|ext| ext.to_str())
                     .unwrap_or("")
                     .to_string();
-                let settings = match settings {
-                    Some(set) => set.get(&extension),
-                    None => None,
-                };
+                let settings = settings.get(&extension);
 
                 if track_code_files.contains(&file_path) {
-                    return Err(Box::new(ParseError::MultipleCodeFileAccessError(format!(
-                        "ERROR: Multiple locations point to code file {}",
+                    return Err(format!(
+                        "Multiple locations point to code file {}",
                         file_path.display()
-                    ))));
+                    )
+                    .into());
                 } else {
                     track_code_files.insert(file_path.clone());
                 }
 
                 match document.print_code(entrypoint, language, settings) {
                     Ok(code) => {
-                        eprintln!("  --> Writing file {}", file_path.display());
+                        eprintln!("  Writing file {}", file_path.display());
                         fs::create_dir_all(file_path.parent().unwrap()).unwrap();
                         let mut code_file = File::create(file_path).unwrap();
                         write!(code_file, "{}", code).unwrap()
                     }
-                    Err(err) => match &err {
-                        CompileError::Single {
-                            line_number: _,
-                            kind,
-                        } => match kind {
-                            CompileErrorKind::MissingEntrypoint => {
-                                eprintln!(
-                                    "  --> WARNING: No entrypoint for file {}, skipping code output.",
-                                    sub_file_name.display()
-                                );
-                            }
-                            _ => return Err(Box::new(err)),
-                        },
-                        _ => return Err(Box::new(err)),
-                    },
+                    Err(CompileError::Single {
+                        kind: CompileErrorKind::MissingEntrypoint,
+                        ..
+                    }) => {
+                        eprintln!(
+                            "  WARNING: No entrypoint for file {}, skipping code output.",
+                            sub_file_name.display()
+                        );
+                    }
+                    Err(err) => return Err(Box::new(err)),
                 };
+            }
+            None => eprintln!("WARNING: Missing output location for code, skipping code output."),
+        }
+    }
+
+    Ok(())
+}
+
+#[allow(clippy::too_many_arguments)]
+fn compile_reverse(
+    parser: &MdParser,
+    document: &Document,
+    code_dir: Option<&Path>,
+    file_name: &Path,
+    entrypoint: Option<&str>,
+    language: Option<&str>,
+    track_code_files: &mut HashSet<PathBuf>,
+) -> Fallible {
+    eprintln!("Compiling file {}", file_name.display());
+
+    let mut entries = parser.get_entry_points(&document, language);
+
+    let file_name_without_ext = file_name.with_extension("");
+    entries.insert(entrypoint, &file_name_without_ext);
+
+    for (_entrypoint, sub_file_name) in entries {
+        match code_dir {
+            Some(code_dir) => {
+                let mut file_path = code_dir.to_owned();
+                file_path.push(sub_file_name);
+                if let Some(language) = language {
+                    file_path.set_extension(language);
+                }
+
+                if track_code_files.contains(&file_path) {
+                    return Err(format!(
+                        "Multiple locations point to code file {}",
+                        file_path.display()
+                    )
+                    .into());
+                } else {
+                    track_code_files.insert(file_path);
+                }
             }
             None => eprintln!("WARNING: Missing output location for code, skipping code output."),
         }
