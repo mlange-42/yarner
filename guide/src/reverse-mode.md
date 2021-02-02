@@ -132,10 +132,3 @@ fn main() {
 }
 // @>main.rs.md#
 ```
-
-### Comment extraction
-
-The [Comment extraction](./comment-extraction.md) feature does not work with reverse mode.
-As Yarner's special comments (`//-` by default) are not written to code files, they will be lost during reverse mode.
-
-This may be fixed in a future version of Yarner.

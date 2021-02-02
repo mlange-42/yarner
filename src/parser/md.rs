@@ -47,14 +47,18 @@ pub struct MdParser {
     /// Alternative sequence that identifies the start and end of a fenced code block.
     /// Allows for normal Markdown fences in code blocks
     pub fence_sequence_alt: String,
-    /// Parsed comments are stripped from the code and written to an `<aside></aside>` block after
-    /// the code when printing. If false, the comments are just written back into the code.
-    pub comments_as_aside: bool,
     /// The language to set if there was no automatically detected language. Optional
     pub default_language: Option<String>,
+    /// Temporary switch to disable comment extraction
+    #[serde(skip)]
+    pub allow_comment_extraction: bool,
+    /// Parsed comments are stripped from the code and written to an `<aside></aside>` block after
+    /// the code when printing. If false, the comments are just written back into the code.
+    #[serde(skip)]
+    pub comments_as_aside: bool,
     /// The sequence to identify a comment which should be omitted from the compiled code, and may
     /// be rendered as an `<aside>` if `comments_as_aside` is set.
-    pub comment_start: String,
+    pub block_name_prefix: String,
     /// The sequence to identify the start of a macro invocation.
     pub macro_start: String,
     /// The sequence to identify the end of a macro invocation.
@@ -254,9 +258,11 @@ impl MdParser {
                         Some(Node::Code(block)) => {
                             if line.starts_with(&block.indent) {
                                 if block.source.is_empty()
-                                    && line.trim().starts_with(&self.comment_start)
+                                    && line.trim().starts_with(&self.block_name_prefix)
                                 {
-                                    let mut name = line.trim()[self.comment_start.len()..].trim();
+                                    let mut name =
+                                        line.trim()[self.block_name_prefix.len()..].trim();
+
                                     let hidden = if let Some(stripped) =
                                         name.strip_prefix(&self.hidden_prefix)
                                     {
@@ -386,12 +392,18 @@ impl MdParser {
             .collect::<String>()
             .len();
         let (indent, rest) = input.split_at(indent_len);
-        let (rest, comment) = if let Some(comment_index) = rest.find(&self.comment_start) {
-            let (rest, comment) = rest.split_at(comment_index);
-            (
-                rest,
-                Some((&comment[self.comment_start.len()..]).to_owned()),
-            )
+
+        // TODO: Temporarily disables comment extraction. Remove outer-most if/else to enable by default.
+        let (rest, comment) = if self.allow_comment_extraction {
+            if let Some(comment_index) = rest.find(&self.block_name_prefix) {
+                let (rest, comment) = rest.split_at(comment_index);
+                (
+                    rest,
+                    Some((&comment[self.block_name_prefix.len()..]).to_owned()),
+                )
+            } else {
+                (rest, None)
+            }
         } else {
             (rest, None)
         };
@@ -447,7 +459,7 @@ impl MdParser {
         }
         output.push('\n');
         if let Some(name) = &block.name {
-            output.push_str(&self.comment_start);
+            output.push_str(&self.block_name_prefix);
             output.push(' ');
             output.push_str(name);
             output.push('\n');
@@ -495,7 +507,7 @@ impl MdParser {
         }
         output.push('\n');
         if let Some(name) = &block.name {
-            output.push_str(&self.comment_start);
+            output.push_str(&self.block_name_prefix);
             output.push(' ');
             if block.hidden {
                 output.push_str(&self.hidden_prefix);
@@ -557,7 +569,7 @@ impl MdParser {
         }
         if print_comments {
             if let Some(comment) = &line.comment {
-                output.push_str(&self.comment_start);
+                output.push_str(&self.block_name_prefix);
                 output.push_str(&comment);
             }
         }
