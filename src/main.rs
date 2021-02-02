@@ -340,12 +340,14 @@ fn reverse(
             })
             .collect();
 
-        let print = doc.print_reverse(&config.parser, &blocks);
-
-        eprintln!("  Writing back to file {}", path.display());
-
-        let mut file = File::create(path).unwrap();
-        write!(file, "{}", print).unwrap()
+        if !blocks.is_empty() {
+            let print = doc.print_reverse(&config.parser, &blocks);
+            eprintln!("  Writing back to file {}", path.display());
+            let mut file = File::create(path).unwrap();
+            write!(file, "{}", print).unwrap()
+        } else {
+            eprintln!("  Skipping file {}", path.display());
+        }
     }
 
     Ok(())
