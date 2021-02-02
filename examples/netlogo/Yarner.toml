@@ -16,16 +16,17 @@ link_prefix = "@"
 file_prefix = "file:"
 hidden_prefix = "hidden:"
 
-interpolation_start = "@{"
-interpolation_end = "}"
-variable_sep = ":"
-
 [paths]
 root = "."
 code = "code/"
 docs = "docs/"
 files = ["README.md"]
 entrypoint = "Main" # Avoids writing unnamed code blocks
+
+# NetLogo is not suited to generate the UI from code.
+# We therefore use the copy files feature for the base .nlogo file, and for UI.
+code_files = ["nlogo/Model.nlogo"]
+code_paths = ["-"]
 
 [language.nls]
 clear_blank_lines = true

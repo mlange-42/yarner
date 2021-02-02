@@ -42,7 +42,9 @@ A transclusion should be the only thing in a line.
 
 **Transclusions are recursive**, so transcluded files can also transculde other files themselves.
 
-## Limitations - link correction
+## Limitations
+
+### Link correction
 
 Currently, links in transcluded files are not corrected during transclusion.
 This is only a problem when transcluding files from a different directory.

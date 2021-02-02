@@ -11,7 +11,6 @@
 - [Copying files](./copying-files.md)
 - [Reverse mode](./reverse-mode.md)
 - [Special features](./special-features.md)
-  - [Meta variables](./meta-variables.md)
   - [Comment extraction](./comment-extraction.md)
 - [Configuration](./configuration.md)
   - [Parser](./config-parser.md)

@@ -28,10 +28,6 @@ link_prefix = "@"
 file_prefix = "file:"
 hidden_prefix = "hidden:"
 
-interpolation_start = "@{"
-interpolation_end = "}"
-variable_sep = ":"
-
 # default_language = "rust"
 
 ```
@@ -49,6 +45,4 @@ variable_sep = ":"
 | `link_prefix`                             | Prefix for links to make Yarner include the linked file in the build process. E.g. `@[Linked file](linked.md)`                                                         |
 | `file_prefix`                             | Prefix to treat block names as target file specifiers. E.g. `//- file:main.rs`                                                                                         |
 | `hidden_prefix`                           | Prefix to hide a code block in documentation output. E.g. `//- hidden:Secret code block`                                                                               |
-| `interpolation_start` `interpolation_end` | Start and end of a meta variable                                                                                                                                       |
-| `variable_sep`                            | Separator between variable name and value                                                                                                                              |
 | `default_language`                        | The default language in case no language is given after the opening fence sequence. Optional                                                                           |

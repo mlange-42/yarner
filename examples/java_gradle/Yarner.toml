@@ -16,10 +16,6 @@ link_prefix = "@"
 file_prefix = "file:"
 hidden_prefix = "hidden:"
 
-interpolation_start = "@{"
-interpolation_end = "}"
-variable_sep = ":"
-
 [paths]
 root = "."
 code = "code/"
@@ -33,7 +29,7 @@ code_files = ["gradle/**/*"]
 # Modifies the path of copied files to place them in the top level directory of the code output
 code_paths = ["-"]
 
-# [language.java]
+[language.java]
 clear_blank_lines = true
 eof_newline = true
 
