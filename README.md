@@ -5,7 +5,7 @@
 A language-independent [Literate Programming](https://en.wikipedia.org/wiki/Literate_programming) tool for Markdown. From Markdown documents written and structured for humans, Yarner extracts code blocks into compilable source code. It offers sufficient features and flexibility to be usable also for larger projects with numerous files and multiple languages.
 
 Yarner works with familiar syntax, which can be further customized to suit your needs exactly.
-See the [examples](examples) directory for full working examples.
+See the [examples](examples) directory for full working examples using different programming languages.
 See the [**User Guide**](https://mlange-42.github.io/yarner/) for documentation.
 
 ## Features
@@ -131,8 +131,8 @@ fn main() {
 
 ### Entrypoints
 
-By default, the entrypoint of the program is always the unnamed code block. 
-However, a code block name can be given in `Yarner.toml` or passed to Yarner on the command line. 
+By default, the entrypoint of the program is always the unnamed code block.
+However, a code block name can be given in `Yarner.toml` or passed to Yarner on the command line.
 Then, instead of starting at the unnamed code block, it will start at the code block with this name.
 
 By naming code blocks with prefix `file:` followed by a relative path, multiple code files can be created

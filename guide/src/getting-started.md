@@ -27,3 +27,9 @@ To build the project (i.e. extract code and create documentation), simply run:
 This creates two sub-directories, one containing the extracted code (a minimal but working Rust project), and another containing the final documentation.
 
 Note that the contents of these directories can then be treated as usual, i.e. compiling the code with the normal compiler, or rendering Markdown to HTML or PDF.
+
+## What's next
+
+The following chapters explain the use of Yarner in detail, feature by feature.
+
+To get an impression how Yarner projects look like, or to find a template to get started with your preferred programming language, see also the [examples](https://github.com/mlange-42/yarner/tree/master/examples) in the [GitHub repository](https://github.com/mlange-42/yarner).
