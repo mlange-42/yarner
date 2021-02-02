@@ -140,3 +140,5 @@ The content of the code tab is created by simply drawing together all blocks sho
 
 In the main `nlogo` file, we only "include" an `nls` file to allow for the reverse mode.
 The file `Model.nlogo` is simply copied from the `nlogo` directory via option `code_files` in the `[paths]` section of the `Yarner.toml`.
+
+This separation of model code and user interface also allows to edit the model's UI elements in NetLogo's GUI builder tool, while using Literate Programming for the code.

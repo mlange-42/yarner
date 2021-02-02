@@ -256,13 +256,16 @@ impl MdParser {
                                 if block.source.is_empty()
                                     && line.trim().starts_with(&self.comment_start)
                                 {
-                                    let name = line.trim()[self.comment_start.len()..].trim();
-                                    let hidden = name.starts_with(&self.hidden_prefix);
-                                    let name = if hidden {
-                                        &name[self.hidden_prefix.len()..]
+                                    let mut name = line.trim()[self.comment_start.len()..].trim();
+                                    let hidden = if let Some(stripped) =
+                                        name.strip_prefix(&self.hidden_prefix)
+                                    {
+                                        name = stripped;
+                                        true
                                     } else {
-                                        &name[..]
+                                        false
                                     };
+
                                     block.name = Some(name.to_string());
                                     block.hidden = hidden;
 
@@ -393,13 +396,12 @@ impl MdParser {
             (rest, None)
         };
 
-        if rest.starts_with(&self.macro_start) {
-            if let Some(end_index) = rest.find(&self.macro_end) {
-                let name = rest[self.macro_start.len()..end_index].trim();
+        if let Some(stripped) = rest.strip_prefix(&self.macro_start) {
+            if let Some(name) = stripped.strip_suffix(&self.macro_end) {
                 return Ok(Line {
                     line_number,
                     indent: indent.to_owned(),
-                    source: Source::Macro(name.to_owned()),
+                    source: Source::Macro(name.trim().to_owned()),
                     comment,
                 });
             }

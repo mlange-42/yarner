@@ -205,23 +205,16 @@ impl Line {
                         )
                         .unwrap();
                     }
-                    writeln!(
-                        result,
-                        "{}",
-                        block.compile_with(code_blocks, settings).map(|code| {
-                            code.split('\n')
-                                .map(|line| {
-                                    if blank_lines && line.trim().is_empty() {
-                                        "".to_string()
-                                    } else {
-                                        format!("{}{}", self.indent, line)
-                                    }
-                                })
-                                .collect::<Vec<_>>()
-                                .join("\n")
-                        })?,
-                    )
-                    .unwrap();
+
+                    let code = block.compile_with(code_blocks, settings)?;
+                    for line in code.lines() {
+                        if blank_lines && line.trim().is_empty() {
+                            writeln!(result).unwrap();
+                        } else {
+                            write!(result, "{}", self.indent).unwrap();
+                            writeln!(result, "{}", line).unwrap();
+                        }
+                    }
 
                     if !clean && idx == blocks.len() - 1 {
                         writeln!(
