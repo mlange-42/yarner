@@ -362,6 +362,7 @@ fn process_inputs_forward(
     language: Option<&str>,
 ) -> Result<(), String> {
     let mut any_input = false;
+    let mut track_code_files = HashSet::new();
     for pattern in input_patterns {
         let paths = match glob::glob(&pattern) {
             Ok(p) => p,
@@ -407,7 +408,7 @@ fn process_inputs_forward(
                     language,
                     &config.language,
                     &mut HashSet::new(),
-                    &mut HashSet::new(),
+                    &mut track_code_files,
                 ) {
                     return Err(format!(
                         "Failed to compile source file \"{}\": {}",
