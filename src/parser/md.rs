@@ -428,13 +428,19 @@ Please comment out option `comments_as_aside` until the next version, and rename
         &self,
         doc: &'a Document,
         language: Option<&'a str>,
-    ) -> HashMap<Option<&'a str>, &'a Path> {
+    ) -> HashMap<Option<&'a str>, (&'a Path, Option<PathBuf>)> {
         let mut entries = HashMap::new();
         let pref = &self.file_prefix;
         for block in doc.code_blocks(language) {
             if let Some(name) = block.name.as_deref() {
                 if let Some(rest) = name.strip_prefix(pref) {
-                    entries.insert(Some(name), Path::new(rest));
+                    entries.insert(
+                        Some(name),
+                        (
+                            Path::new(rest),
+                            block.source_file.as_ref().map(|file| file.into()),
+                        ),
+                    );
                 }
             }
         }
