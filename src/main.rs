@@ -2,21 +2,20 @@ pub mod code;
 pub mod compile;
 pub mod compile_reverse;
 pub mod config;
+pub mod copy;
 pub mod create;
 pub mod document;
 pub mod parse;
 pub mod print;
 pub mod util;
 
-use crate::code::RevCodeBlock;
 use crate::config::Config;
 use crate::document::Document;
-use crate::util::{modify_path, Fallible, JoinExt};
+use crate::util::{Fallible, JoinExt};
 use clap::{crate_version, App, Arg, SubCommand};
-use std::collections::hash_map::Entry::{Occupied, Vacant};
 use std::collections::{HashMap, HashSet};
 use std::env::set_current_dir;
-use std::fs::{self, File};
+use std::fs::File;
 use std::io::Write;
 use std::path::{Path, PathBuf};
 
@@ -177,7 +176,7 @@ The normal workflow is:
 
     if let Some(code_dir) = code_dir {
         if let Some(code_file_patterns) = &config.paths.code_files {
-            copy_files(
+            copy::copy_files(
                 code_file_patterns,
                 config.paths.code_paths.as_deref(),
                 code_dir,
@@ -189,7 +188,7 @@ The normal workflow is:
     if !reverse {
         if let Some(doc_dir) = doc_dir {
             if let Some(doc_file_patterns) = &config.paths.doc_files {
-                copy_files(
+                copy::copy_files(
                     doc_file_patterns,
                     config.paths.doc_paths.as_deref(),
                     doc_dir,
@@ -282,51 +281,7 @@ fn process_inputs_reverse(
         ));
     }
 
-    reverse(documents, code_files, &config)?;
-
-    Ok(())
-}
-
-fn reverse(
-    documents: HashMap<PathBuf, Document>,
-    code_files: HashSet<PathBuf>,
-    config: &Config,
-) -> Result<(), String> {
-    let mut code_blocks: HashMap<(PathBuf, Option<String>, usize), RevCodeBlock> = HashMap::new();
-
-    if !config.language.is_empty() {
-        for file in code_files {
-            let language = file.extension().and_then(|s| s.to_str());
-            if let Some(language) = language {
-                if let Some(labels) = config
-                    .language
-                    .get(language)
-                    .and_then(|lang| lang.block_labels.as_ref())
-                {
-                    let source = fs::read_to_string(&file).map_err(|err| err.to_string())?;
-                    let blocks = code::parse(&source, &config.parser, labels)
-                        .map_err(|err| err.to_string())?;
-
-                    for block in blocks.into_iter() {
-                        let path = PathBuf::from(&block.file);
-                        match code_blocks.entry((path, block.name.clone(), block.index)) {
-                            Occupied(entry) => {
-                                if entry.get().lines != block.lines {
-                                    return Err(format!("Reverse mode impossible due to multiple, differing occurrences of a code block: {} # {} # {}", &block.file, &block.name.unwrap_or_else(|| "".to_string()), block.index));
-                                } else {
-                                    eprintln!("  WARNING: multiple occurrences of a code block: {} # {} # {}", &block.file, &block.name.unwrap_or_else(|| "".to_string()), block.index)
-                                }
-                            }
-                            Vacant(entry) => {
-                                entry.insert(block);
-                            }
-                        }
-                    }
-                }
-            }
-        }
-    }
-
+    let code_blocks = compile_reverse::collect_code_blocks(&code_files, &config)?;
     for (path, doc) in documents {
         let blocks: HashMap<_, _> = code_blocks
             .iter()
@@ -428,81 +383,5 @@ fn process_inputs_forward(
         ));
     }
 
-    Ok(())
-}
-
-fn copy_files(
-    patterns: &[String],
-    path_mod: Option<&[String]>,
-    target_dir: &Path,
-    reverse: bool,
-) -> Result<(), String> {
-    match path_mod {
-        Some(path_mod) if patterns.len() != path_mod.len() => {
-            return Err(
-                "If argument code_paths/doc_paths is given in the toml file, it must have as many elements as argument code_files/doc_files".to_string()
-            );
-        }
-        _ => (),
-    }
-    let mut track_copy_dest: HashMap<PathBuf, PathBuf> = HashMap::new();
-    for (idx, file_pattern) in patterns.iter().enumerate() {
-        let path = path_mod.as_ref().map(|paths| &paths[idx]);
-        let paths = match glob::glob(&file_pattern) {
-            Ok(p) => p,
-            Err(err) => {
-                return Err(format!(
-                    "Unable to parse glob pattern \"{}\" (at index {}): {}",
-                    file_pattern, err.pos, err
-                ))
-            }
-        };
-        for p in paths {
-            let file = match p {
-                Ok(p) => p,
-                Err(err) => {
-                    return Err(format!(
-                        "Unable to access result found by glob pattern \"{}\" (at {}): {}",
-                        file_pattern,
-                        err.path().display(),
-                        err
-                    ))
-                }
-            };
-            if file.is_file() {
-                let out_path = path.map_or(file.clone(), |path| modify_path(&file, &path));
-                match track_copy_dest.entry(out_path.clone()) {
-                    Occupied(entry) => {
-                        return Err(format!(
-                            "Attempted to copy multiple code files to {}: from {} and {}",
-                            out_path.display(),
-                            entry.get().display(),
-                            file.display()
-                        ));
-                    }
-                    Vacant(entry) => {
-                        entry.insert(file.clone());
-                    }
-                }
-
-                let mut file_path = target_dir.to_owned();
-                file_path.push(out_path);
-
-                if !reverse {
-                    fs::create_dir_all(file_path.parent().unwrap()).unwrap();
-                }
-                let (from, to) = if reverse {
-                    eprintln!("Copying file {} to {}", file_path.display(), file.display());
-                    (&file_path, &file)
-                } else {
-                    eprintln!("Copying file {} to {}", file.display(), file_path.display());
-                    (&file, &file_path)
-                };
-                if let Err(err) = fs::copy(&from, &to) {
-                    return Err(format!("Error copying file {}: {}", file.display(), err));
-                }
-            }
-        }
-    }
     Ok(())
 }

@@ -1,10 +1,56 @@
-use crate::config::{LanguageSettings, ParserSettings};
+use crate::code::RevCodeBlock;
+use crate::config::{Config, LanguageSettings, ParserSettings};
 use crate::document::Document;
-use crate::parse;
 use crate::util::Fallible;
+use crate::{code, parse};
+use std::collections::hash_map::Entry::{Occupied, Vacant};
 use std::collections::{HashMap, HashSet};
 use std::fs;
 use std::path::{Path, PathBuf};
+
+type BlockKey = (PathBuf, Option<String>, usize);
+
+pub fn collect_code_blocks(
+    code_files: &HashSet<PathBuf>,
+    config: &Config,
+) -> Result<HashMap<BlockKey, RevCodeBlock>, String> {
+    let mut code_blocks: HashMap<BlockKey, RevCodeBlock> = HashMap::new();
+
+    if !config.language.is_empty() {
+        for file in code_files {
+            let language = file.extension().and_then(|s| s.to_str());
+            if let Some(language) = language {
+                if let Some(labels) = config
+                    .language
+                    .get(language)
+                    .and_then(|lang| lang.block_labels.as_ref())
+                {
+                    let source = fs::read_to_string(&file).map_err(|err| err.to_string())?;
+                    let blocks = code::parse(&source, &config.parser, labels)
+                        .map_err(|err| err.to_string())?;
+
+                    for block in blocks.into_iter() {
+                        let path = PathBuf::from(&block.file);
+                        match code_blocks.entry((path, block.name.clone(), block.index)) {
+                            Occupied(entry) => {
+                                if entry.get().lines != block.lines {
+                                    return Err(format!("Reverse mode impossible due to multiple, differing occurrences of a code block: {} # {} # {}", &block.file, &block.name.unwrap_or_else(|| "".to_string()), block.index));
+                                } else {
+                                    eprintln!("  WARNING: multiple occurrences of a code block: {} # {} # {}", &block.file, &block.name.unwrap_or_else(|| "".to_string()), block.index)
+                                }
+                            }
+                            Vacant(entry) => {
+                                entry.insert(block);
+                            }
+                        }
+                    }
+                }
+            }
+        }
+    }
+
+    Ok(code_blocks)
+}
 
 #[allow(clippy::too_many_arguments)]
 pub fn compile_all(
