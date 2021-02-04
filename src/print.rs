@@ -1,8 +1,8 @@
 use crate::code::RevCodeBlock;
 use crate::config::{LanguageSettings, ParserSettings};
-use crate::document::code::{CodeBlock, Line, Source};
-use crate::document::transclusion::Transclusion;
-use crate::document::{CompileError, CompileErrorKind, Document, Node};
+use crate::document::{
+    CodeBlock, CompileError, CompileErrorKind, Document, Line, Node, Source, Transclusion,
+};
 use std::collections::HashMap;
 use std::fmt::Write;
 
