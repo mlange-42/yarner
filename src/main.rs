@@ -5,6 +5,7 @@ mod config;
 mod copy;
 mod create;
 mod document;
+mod lock;
 mod parse;
 mod print;
 mod util;

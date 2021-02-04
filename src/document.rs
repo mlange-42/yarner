@@ -1,6 +1,7 @@
 //! The internal representation of a literate document
 use crate::config::{LanguageSettings, ParserSettings};
 use crate::util::TryCollectExt;
+use serde::Serialize;
 use std::collections::hash_map::HashMap;
 use std::fmt::{Display, Formatter, Write};
 use std::path::{Path, PathBuf};
@@ -211,7 +212,7 @@ impl Display for TextBlock {
 }
 
 /// A `CodeBlock` is a block of code as defined by the input format.
-#[derive(Clone, Default, Debug)]
+#[derive(Clone, Default, Debug, Serialize)]
 pub struct CodeBlock {
     /// The indent of this code block is in the documentation file
     pub indent: String,
@@ -295,7 +296,7 @@ impl CodeBlock {
 }
 
 /// A `Source` represents the source code on a line.
-#[derive(Clone, Debug)]
+#[derive(Clone, Debug, Serialize)]
 pub enum Source {
     /// A macro invocation, resolved by the literate compiler
     Macro(String),
@@ -304,7 +305,7 @@ pub enum Source {
 }
 
 /// A `Line` defines a line of code.
-#[derive(Clone, Debug)]
+#[derive(Clone, Debug, Serialize)]
 pub struct Line {
     /// The line number of this line (original source)
     pub line_number: usize,
