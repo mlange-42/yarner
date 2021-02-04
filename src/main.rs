@@ -1,15 +1,14 @@
 pub mod config;
 pub mod create;
 pub mod document;
+pub mod parse;
 pub mod parser;
+pub mod print;
 pub mod util;
 
-use crate::config::{Config, LanguageSettings};
+use crate::config::{Config, LanguageSettings, ParserSettings};
 use crate::document::{CompileError, CompileErrorKind, Document};
-use crate::parser::{
-    code::{CodeParser, RevCodeBlock},
-    md::MdParser,
-};
+use crate::parser::code::{CodeParser, RevCodeBlock};
 use crate::util::{modify_path, Fallible, JoinExt};
 use clap::{crate_version, App, Arg, SubCommand};
 use std::collections::hash_map::Entry::{Occupied, Vacant};
@@ -341,7 +340,7 @@ fn reverse(
             .collect();
 
         if !blocks.is_empty() {
-            let print = doc.print_reverse(&config.parser, &blocks);
+            let print = print::print_reverse(&doc, &config.parser, &blocks);
             eprintln!("  Writing back to file {}", path.display());
             let mut file = File::create(path).unwrap();
             write!(file, "{}", print).unwrap()
@@ -509,7 +508,7 @@ fn copy_files(
 }
 
 fn transclude_dry_run(
-    parser: &MdParser,
+    parser: &ParserSettings,
     file_name: &Path,
     code_dir: Option<&Path>,
     entrypoint: Option<&str>,
@@ -518,7 +517,7 @@ fn transclude_dry_run(
     track_code_files: &mut HashSet<PathBuf>,
 ) -> Fallible<Document> {
     let source_main = fs::read_to_string(&file_name)?;
-    let document = parser.parse(&source_main, &file_name)?;
+    let document = parse::parse(&source_main, &file_name, parser)?;
 
     let transclusions = document.transclusions();
 
@@ -555,9 +554,9 @@ fn transclude_dry_run(
     Ok(document)
 }
 
-fn transclude(parser: &MdParser, file_name: &Path) -> Fallible<Document> {
+fn transclude(parser: &ParserSettings, file_name: &Path) -> Fallible<Document> {
     let source_main = fs::read_to_string(&file_name)?;
-    let mut document = parser.parse(&source_main, &file_name)?;
+    let mut document = parse::parse(&source_main, &file_name, parser)?;
 
     let transclusions = document.transclusions().cloned().collect::<Vec<_>>();
 
@@ -586,7 +585,7 @@ fn transclude(parser: &MdParser, file_name: &Path) -> Fallible<Document> {
 
 #[allow(clippy::too_many_arguments)]
 fn compile_all(
-    parser: &MdParser,
+    parser: &ParserSettings,
     doc_dir: Option<&Path>,
     code_dir: Option<&Path>,
     file_name: &Path,
@@ -598,7 +597,7 @@ fn compile_all(
 ) -> Fallible {
     if !track_input_files.contains(file_name) {
         let mut document = transclude(parser, file_name)?;
-        let links = parser.find_links(&mut document, file_name, true)?;
+        let links = parse::find_links(&mut document, file_name, parser, true)?;
 
         let file_str = file_name.to_str().unwrap();
         document.set_source(file_str);
@@ -638,7 +637,7 @@ fn compile_all(
 
 #[allow(clippy::too_many_arguments)]
 fn compile_all_reverse(
-    parser: &MdParser,
+    parser: &ParserSettings,
     doc_dir: Option<&Path>,
     code_dir: Option<&Path>,
     file_name: &Path,
@@ -659,7 +658,7 @@ fn compile_all_reverse(
             documents,
             track_code_files,
         )?;
-        let links = parser.find_links(&mut document, file_name, false)?;
+        let links = parse::find_links(&mut document, file_name, parser, false)?;
 
         let file_str = file_name.to_str().unwrap();
         document.set_source(file_str);
@@ -701,7 +700,7 @@ fn compile_all_reverse(
 
 #[allow(clippy::too_many_arguments)]
 fn compile(
-    parser: &MdParser,
+    parser: &ParserSettings,
     document: &Document,
     doc_dir: Option<&Path>,
     code_dir: Option<&Path>,
@@ -713,7 +712,7 @@ fn compile(
 ) -> Fallible {
     eprintln!("Compiling file {}", file_name.display());
 
-    let mut entries = parser.get_entry_points(&document, language);
+    let mut entries = document.get_entry_points(parser, language);
 
     let file_name_without_ext = file_name.with_extension("");
     entries.insert(
@@ -723,7 +722,7 @@ fn compile(
 
     match doc_dir {
         Some(doc_dir) => {
-            let documentation = document.print_docs(parser);
+            let documentation = print::print_docs(document, parser);
             let mut file_path = doc_dir.to_owned();
             file_path.push(file_name);
             fs::create_dir_all(file_path.parent().unwrap()).unwrap();
@@ -767,7 +766,7 @@ fn compile(
                     }
                 }
 
-                match document.print_code(entrypoint, language, settings) {
+                match print::print_code(document, entrypoint, language, settings) {
                     Ok(code) => {
                         eprintln!("  Writing file {}", file_path.display());
                         fs::create_dir_all(file_path.parent().unwrap()).unwrap();
@@ -795,7 +794,7 @@ fn compile(
 
 #[allow(clippy::too_many_arguments)]
 fn compile_reverse(
-    parser: &MdParser,
+    parser: &ParserSettings,
     document: &Document,
     code_dir: Option<&Path>,
     file_name: &Path,
@@ -805,7 +804,7 @@ fn compile_reverse(
 ) -> Fallible {
     eprintln!("Compiling file {}", file_name.display());
 
-    let mut entries = parser.get_entry_points(&document, language);
+    let mut entries = document.get_entry_points(parser, language);
 
     let file_name_without_ext = file_name.with_extension("");
     entries.insert(

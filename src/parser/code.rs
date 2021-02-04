@@ -1,8 +1,6 @@
 //! The parser for code files.
 
-use super::md::MdParser;
-
-use crate::config::BlockLabels;
+use crate::config::{BlockLabels, ParserSettings};
 use crate::util::Fallible;
 
 /// Representation of a code block
@@ -42,7 +40,7 @@ impl CodeParser {
     pub fn parse(
         &self,
         source: &str,
-        parser: &MdParser,
+        parser: &ParserSettings,
         block_labels: &BlockLabels,
     ) -> Fallible<Vec<RevCodeBlock>> {
         let start = format!(
