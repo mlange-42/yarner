@@ -1,13 +1,13 @@
-pub mod code;
-pub mod compile;
-pub mod compile_reverse;
-pub mod config;
-pub mod copy;
-pub mod create;
-pub mod document;
-pub mod parse;
-pub mod print;
-pub mod util;
+mod code;
+mod compile;
+mod compile_reverse;
+mod config;
+mod copy;
+mod create;
+mod document;
+mod parse;
+mod print;
+mod util;
 
 use crate::config::Config;
 use crate::document::Document;

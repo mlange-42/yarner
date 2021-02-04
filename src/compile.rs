@@ -8,6 +8,7 @@ use std::fs::{self, File};
 use std::io::Write;
 use std::path::{Path, PathBuf};
 
+/// Recursively "compiles" a file and all linked and transcluded files
 #[allow(clippy::too_many_arguments)]
 pub fn compile_all(
     parser: &ParserSettings,

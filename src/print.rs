@@ -9,7 +9,7 @@ use std::fmt::Write;
 /// Formats this `Document` as a string containing the documentation file contents
 pub fn print_docs(document: &Document, settings: &ParserSettings) -> String {
     let mut output = String::new();
-    for node in &document.nodes {
+    for node in document.nodes() {
         match node {
             Node::Transclusion(transclusion) => {
                 output.push_str(&print_transclusion(transclusion, false))
@@ -155,7 +155,7 @@ pub fn print_reverse(
     let mut block_count: HashMap<&Option<String>, usize> = HashMap::new();
 
     let mut output = String::new();
-    for node in &document.nodes {
+    for node in document.nodes() {
         match node {
             Node::Transclusion(transclusion) => {
                 output.push_str(&print_transclusion(transclusion, true))
@@ -192,7 +192,7 @@ pub fn print_reverse(
     output
 }
 
-pub fn print_transclusion(transclusion: &Transclusion, reverse: bool) -> String {
+fn print_transclusion(transclusion: &Transclusion, reverse: bool) -> String {
     let mut output = String::new();
     if reverse {
         output.push_str(transclusion.original());
@@ -205,7 +205,7 @@ pub fn print_transclusion(transclusion: &Transclusion, reverse: bool) -> String 
     output
 }
 
-pub fn print_code_block(block: &CodeBlock, settings: &ParserSettings) -> String {
+fn print_code_block(block: &CodeBlock, settings: &ParserSettings) -> String {
     let fence_sequence = if block.alternative {
         &settings.fence_sequence_alt
     } else {
@@ -249,7 +249,7 @@ pub fn print_code_block(block: &CodeBlock, settings: &ParserSettings) -> String 
     output
 }
 
-pub fn print_code_block_reverse(
+fn print_code_block_reverse(
     block: &CodeBlock,
     alternative: Option<&RevCodeBlock>,
     settings: &ParserSettings,
@@ -293,7 +293,7 @@ pub fn print_code_block_reverse(
 }
 
 /// Prints a line of a code block
-pub fn print_line(line: &Line, settings: &ParserSettings, print_comments: bool) -> String {
+fn print_line(line: &Line, settings: &ParserSettings, print_comments: bool) -> String {
     let mut output = line.indent.to_string();
     match &line.source {
         Source::Macro(name) => {

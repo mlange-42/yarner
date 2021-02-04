@@ -5,6 +5,7 @@ use std::fs;
 use std::iter::repeat;
 use std::path::{Path, PathBuf};
 
+/// Copies files matching patterns, with possibly altered paths
 pub fn copy_files(
     patterns: &[String],
     path_mod: Option<&[String]>,
@@ -81,7 +82,7 @@ pub fn copy_files(
     Ok(())
 }
 
-pub fn modify_path(path: &Path, replace: &str) -> PathBuf {
+fn modify_path(path: &Path, replace: &str) -> PathBuf {
     if replace.is_empty() || replace == "_" {
         return path.to_owned();
     }

@@ -6,6 +6,7 @@ use std::fmt::Write;
 use std::fs::File;
 use std::path::{Path, PathBuf};
 
+/// Parses a source string into a Document
 #[allow(clippy::nonminimal_bool)]
 pub fn parse(input: &str, path: &Path, settings: &ParserSettings) -> Fallible<Document> {
     #[derive(Default)]
@@ -256,6 +257,7 @@ fn parse_line(line_number: usize, input: &str, settings: &ParserSettings) -> Fal
     })
 }
 
+/// Finds all links in a Document that match the link following pattern
 pub fn find_links(
     input: &mut Document,
     from: &Path,

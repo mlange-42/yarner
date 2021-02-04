@@ -8,7 +8,7 @@ use std::path::{Path, PathBuf};
 /// A representation of a `Document` of literate code
 #[derive(Debug)]
 pub struct Document {
-    pub nodes: Vec<Node>,
+    nodes: Vec<Node>,
 }
 
 #[derive(Debug)]
@@ -41,16 +41,6 @@ impl Document {
     /// Return the nodes of the document
     pub fn nodes(&self) -> &[Node] {
         &self.nodes
-    }
-
-    /// Return the nodes of the document in mutable form
-    pub fn nodes_mut(&mut self) -> &mut [Node] {
-        &mut self.nodes
-    }
-
-    /// Return the nodes of the document, consuming the document
-    pub fn into_nodes(self) -> Vec<Node> {
-        self.nodes
     }
 
     /// Gets all the text blocks of this document
@@ -209,11 +199,6 @@ impl TextBlock {
     }
 
     /// Renders this `TextBlock` as the text it represents
-    pub fn lines(&self) -> &Vec<String> {
-        &self.text
-    }
-
-    /// Renders this `TextBlock` as the text it represents
     pub fn lines_mut(&mut self) -> &mut Vec<String> {
         &mut self.text
     }
@@ -260,19 +245,6 @@ impl CodeBlock {
         }
     }
 
-    /// Names this code block
-    pub fn named(self, name: String) -> Self {
-        Self {
-            name: Some(name),
-            ..self
-        }
-    }
-
-    /// Hides this code block
-    pub fn hidden(self, hidden: bool) -> Self {
-        Self { hidden, ..self }
-    }
-
     /// Marks the code block as fenced by alternative sequence
     pub fn alternative(self, alternative: bool) -> Self {
         Self {
@@ -292,11 +264,6 @@ impl CodeBlock {
     /// Adds a line to this code block
     pub fn add_line(&mut self, line: Line) {
         self.source.push(line);
-    }
-
-    /// Appends another code block to the end of this one
-    pub fn append(&mut self, other: &CodeBlock) {
-        self.source.extend_from_slice(&other.source)
     }
 
     /// "Compiles" this code block into its output code
@@ -462,12 +429,8 @@ impl Line {
 /// Problems encountered while compiling the document
 #[derive(Debug)]
 pub enum CompileErrorKind {
-    /// An unknown meta variable was encountered
-    UnknownMetaVariable(String),
     /// An unknown macro name was encountered
     UnknownMacro(String),
-    /// Meta variables incorrect
-    InvalidVariables(String),
     /// There is no unnamed code block to use as the entrypoint
     MissingEntrypoint,
 }

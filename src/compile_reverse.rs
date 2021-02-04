@@ -10,6 +10,7 @@ use std::path::{Path, PathBuf};
 
 type BlockKey = (PathBuf, Option<String>, usize);
 
+/// Collects all code blocks from the given code files
 pub fn collect_code_blocks(
     code_files: &HashSet<PathBuf>,
     config: &Config,
@@ -52,6 +53,7 @@ pub fn collect_code_blocks(
     Ok(code_blocks)
 }
 
+/// Recursively "compiles" a file and all linked and transcluded files for reverse mode
 #[allow(clippy::too_many_arguments)]
 pub fn compile_all(
     parser: &ParserSettings,
