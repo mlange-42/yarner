@@ -1,16 +1,16 @@
+pub mod code;
 pub mod compile;
 pub mod compile_reverse;
 pub mod config;
 pub mod create;
 pub mod document;
 pub mod parse;
-pub mod parser;
 pub mod print;
 pub mod util;
 
+use crate::code::RevCodeBlock;
 use crate::config::Config;
 use crate::document::Document;
-use crate::parser::code::{CodeParser, RevCodeBlock};
 use crate::util::{modify_path, Fallible, JoinExt};
 use clap::{crate_version, App, Arg, SubCommand};
 use std::collections::hash_map::Entry::{Occupied, Vacant};
@@ -294,7 +294,6 @@ fn reverse(
 ) -> Result<(), String> {
     let mut code_blocks: HashMap<(PathBuf, Option<String>, usize), RevCodeBlock> = HashMap::new();
 
-    let parser = CodeParser {};
     if !config.language.is_empty() {
         for file in code_files {
             let language = file.extension().and_then(|s| s.to_str());
@@ -305,8 +304,7 @@ fn reverse(
                     .and_then(|lang| lang.block_labels.as_ref())
                 {
                     let source = fs::read_to_string(&file).map_err(|err| err.to_string())?;
-                    let blocks = parser
-                        .parse(&source, &config.parser, labels)
+                    let blocks = code::parse(&source, &config.parser, labels)
                         .map_err(|err| err.to_string())?;
 
                     for block in blocks.into_iter() {
