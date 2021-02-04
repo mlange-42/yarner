@@ -1,0 +1,155 @@
+use crate::config::{LanguageSettings, ParserSettings};
+use crate::document::Document;
+use crate::parse;
+use crate::util::Fallible;
+use std::collections::{HashMap, HashSet};
+use std::fs;
+use std::path::{Path, PathBuf};
+
+#[allow(clippy::too_many_arguments)]
+pub fn compile_all(
+    parser: &ParserSettings,
+    doc_dir: Option<&Path>,
+    code_dir: Option<&Path>,
+    file_name: &Path,
+    entrypoint: Option<&str>,
+    language: Option<&str>,
+    settings: &HashMap<String, LanguageSettings>,
+    track_input_files: &mut HashSet<PathBuf>,
+    track_code_files: &mut HashSet<PathBuf>,
+    documents: &mut HashMap<PathBuf, Document>,
+) -> Fallible {
+    if !track_input_files.contains(file_name) {
+        let mut document = transclude_dry_run(
+            parser,
+            file_name,
+            code_dir,
+            entrypoint,
+            language,
+            documents,
+            track_code_files,
+        )?;
+        let links = parse::find_links(&mut document, file_name, parser, false)?;
+
+        let file_str = file_name.to_str().unwrap();
+        document.set_source(file_str);
+
+        compile(
+            parser,
+            &document,
+            code_dir,
+            file_name,
+            entrypoint,
+            language,
+            track_code_files,
+        )?;
+
+        documents.insert(file_name.to_owned(), document);
+
+        track_input_files.insert(file_name.to_owned());
+
+        for file in links {
+            if !track_input_files.contains(&file) {
+                compile_all(
+                    parser,
+                    doc_dir,
+                    code_dir,
+                    &file,
+                    entrypoint,
+                    language,
+                    settings,
+                    track_input_files,
+                    track_code_files,
+                    documents,
+                )?;
+            }
+        }
+    }
+
+    Ok(())
+}
+
+#[allow(clippy::too_many_arguments)]
+fn compile(
+    parser: &ParserSettings,
+    document: &Document,
+    code_dir: Option<&Path>,
+    file_name: &Path,
+    entrypoint: Option<&str>,
+    language: Option<&str>,
+    track_code_files: &mut HashSet<PathBuf>,
+) -> Fallible {
+    eprintln!("Compiling file {}", file_name.display());
+
+    let mut entries = document.get_entry_points(parser, language);
+
+    let file_name_without_ext = file_name.with_extension("");
+    entries.insert(
+        entrypoint,
+        (&file_name_without_ext, Some(PathBuf::from(file_name))),
+    );
+
+    for (_entrypoint, (sub_file_name, _sub_source_file)) in entries {
+        match code_dir {
+            Some(code_dir) => {
+                let mut file_path = code_dir.to_owned();
+                file_path.push(sub_file_name);
+                if let Some(language) = language {
+                    file_path.set_extension(language);
+                }
+
+                track_code_files.insert(file_path);
+            }
+            None => eprintln!("WARNING: Missing output location for code, skipping code output."),
+        }
+    }
+
+    Ok(())
+}
+
+fn transclude_dry_run(
+    parser: &ParserSettings,
+    file_name: &Path,
+    code_dir: Option<&Path>,
+    entrypoint: Option<&str>,
+    language: Option<&str>,
+    documents: &mut HashMap<PathBuf, Document>,
+    track_code_files: &mut HashSet<PathBuf>,
+) -> Fallible<Document> {
+    let source_main = fs::read_to_string(&file_name)?;
+    let document = parse::parse(&source_main, &file_name, parser)?;
+
+    let transclusions = document.transclusions();
+
+    let mut trans_so_far = HashSet::new();
+    for trans in transclusions {
+        if !trans_so_far.contains(trans.file()) {
+            let doc = transclude_dry_run(
+                parser,
+                trans.file(),
+                code_dir,
+                entrypoint,
+                language,
+                documents,
+                track_code_files,
+            )?;
+
+            compile(
+                parser,
+                &doc,
+                code_dir,
+                trans.file(),
+                entrypoint,
+                language,
+                track_code_files,
+            )?;
+
+            documents.insert(trans.file().clone(), doc);
+            trans_so_far.insert(trans.file().clone());
+        } else {
+            return Err(format!("Multiple transclusions of {}", trans.file().display()).into());
+        }
+    }
+
+    Ok(document)
+}
