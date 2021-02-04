@@ -1,6 +1,6 @@
 # Dead and hidden code
 
-In some cases, it may be desirable to have code blocks that don't go into code output, or code that is hidden in documentation.
+In some cases, it may be desirable to have code blocks that don't go into code output, or code that is hidden in the documentation.
 
 [[_TOC_]]
 

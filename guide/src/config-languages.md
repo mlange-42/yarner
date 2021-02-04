@@ -6,7 +6,7 @@ Sections `language.<lang>` of a project's `Yarner.toml` contain language-specifi
 
 ## Overview
 
-Language settings are optional. However, they are required for a all languages/file extensions to be used in reverse mode.
+Language settings are optional. However, they are required for all languages/file extensions to be used in reverse mode.
 
 Language settings are a section per language, identified from file extensions. Each section looks like this example for Rust (`.rs` files):
 
@@ -23,7 +23,7 @@ eof_newline = true
     block_end = "@>"
 ```
 
-When language settings are requires to set `clear_blank_lines` or `eof_newline`,
+When language settings are requires for setting `clear_blank_lines` or `eof_newline`,
 but block labels in the target language are not wanted or not supported, leave out section `[block_labels]`.
 
 ## Options

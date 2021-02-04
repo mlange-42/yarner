@@ -64,4 +64,4 @@ fn main() {
 ```
 ````
 
-Thus, file naming in documentation and code can be completely independent from each other.
+Thus, file naming in documentation and code can be completely independent of each other.

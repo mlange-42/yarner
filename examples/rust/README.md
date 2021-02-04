@@ -1,6 +1,6 @@
 # Rust example
 
-This examples demonstrates Yarner's most important features by creating a simple but complete [Rust](https://rust-lang.org) project.
+This example demonstrates Yarner's most important features by creating a simple but complete [Rust](https://rust-lang.org) project.
 
 For help on the Literate Programming syntax, see the [User Guide](https://mlange-42.github.io/yarner/).
 
