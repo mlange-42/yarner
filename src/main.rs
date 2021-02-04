@@ -362,6 +362,7 @@ fn process_inputs_forward(
     language: Option<&str>,
 ) -> Result<(), String> {
     let mut any_input = false;
+    let mut track_code_files = HashMap::new();
     for pattern in input_patterns {
         let paths = match glob::glob(&pattern) {
             Ok(p) => p,
@@ -407,7 +408,7 @@ fn process_inputs_forward(
                     language,
                     &config.language,
                     &mut HashSet::new(),
-                    &mut HashSet::new(),
+                    &mut track_code_files,
                 ) {
                     return Err(format!(
                         "Failed to compile source file \"{}\": {}",
@@ -593,7 +594,7 @@ fn compile_all(
     language: Option<&str>,
     settings: &HashMap<String, LanguageSettings>,
     track_input_files: &mut HashSet<PathBuf>,
-    track_code_files: &mut HashSet<PathBuf>,
+    track_code_files: &mut HashMap<PathBuf, Option<PathBuf>>,
 ) -> Fallible {
     if !track_input_files.contains(file_name) {
         let mut document = transclude(parser, file_name)?;
@@ -708,14 +709,17 @@ fn compile(
     entrypoint: Option<&str>,
     language: Option<&str>,
     settings: &HashMap<String, LanguageSettings>,
-    track_code_files: &mut HashSet<PathBuf>,
+    track_code_files: &mut HashMap<PathBuf, Option<PathBuf>>,
 ) -> Fallible {
     eprintln!("Compiling file {}", file_name.display());
 
     let mut entries = parser.get_entry_points(&document, language);
 
     let file_name_without_ext = file_name.with_extension("");
-    entries.insert(entrypoint, &file_name_without_ext);
+    entries.insert(
+        entrypoint,
+        (&file_name_without_ext, Some(file_name.to_owned())),
+    );
 
     match doc_dir {
         Some(doc_dir) => {
@@ -729,7 +733,7 @@ fn compile(
         None => eprintln!("WARNING: Missing output location for docs, skipping docs output."),
     }
 
-    for (entrypoint, sub_file_name) in entries {
+    for (entrypoint, (sub_file_name, sub_source_file)) in entries {
         match code_dir {
             Some(code_dir) => {
                 let mut file_path = code_dir.to_owned();
@@ -745,14 +749,22 @@ fn compile(
                     .to_string();
                 let settings = settings.get(&extension);
 
-                if track_code_files.contains(&file_path) {
-                    return Err(format!(
-                        "Multiple locations point to code file {}",
-                        file_path.display()
-                    )
-                    .into());
-                } else {
-                    track_code_files.insert(file_path.clone());
+                match track_code_files.entry(file_path.clone()) {
+                    Occupied(entry) => {
+                        if sub_source_file == *entry.get() {
+                            eprintln!("  Skipping file {} (already written)", file_path.display());
+                            continue;
+                        } else {
+                            return Err(format!(
+                                "Multiple distinct locations point to code file {}",
+                                file_path.display()
+                            )
+                            .into());
+                        }
+                    }
+                    Vacant(entry) => {
+                        entry.insert(sub_source_file);
+                    }
                 }
 
                 match document.print_code(entrypoint, language, settings) {
@@ -796,9 +808,12 @@ fn compile_reverse(
     let mut entries = parser.get_entry_points(&document, language);
 
     let file_name_without_ext = file_name.with_extension("");
-    entries.insert(entrypoint, &file_name_without_ext);
+    entries.insert(
+        entrypoint,
+        (&file_name_without_ext, Some(PathBuf::from(file_name))),
+    );
 
-    for (_entrypoint, sub_file_name) in entries {
+    for (_entrypoint, (sub_file_name, _sub_source_file)) in entries {
         match code_dir {
             Some(code_dir) => {
                 let mut file_path = code_dir.to_owned();
@@ -807,15 +822,7 @@ fn compile_reverse(
                     file_path.set_extension(language);
                 }
 
-                if track_code_files.contains(&file_path) {
-                    return Err(format!(
-                        "Multiple locations point to code file {}",
-                        file_path.display()
-                    )
-                    .into());
-                } else {
-                    track_code_files.insert(file_path);
-                }
+                track_code_files.insert(file_path);
             }
             None => eprintln!("WARNING: Missing output location for code, skipping code output."),
         }

@@ -49,7 +49,7 @@ fn main() {
 
 ### File extensions
 
-However, a Rust file without the `.rs` extension is not very useful. We can rename the main file from `README.md` to `main.rs.md`.
+A Rust file without the `.rs` extension is not very useful. We can rename the main file from `README.md` to `main.rs.md`.
 Further, in file `Yarner.toml`, we change option `files` in section `[paths]` to:
 
 ```toml
