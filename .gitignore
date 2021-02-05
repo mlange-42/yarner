@@ -2,4 +2,5 @@
 /guide/public
 /examples/**/code/
 /examples/**/docs/
+/examples/**/Yarner.lock
 **/*.rs.bk

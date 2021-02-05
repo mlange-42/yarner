@@ -12,6 +12,7 @@ mod util;
 
 use crate::config::Config;
 use crate::document::Document;
+use crate::lock::{Hasher, Lock};
 use crate::util::{Fallible, JoinExt};
 use clap::{crate_version, App, Arg, SubCommand};
 use std::collections::{HashMap, HashSet};
@@ -114,6 +115,23 @@ The normal workflow is:
         .check()
         .map_err(|err| format!("Invalid config file \"{}\": {}", config_path, err))?;
 
+    let has_reverse_config = config
+        .language
+        .values()
+        .any(|lang| lang.block_labels.is_some());
+
+    let lock_path = PathBuf::from(config_path);
+    let lock_path = lock_path.with_extension("lock");
+    let _lock = if has_reverse_config {
+        if lock_path.is_file() && lock_path.exists() {
+            Some(Lock::read(&lock_path)?)
+        } else {
+            None
+        }
+    } else {
+        None
+    };
+
     let clean_code = matches.is_present("clean");
     for lang in config.language.values_mut() {
         lang.clean_code = clean_code;
@@ -154,6 +172,12 @@ The normal workflow is:
     let reverse = matches.subcommand_matches("reverse").is_some();
 
     let language = matches.value_of("language");
+
+    let (_source_hasher, mut code_hasher) = if has_reverse_config {
+        (Some(Hasher::default()), Some(Hasher::default()))
+    } else {
+        (None, None)
+    };
 
     if reverse {
         process_inputs_reverse(
@@ -196,6 +220,19 @@ The normal workflow is:
                     false,
                 )?;
             }
+        }
+    }
+
+    if has_reverse_config {
+        if let (Some(code_dir), Some(mut hasher)) = (code_dir, code_hasher.take()) {
+            hasher.consume_all(code_dir)?;
+            let hash = hasher.compute();
+
+            let lock = Lock {
+                code_hash: hash,
+                source_hash: String::new(),
+            };
+            lock.write(&lock_path)?;
         }
     }
 
