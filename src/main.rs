@@ -173,7 +173,7 @@ The normal workflow is:
 
     let language = matches.value_of("language");
 
-    let (_source_hasher, mut code_hasher) = if has_reverse_config {
+    let (mut source_hasher, mut code_hasher) = if has_reverse_config {
         (Some(Hasher::default()), Some(Hasher::default()))
     } else {
         (None, None)
@@ -201,12 +201,18 @@ The normal workflow is:
 
     if let Some(code_dir) = code_dir {
         if let Some(code_file_patterns) = &config.paths.code_files {
-            copy::copy_files(
+            let copied_files = copy::copy_files(
                 code_file_patterns,
                 config.paths.code_paths.as_deref(),
                 code_dir,
                 reverse,
+                false,
             )?;
+            if let Some(hasher) = source_hasher.as_mut() {
+                for file in copied_files {
+                    hasher.consume_file(file)?;
+                }
+            }
         }
     }
 
@@ -218,21 +224,27 @@ The normal workflow is:
                     config.paths.doc_paths.as_deref(),
                     doc_dir,
                     false,
+                    false,
                 )?;
             }
         }
     }
 
     if has_reverse_config {
-        if let (Some(code_dir), Some(mut hasher)) = (code_dir, code_hasher.take()) {
-            hasher.consume_all(code_dir)?;
-            let hash = hasher.compute();
+        if let Some(code_dir) = code_dir {
+            if let (Some(source_hasher), Some(mut code_hasher)) =
+                (source_hasher.take(), code_hasher.take())
+            {
+                code_hasher.consume_all(code_dir)?;
+                let code_hash = code_hasher.compute();
+                let source_hash = source_hasher.compute();
 
-            let lock = Lock {
-                code_hash: hash,
-                source_hash: String::new(),
-            };
-            lock.write(&lock_path)?;
+                let lock = Lock {
+                    code_hash,
+                    source_hash,
+                };
+                lock.write(&lock_path)?;
+            }
         }
     }
 

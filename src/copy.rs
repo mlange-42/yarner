@@ -11,7 +11,8 @@ pub fn copy_files(
     path_mod: Option<&[String]>,
     target_dir: &Path,
     reverse: bool,
-) -> Result<(), String> {
+    dry_run: bool,
+) -> Result<Vec<PathBuf>, String> {
     match path_mod {
         Some(path_mod) if patterns.len() != path_mod.len() => {
             return Err(
@@ -20,6 +21,7 @@ pub fn copy_files(
         }
         _ => (),
     }
+    let mut copied_files = vec![];
     let mut track_copy_dest: HashMap<PathBuf, PathBuf> = HashMap::new();
     for (idx, file_pattern) in patterns.iter().enumerate() {
         let path = path_mod.as_ref().map(|paths| &paths[idx]);
@@ -73,13 +75,16 @@ pub fn copy_files(
                     eprintln!("Copying file {} to {}", file.display(), file_path.display());
                     (&file, &file_path)
                 };
-                if let Err(err) = fs::copy(&from, &to) {
-                    return Err(format!("Error copying file {}: {}", file.display(), err));
+                if !dry_run {
+                    if let Err(err) = fs::copy(&from, &to) {
+                        return Err(format!("Error copying file {}: {}", file.display(), err));
+                    }
                 }
+                copied_files.push(from.to_owned());
             }
         }
     }
-    Ok(())
+    Ok(copied_files)
 }
 
 fn modify_path(path: &Path, replace: &str) -> PathBuf {

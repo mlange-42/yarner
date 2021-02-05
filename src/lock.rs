@@ -80,7 +80,7 @@ impl Hasher {
         hex::encode(self.hasher.compute().as_ref())
     }
 
-    fn consume_file<P: AsRef<Path>>(&mut self, file: P) -> std::io::Result<()> {
+    pub fn consume_file<P: AsRef<Path>>(&mut self, file: P) -> std::io::Result<()> {
         let f = File::open(file)?;
         let mut buffer = [0; 1024];
         let mut reader = BufReader::new(f);
