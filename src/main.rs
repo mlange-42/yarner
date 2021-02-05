@@ -90,6 +90,12 @@ The normal workflow is:
             .help("Produces clean code output, without block label comments.")
             .required(false)
             .takes_value(false))
+        .arg(Arg::with_name("force")
+            .long("force")
+            .short("F")
+            .help("Forces building, although it would result in overwriting changed files.")
+            .required(false)
+            .takes_value(false))
         .subcommand(SubCommand::with_name("init")
             .about("Creates a yarner project in the current directory")
         )
@@ -122,17 +128,9 @@ The normal workflow is:
 
     let lock_path = PathBuf::from(config_path);
     let lock_path = lock_path.with_extension("lock");
-    let _lock = if has_reverse_config {
-        if lock_path.is_file() && lock_path.exists() {
-            Some(Lock::read(&lock_path)?)
-        } else {
-            None
-        }
-    } else {
-        None
-    };
 
     let clean_code = matches.is_present("clean");
+    let force = matches.is_present("force");
     for lang in config.language.values_mut() {
         lang.clean_code = clean_code;
     }
@@ -173,12 +171,6 @@ The normal workflow is:
 
     let language = matches.value_of("language");
 
-    let (mut source_hasher, mut code_hasher) = if has_reverse_config {
-        (Some(Hasher::default()), Some(Hasher::default()))
-    } else {
-        (None, None)
-    };
-
     if reverse {
         process_inputs_reverse(
             &input_patterns,
@@ -189,6 +181,14 @@ The normal workflow is:
             language,
         )?;
     } else {
+        if has_reverse_config && !force {
+            if let Some(code_dir) = code_dir {
+                if lock::code_changed(&lock_path, &PathBuf::from(code_dir))? {
+                    eprintln!("Code output has changed. Stopping to prevent overwrite. To run anyway, run with `yarner --force`");
+                    return Ok(());
+                }
+            }
+        }
         process_inputs_forward(
             &input_patterns,
             &config,
@@ -198,6 +198,12 @@ The normal workflow is:
             language,
         )?;
     }
+
+    let (mut source_hasher, mut code_hasher) = if has_reverse_config {
+        (Some(Hasher::default()), Some(Hasher::default()))
+    } else {
+        (None, None)
+    };
 
     if let Some(code_dir) = code_dir {
         if let Some(code_file_patterns) = &config.paths.code_files {

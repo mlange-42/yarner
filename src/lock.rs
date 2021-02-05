@@ -6,6 +6,24 @@ use std::fs::{self, read_to_string, write, File};
 use std::io::{BufReader, Read};
 use std::path::{Path, PathBuf};
 
+pub fn code_changed<P: AsRef<Path>>(lock_file: P, code_dir: P) -> std::io::Result<bool> {
+    if code_dir.as_ref().exists()
+        && code_dir.as_ref().is_dir()
+        && lock_file.as_ref().exists()
+        && lock_file.as_ref().is_file()
+    {
+        let mut code_hasher = Hasher::default();
+        code_hasher.consume_all(code_dir)?;
+        let code_hash = code_hasher.compute();
+
+        let lock = Lock::read(lock_file)?;
+
+        Ok(lock.code_hash != code_hash)
+    } else {
+        Ok(false)
+    }
+}
+
 /// Content for Yarner.lock files
 #[derive(Serialize, Deserialize)]
 pub struct Lock {
