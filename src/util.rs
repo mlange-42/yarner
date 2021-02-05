@@ -85,6 +85,10 @@ pub fn modify_path(path: &Path, replace: &str) -> PathBuf {
     modified
 }
 
+pub fn read_file(path: &Path) -> Fallible<String> {
+    std::fs::read_to_string(&path).map_err(|err| format!("{}: {}", err, path.display()).into())
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;

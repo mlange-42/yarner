@@ -208,7 +208,7 @@ fn process_inputs_reverse(
     doc_dir: Option<&Path>,
     entrypoint: Option<&str>,
     language: Option<&str>,
-) -> Result<(), String> {
+) -> Fallible {
     let mut any_input = false;
 
     let mut documents: HashMap<PathBuf, Document> = HashMap::new();
@@ -218,20 +218,18 @@ fn process_inputs_reverse(
         let paths = match glob::glob(&pattern) {
             Ok(p) => p,
             Err(err) => {
-                return Err(format!(
-                    "Unable to process glob pattern \"{}\": {}",
-                    pattern, err
-                ))
+                return Err(
+                    format!("Unable to process glob pattern \"{}\": {}", pattern, err).into(),
+                )
             }
         };
         for path in paths {
             let input = match path {
                 Ok(p) => p,
                 Err(err) => {
-                    return Err(format!(
-                        "Unable to process glob pattern \"{}\": {}",
-                        pattern, err
-                    ))
+                    return Err(
+                        format!("Unable to process glob pattern \"{}\": {}", pattern, err).into(),
+                    )
                 }
             };
             if input.is_file() {
@@ -266,7 +264,8 @@ fn process_inputs_reverse(
                         "Failed to compile source file \"{}\": {}",
                         file_name.display(),
                         error
-                    ));
+                    )
+                    .into());
                 }
             }
         }
@@ -278,7 +277,8 @@ fn process_inputs_reverse(
                 For help, use:\n\
                  > yarner -h",
             input_patterns.iter().join(", ", '"')
-        ));
+        )
+        .into());
     }
 
     reverse(documents, code_files, &config)?;
@@ -290,7 +290,7 @@ fn reverse(
     documents: HashMap<PathBuf, Document>,
     code_files: HashSet<PathBuf>,
     config: &Config,
-) -> Result<(), String> {
+) -> Fallible {
     let mut code_blocks: HashMap<(PathBuf, Option<String>, usize), RevCodeBlock> = HashMap::new();
 
     let parser = CodeParser {};
@@ -303,17 +303,16 @@ fn reverse(
                     .get(language)
                     .and_then(|lang| lang.block_labels.as_ref())
                 {
-                    let source = fs::read_to_string(&file).map_err(|err| err.to_string())?;
-                    let blocks = parser
-                        .parse(&source, &config.parser, labels)
-                        .map_err(|err| err.to_string())?;
+                    let source = util::read_file(&file)?;
+                    let blocks = parser.parse(&source, &config.parser, labels)?;
 
                     for block in blocks.into_iter() {
                         let path = PathBuf::from(&block.file);
                         match code_blocks.entry((path, block.name.clone(), block.index)) {
                             Occupied(entry) => {
                                 if entry.get().lines != block.lines {
-                                    return Err(format!("Reverse mode impossible due to multiple, differing occurrences of a code block: {} # {} # {}", &block.file, &block.name.unwrap_or_else(|| "".to_string()), block.index));
+                                    return Err(format!("Reverse mode impossible due to multiple, differing occurrences of a code block: {} # {} # {}", 
+                                                       &block.file, &block.name.unwrap_or_else(|| "".to_string()), block.index).into());
                                 } else {
                                     eprintln!("  WARNING: multiple occurrences of a code block: {} # {} # {}", &block.file, &block.name.unwrap_or_else(|| "".to_string()), block.index)
                                 }
@@ -517,7 +516,7 @@ fn transclude_dry_run(
     documents: &mut HashMap<PathBuf, Document>,
     track_code_files: &mut HashSet<PathBuf>,
 ) -> Fallible<Document> {
-    let source_main = fs::read_to_string(&file_name)?;
+    let source_main = util::read_file(&file_name)?;
     let document = parser.parse(&source_main, &file_name)?;
 
     let transclusions = document.transclusions();
@@ -556,7 +555,7 @@ fn transclude_dry_run(
 }
 
 fn transclude(parser: &MdParser, file_name: &Path) -> Fallible<Document> {
-    let source_main = fs::read_to_string(&file_name)?;
+    let source_main = util::read_file(&file_name)?;
     let mut document = parser.parse(&source_main, &file_name)?;
 
     let transclusions = document.transclusions().cloned().collect::<Vec<_>>();
