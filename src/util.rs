@@ -62,29 +62,6 @@ where
 {
 }
 
-pub trait PushSimple<P> {
-    fn push_simple(&mut self, other: P);
-}
-
-impl PushSimple<PathBuf> for PathBuf {
-    fn push_simple(&mut self, other: PathBuf) {
-        for comp in other.components() {
-            match comp.as_os_str().to_str() {
-                None => {}
-                Some(comp) => {
-                    if comp == ".." {
-                        if !self.pop() {
-                            self.push(comp);
-                        }
-                    } else {
-                        self.push(comp);
-                    }
-                }
-            }
-        }
-    }
-}
-
 pub fn modify_path(path: &Path, replace: &str) -> PathBuf {
     if replace.is_empty() || replace == "_" {
         return path.to_owned();
@@ -215,32 +192,5 @@ mod tests {
             modify_path(Path::new("foo/bar/baz.qux"), "_/_/_/QUX"),
             Path::new("foo/bar/baz.qux")
         );
-    }
-
-    #[test]
-    fn push_simple() {
-        let mut path1 = PathBuf::from("");
-        path1.push_simple(PathBuf::from("bar"));
-        assert_eq!(path1, PathBuf::from("bar"));
-
-        let mut path1 = PathBuf::from("foo");
-        path1.push_simple(PathBuf::from(""));
-        assert_eq!(path1, PathBuf::from("foo"));
-
-        let mut path1 = PathBuf::from("foo");
-        path1.push_simple(PathBuf::from("bar"));
-        assert_eq!(path1, PathBuf::from("foo/bar"));
-
-        let mut path1 = PathBuf::from("foo");
-        path1.push_simple(PathBuf::from("../bar"));
-        assert_eq!(path1, PathBuf::from("bar"));
-
-        let mut path1 = PathBuf::from("foo");
-        path1.push_simple(PathBuf::from(".."));
-        assert_eq!(path1, PathBuf::from(""));
-
-        let mut path1 = PathBuf::from("foo");
-        path1.push_simple(PathBuf::from("bar/../baz"));
-        assert_eq!(path1, PathBuf::from("foo/baz"));
     }
 }

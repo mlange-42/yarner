@@ -11,7 +11,6 @@ use crate::config::LanguageSettings;
 use crate::parser::{code::RevCodeBlock, md::MdParser};
 use std::collections::hash_map::HashMap;
 use std::fmt::Write;
-use std::path::PathBuf;
 
 /// A representation of a `Document` of literate code
 #[derive(Debug)]
@@ -40,7 +39,7 @@ impl Document {
         for node in &mut self.nodes {
             if let Node::Code(block) = node {
                 if block.source_file.is_none() {
-                    block.source_file = Some(PathBuf::from(&source));
+                    block.source_file = Some(source.to_owned());
                 }
             }
         }
@@ -187,7 +186,7 @@ impl Document {
                             "{} {}{}{}{}{}{}{}",
                             comment_start,
                             sep,
-                            path.display(),
+                            path,
                             block_name_sep,
                             name,
                             block_name_sep,
@@ -204,7 +203,7 @@ impl Document {
                             "{} {}{}{}{}{}{}{}",
                             comment_start,
                             block_end,
-                            path.display(),
+                            path,
                             block_name_sep,
                             name,
                             block_name_sep,
@@ -315,7 +314,7 @@ impl Document {
                             }
                             // TODO: move to parser?
                             if code.source_file.is_none() {
-                                code.source_file = Some(PathBuf::from(&from_source));
+                                code.source_file = Some(from_source.to_string());
                             }
                         };
                         self.nodes.insert(index + i, node);

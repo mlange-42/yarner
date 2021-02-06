@@ -28,7 +28,7 @@ use crate::document::{
     transclusion::Transclusion,
     Document, Node,
 };
-use crate::util::{Fallible, PushSimple, TryCollectExt};
+use crate::util::{Fallible, TryCollectExt};
 use once_cell::sync::Lazy;
 use regex::Regex;
 use serde::de::Error as _;
@@ -129,12 +129,12 @@ Please comment out option `comments_as_aside` until the next version, and rename
                     .unwrap_or(&trans);
 
                 let mut path = PathBuf::from(into.parent().unwrap_or_else(|| Path::new(".")));
-
-                let sub_path = PathBuf::from(target);
-                path.push_simple(sub_path);
+                path.push(target);
 
                 Ok(Some(Node::Transclusion(Transclusion::new(
-                    path,
+                    PathBuf::from(path_clean::clean(
+                        &path.to_str().unwrap_or("").replace("\\", "/"),
+                    )),
                     line.to_owned(),
                 ))))
             } else {
