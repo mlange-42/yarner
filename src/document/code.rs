@@ -5,6 +5,7 @@ use crate::config::LanguageSettings;
 use crate::util::TryCollectExt;
 use std::collections::HashMap;
 use std::fmt::Write;
+use std::path::PathBuf;
 
 /// A `CodeBlock` is a block of code as defined by the input format.
 #[derive(Clone, Default, Debug)]
@@ -24,7 +25,7 @@ pub struct CodeBlock {
     /// The source is the lines of code
     pub source: Vec<Line>,
     /// Source file, for transcluded blocks
-    pub source_file: Option<String>,
+    pub source_file: Option<PathBuf>,
 }
 
 impl CodeBlock {
@@ -196,7 +197,7 @@ impl Line {
                             &self.indent,
                             comment_start,
                             if idx == 0 { &block_start } else { &block_next },
-                            path,
+                            path.display(),
                             block_name_sep,
                             name,
                             block_name_sep,
@@ -223,7 +224,7 @@ impl Line {
                             &self.indent,
                             comment_start,
                             &block_end,
-                            path,
+                            path.display(),
                             block_name_sep,
                             name,
                             block_name_sep,
