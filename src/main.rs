@@ -711,7 +711,7 @@ fn compile(
 ) -> Fallible {
     eprintln!("Compiling file {}", file_name.display());
 
-    let mut entries = document.get_entry_points(parser, language);
+    let mut entries = document.entry_points(parser, language);
 
     let file_name_without_ext = file_name.with_extension("");
     entries.insert(
@@ -803,7 +803,7 @@ fn compile_reverse(
 ) -> Fallible {
     eprintln!("Compiling file {}", file_name.display());
 
-    let mut entries = document.get_entry_points(parser, language);
+    let mut entries = document.entry_points(parser, language);
 
     let file_name_without_ext = file_name.with_extension("");
     entries.insert(

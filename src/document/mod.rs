@@ -146,7 +146,7 @@ impl Document {
     }
 
     /// Finds all file-specific entry points
-    pub fn get_entry_points<'a>(
+    pub fn entry_points<'a>(
         &'a self,
         settings: &ParserSettings,
         language: Option<&'a str>,
