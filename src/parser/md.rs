@@ -132,7 +132,9 @@ Please comment out option `comments_as_aside` until the next version, and rename
                 path.push(target);
 
                 Ok(Some(Node::Transclusion(Transclusion::new(
-                    path,
+                    PathBuf::from(path_clean::clean(
+                        &path.to_str().unwrap_or("").replace("\\", "/"),
+                    )),
                     line.to_owned(),
                 ))))
             } else {
