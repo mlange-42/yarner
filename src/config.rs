@@ -1,11 +1,10 @@
 //! Config objects, to be read from Yarner.toml
 
-use crate::util::Fallible;
+use crate::util::{self, Fallible};
 use once_cell::sync::Lazy;
 use regex::Regex;
 use serde::{de::Error as _, Deserialize, Deserializer, Serialize};
 use std::collections::HashMap;
-use std::fs::read_to_string;
 use std::path::Path;
 use toml::from_str;
 
@@ -27,7 +26,7 @@ pub struct Config {
 
 impl Config {
     pub fn read<P: AsRef<Path>>(path: P) -> Fallible<Self> {
-        let buf = read_to_string(path)?;
+        let buf = util::read_file(path.as_ref())?;
         let val = from_str::<Self>(&buf)?;
 
         Ok(val)
