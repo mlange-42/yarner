@@ -7,15 +7,14 @@ use self::code::CodeBlock;
 use self::text::TextBlock;
 use self::transclusion::Transclusion;
 
-use crate::config::LanguageSettings;
-use crate::parser::{code::RevCodeBlock, md::MdParser};
+use crate::config::ParserSettings;
 use std::collections::hash_map::HashMap;
-use std::fmt::Write;
+use std::path::{Path, PathBuf};
 
 /// A representation of a `Document` of literate code
 #[derive(Debug)]
 pub struct Document {
-    nodes: Vec<Node>,
+    pub nodes: Vec<Node>,
 }
 
 #[derive(Debug)]
@@ -43,188 +42,6 @@ impl Document {
                 }
             }
         }
-    }
-
-    /// Formats this `Document` as a string containing the documentation file contents
-    pub fn print_docs(&self, printer: &MdParser) -> String {
-        let mut output = String::new();
-        for node in &self.nodes {
-            match node {
-                Node::Transclusion(transclusion) => {
-                    output.push_str(&printer.print_transclusion(transclusion, false))
-                }
-                Node::Text(text_block) => output.push_str(&printer.print_text_block(text_block)),
-                Node::Code(code_block) => {
-                    if !code_block.hidden {
-                        output.push_str(
-                            &printer
-                                .print_code_block(code_block)
-                                .split('\n')
-                                .map(|line| {
-                                    if line.is_empty() {
-                                        line.to_string()
-                                    } else {
-                                        format!("{}{}", code_block.indent, line)
-                                    }
-                                })
-                                .collect::<Vec<_>>()
-                                .join("\n"),
-                        )
-                    }
-                }
-            }
-        }
-        output
-    }
-
-    /// Formats this `Document` as the original source, potentially replacing code blocks
-    pub fn print_reverse(
-        &self,
-        printer: &MdParser,
-        code_blocks: &HashMap<(&Option<String>, &usize), &RevCodeBlock>,
-    ) -> String {
-        let mut block_count: HashMap<&Option<String>, usize> = HashMap::new();
-
-        let mut output = String::new();
-        for node in &self.nodes {
-            match node {
-                Node::Transclusion(transclusion) => {
-                    output.push_str(&printer.print_transclusion(transclusion, true))
-                }
-                Node::Text(text_block) => output.push_str(&printer.print_text_block(text_block)),
-                Node::Code(code_block) => {
-                    let index = {
-                        let count = block_count.entry(&code_block.name).or_default();
-                        *count += 1;
-                        *count - 1
-                    };
-
-                    let alt_block = code_blocks.get(&(&code_block.name, &index));
-
-                    output.push_str(
-                        &printer
-                            .print_code_block_reverse(code_block, alt_block.copied())
-                            .split('\n')
-                            .map(|line| {
-                                if line.is_empty() {
-                                    line.to_string()
-                                } else {
-                                    format!("{}{}", code_block.indent, line)
-                                }
-                            })
-                            .collect::<Vec<_>>()
-                            .join("\n"),
-                    )
-                }
-            }
-        }
-        output
-    }
-
-    /// Formats this `Document` as a string containing the compiled code
-    pub fn print_code(
-        &self,
-        entrypoint: Option<&str>,
-        language: Option<&str>,
-        settings: Option<&LanguageSettings>,
-    ) -> Result<String, CompileError> {
-        let comment_start = settings
-            .and_then(|s| s.block_labels.as_ref())
-            .map(|l| l.comment_start.as_str())
-            .unwrap_or_default();
-        let comment_end = settings
-            .and_then(|s| s.block_labels.as_ref())
-            .and_then(|l| l.comment_end.as_deref())
-            .unwrap_or_default();
-        let block_start = settings
-            .and_then(|s| s.block_labels.as_ref())
-            .map(|l| l.block_start.as_str())
-            .unwrap_or_default();
-        let block_end = settings
-            .and_then(|s| s.block_labels.as_ref())
-            .map(|l| l.block_end.as_str())
-            .unwrap_or_default();
-        let block_next = settings
-            .and_then(|s| s.block_labels.as_ref())
-            .map(|l| l.block_next.as_str())
-            .unwrap_or_default();
-        let block_name_sep = '#';
-
-        let clean = if let Some(s) = settings {
-            s.clean_code || s.block_labels.is_none()
-        } else {
-            true
-        };
-
-        let code_blocks = self.code_blocks_by_name(language);
-        let mut result = String::new();
-        match code_blocks.get(&entrypoint) {
-            Some(blocks) => {
-                let mut block_count: HashMap<&Option<String>, usize> = HashMap::new();
-                for (idx, block) in blocks.iter().enumerate() {
-                    let index = {
-                        let count = block_count.entry(&block.name).or_default();
-                        *count += 1;
-                        *count - 1
-                    };
-
-                    let path = block.source_file.to_owned().unwrap_or_default();
-                    let name = if block.is_unnamed {
-                        ""
-                    } else {
-                        block.name.as_ref().map(|n| &n[..]).unwrap_or("")
-                    };
-
-                    if !clean {
-                        let sep = if idx == 0 || block.name != blocks[idx - 1].name {
-                            &block_start
-                        } else {
-                            &block_next
-                        };
-                        writeln!(
-                            result,
-                            "{} {}{}{}{}{}{}{}",
-                            comment_start,
-                            sep,
-                            path,
-                            block_name_sep,
-                            name,
-                            block_name_sep,
-                            index,
-                            comment_end,
-                        )
-                        .unwrap();
-                    }
-                    result.push_str(&block.compile(&code_blocks, settings)?);
-                    result.push('\n');
-                    if !clean && (idx == blocks.len() - 1 || block.name != blocks[idx + 1].name) {
-                        write!(
-                            result,
-                            "{} {}{}{}{}{}{}{}",
-                            comment_start,
-                            block_end,
-                            path,
-                            block_name_sep,
-                            name,
-                            block_name_sep,
-                            index,
-                            comment_end,
-                        )
-                        .unwrap();
-                    }
-                }
-            }
-            None => {
-                return Err(CompileError::Single {
-                    line_number: 0,
-                    kind: CompileErrorKind::MissingEntrypoint,
-                })
-            }
-        }
-        if settings.map(|s| s.eof_newline).unwrap_or(true) && !result.ends_with('\n') {
-            result.push('\n');
-        }
-        Ok(result)
     }
 
     /// Return the nodes of the document
@@ -269,7 +86,7 @@ impl Document {
         })
     }
 
-    fn code_blocks_by_name<'a>(
+    pub fn code_blocks_by_name<'a>(
         &'a self,
         language: Option<&'a str>,
     ) -> HashMap<Option<&'a str>, Vec<&'a CodeBlock>> {
@@ -326,6 +143,30 @@ impl Document {
             }
             index += 1;
         }
+    }
+
+    /// Finds all file-specific entry points
+    pub fn entry_points<'a>(
+        &'a self,
+        settings: &ParserSettings,
+        language: Option<&'a str>,
+    ) -> HashMap<Option<&'a str>, (&'a Path, Option<PathBuf>)> {
+        let mut entries = HashMap::new();
+        let pref = &settings.file_prefix;
+        for block in self.code_blocks(language) {
+            if let Some(name) = block.name.as_deref() {
+                if let Some(rest) = name.strip_prefix(pref) {
+                    entries.insert(
+                        Some(name),
+                        (
+                            Path::new(rest),
+                            block.source_file.as_ref().map(|file| file.into()),
+                        ),
+                    );
+                }
+            }
+        }
+        entries
     }
 }
 

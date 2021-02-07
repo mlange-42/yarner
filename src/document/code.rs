@@ -137,26 +137,20 @@ impl Line {
         code_blocks: &HashMap<Option<&str>, Vec<&CodeBlock>>,
         settings: Option<&LanguageSettings>,
     ) -> Result<String, CompileError> {
-        let comment_start = settings
-            .and_then(|s| s.block_labels.as_ref())
+        let block_labels = settings.and_then(|s| s.block_labels.as_ref());
+        let comment_start = block_labels
             .map(|l| l.comment_start.as_str())
             .unwrap_or_default();
-        let comment_end = settings
-            .and_then(|s| s.block_labels.as_ref())
+        let comment_end = block_labels
             .and_then(|l| l.comment_end.as_deref())
             .unwrap_or_default();
-        let block_start = settings
-            .and_then(|s| s.block_labels.as_ref())
+        let block_start = block_labels
             .map(|l| l.block_start.as_str())
             .unwrap_or_default();
-        let block_end = settings
-            .and_then(|s| s.block_labels.as_ref())
+        let block_end = block_labels
             .map(|l| l.block_end.as_str())
             .unwrap_or_default();
-        let block_next = settings
-            .and_then(|s| s.block_labels.as_ref())
-            .map(|l| l.block_next.as_str())
-            .unwrap_or("");
+        let block_next = block_labels.map(|l| l.block_next.as_str()).unwrap_or("");
         let block_name_sep = '#';
 
         let clean = if let Some(s) = settings {
