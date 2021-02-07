@@ -1,10 +1,12 @@
-pub mod config;
-pub mod create;
-pub mod document;
-pub mod parse;
-pub mod parser;
-pub mod print;
-pub mod util;
+mod compile;
+mod compile_reverse;
+mod config;
+mod create;
+mod document;
+mod parse;
+mod parser;
+mod print;
+mod util;
 
 use crate::config::{Config, LanguageSettings, ParserSettings};
 use crate::document::{CompileError, CompileErrorKind, Document};

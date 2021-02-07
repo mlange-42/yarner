@@ -44,29 +44,6 @@ impl Document {
         }
     }
 
-    /// Return the nodes of the document
-    pub fn nodes(&self) -> &[Node] {
-        &self.nodes
-    }
-
-    /// Return the nodes of the document in mutable form
-    pub fn nodes_mut(&mut self) -> &mut [Node] {
-        &mut self.nodes
-    }
-
-    /// Return the nodes of the document, consuming the document
-    pub fn into_nodes(self) -> Vec<Node> {
-        self.nodes
-    }
-
-    /// Gets all the text blocks of this document
-    pub fn text_blocks_mut(&mut self) -> impl Iterator<Item = &mut TextBlock> {
-        self.nodes.iter_mut().filter_map(|node| match node {
-            Node::Text(block) => Some(block),
-            _ => None,
-        })
-    }
-
     /// Gets all the code blocks of this document
     pub fn code_blocks<'a>(
         &'a self,
@@ -173,12 +150,8 @@ impl Document {
 /// Problems encountered while compiling the document
 #[derive(Debug)]
 pub enum CompileErrorKind {
-    /// An unknown meta variable was encountered
-    UnknownMetaVariable(String),
     /// An unknown macro name was encountered
     UnknownMacro(String),
-    /// Meta variables incorrect
-    InvalidVariables(String),
     /// There is no unnamed code block to use as the entrypoint
     MissingEntrypoint,
 }

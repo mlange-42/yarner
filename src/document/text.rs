@@ -19,16 +19,6 @@ impl TextBlock {
     pub fn add_line(&mut self, line: &str) {
         self.text.push(line.to_owned());
     }
-
-    /// Renders this `TextBlock` as the text it represents
-    pub fn lines(&self) -> &Vec<String> {
-        &self.text
-    }
-
-    /// Renders this `TextBlock` as the text it represents
-    pub fn lines_mut(&mut self) -> &mut Vec<String> {
-        &mut self.text
-    }
 }
 
 impl Display for TextBlock {
