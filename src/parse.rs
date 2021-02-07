@@ -206,8 +206,7 @@ fn parse_transclusion(
                 .next()
                 .unwrap_or(&trans);
 
-            let mut path = PathBuf::from(into.parent().unwrap_or_else(|| Path::new(".")));
-            path.push(target);
+            let path = into.parent().unwrap_or_else(|| Path::new(".")).join(target);
 
             Ok(Some(Node::Transclusion(Transclusion::new(
                 path,
@@ -223,11 +222,7 @@ fn parse_transclusion(
 
 /// Parses a line as code, returning the parsed `Line` object
 fn parse_line(line_number: usize, input: &str, settings: &ParserSettings) -> Fallible<Line> {
-    let indent_len = input
-        .chars()
-        .take_while(|ch| ch.is_whitespace())
-        .collect::<String>()
-        .len();
+    let indent_len = input.chars().take_while(|ch| ch.is_whitespace()).count();
     let (indent, rest) = input.split_at(indent_len);
 
     // TODO: Temporarily disables comment extraction.

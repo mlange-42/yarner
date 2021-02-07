@@ -11,9 +11,7 @@ pub fn print_docs(document: &Document, settings: &ParserSettings) -> String {
     let mut output = String::new();
     for node in &document.nodes {
         match node {
-            Node::Transclusion(transclusion) => {
-                print_transclusion(transclusion, false, &mut output)
-            }
+            Node::Transclusion(transclusion) => print_transclusion(transclusion, &mut output),
             Node::Text(text_block) => {
                 writeln!(output, "{}", text_block).unwrap();
             }
@@ -52,11 +50,7 @@ pub fn print_code(
         .unwrap_or_default();
     let block_name_sep = '#';
 
-    let clean = if let Some(s) = settings {
-        s.clean_code || s.block_labels.is_none()
-    } else {
-        true
-    };
+    let clean = settings.map_or(true, |set| set.clean_code || set.block_labels.is_none());
 
     let code_blocks = document.code_blocks_by_name(language);
     let mut result = String::new();
@@ -74,7 +68,7 @@ pub fn print_code(
                 let name = if block.is_unnamed {
                     ""
                 } else {
-                    block.name.as_ref().map(|n| &n[..]).unwrap_or("")
+                    block.name.as_deref().unwrap_or("")
                 };
 
                 if !clean {
@@ -140,7 +134,9 @@ pub fn print_reverse(
     let mut output = String::new();
     for node in &document.nodes {
         match node {
-            Node::Transclusion(transclusion) => print_transclusion(transclusion, true, &mut output),
+            Node::Transclusion(transclusion) => {
+                print_transclusion_reverse(transclusion, &mut output)
+            }
             Node::Text(text_block) => {
                 writeln!(output, "{}", text_block).unwrap();
             }
@@ -166,13 +162,13 @@ pub fn print_reverse(
     output
 }
 
-pub fn print_transclusion(transclusion: &Transclusion, reverse: bool, write: &mut impl Write) {
-    if reverse {
-        writeln!(write, "{}", transclusion.original()).unwrap();
-    } else {
-        write!(write, "**WARNING!** Missed/skipped transclusion: ").unwrap();
-        writeln!(write, "{}", transclusion.file().to_str().unwrap()).unwrap();
-    }
+pub fn print_transclusion(transclusion: &Transclusion, write: &mut impl Write) {
+    write!(write, "**WARNING!** Missed/skipped transclusion: ").unwrap();
+    writeln!(write, "{}", transclusion.file().to_str().unwrap()).unwrap();
+}
+
+pub fn print_transclusion_reverse(transclusion: &Transclusion, write: &mut impl Write) {
+    writeln!(write, "{}", transclusion.original()).unwrap();
 }
 
 pub fn print_code_block(
