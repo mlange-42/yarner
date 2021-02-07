@@ -12,10 +12,16 @@ use std::fs::File;
 use std::path::{Path, PathBuf};
 
 #[allow(clippy::nonminimal_bool)]
-pub fn parse(input: &str, path: &Path, settings: &ParserSettings) -> Fallible<Document> {
+pub fn parse(
+    input: &str,
+    path: &Path,
+    is_reverse: bool,
+    settings: &ParserSettings,
+) -> Fallible<(Document, Vec<PathBuf>)> {
     let mut state: Option<Node> = None;
     let mut nodes: Vec<Node> = vec![];
     let mut errors: Vec<Box<dyn Error>> = vec![];
+    let mut links: Vec<PathBuf> = vec![];
 
     for (line_number, line) in input.lines().enumerate() {
         let (is_code, is_alt_fenced_code) = if let Some(Node::Code(code_block)) = &state {
@@ -77,6 +83,12 @@ pub fn parse(input: &str, path: &Path, settings: &ParserSettings) -> Fallible<Do
         } else {
             match &mut state {
                 None => {
+                    let parsed = parse_links(&line, path, settings, !is_reverse, &mut links);
+                    let line = if parsed.is_some() {
+                        parsed.as_ref().unwrap()
+                    } else {
+                        line
+                    };
                     let mut new_block = TextBlock::new();
                     new_block.add_line(line);
                     state = Some(Node::Text(new_block));
@@ -91,17 +103,25 @@ pub fn parse(input: &str, path: &Path, settings: &ParserSettings) -> Fallible<Do
                         }
                     }
                 }
-                Some(Node::Text(block)) => match parse_transclusion(line, path, settings) {
-                    Err(err) => errors.push(format!("{} (line {})", err, line_number).into()),
-                    Ok(trans) => match trans {
-                        Some(node) => {
-                            let ret = state.take();
-                            state = Some(node);
-                            nodes.push(ret.unwrap());
-                        }
-                        None => block.add_line(line),
-                    },
-                },
+                Some(Node::Text(block)) => {
+                    let parsed = parse_links(&line, path, settings, !is_reverse, &mut links);
+                    let line = if parsed.is_some() {
+                        parsed.as_ref().unwrap()
+                    } else {
+                        line
+                    };
+                    match parse_transclusion(line, path, settings) {
+                        Err(err) => errors.push(format!("{} (line {})", err, line_number).into()),
+                        Ok(trans) => match trans {
+                            Some(node) => {
+                                let ret = state.take();
+                                state = Some(node);
+                                nodes.push(ret.unwrap());
+                            }
+                            None => block.add_line(line),
+                        },
+                    }
+                }
                 Some(Node::Code(block)) => {
                     if line.starts_with(&block.indent) {
                         if block.source.is_empty()
@@ -136,6 +156,13 @@ pub fn parse(input: &str, path: &Path, settings: &ParserSettings) -> Fallible<Do
                     }
                 }
                 Some(Node::Transclusion(trans)) => {
+                    let parsed = parse_links(&line, path, settings, !is_reverse, &mut links);
+                    let line = if parsed.is_some() {
+                        parsed.as_ref().unwrap()
+                    } else {
+                        line
+                    };
+
                     let trans = trans.clone();
                     let mut new_block = TextBlock::new();
                     new_block.add_line(line);
@@ -158,7 +185,7 @@ pub fn parse(input: &str, path: &Path, settings: &ParserSettings) -> Fallible<Do
         nodes.push(node);
     }
 
-    Ok(Document::new(nodes))
+    Ok((Document::new(nodes), links))
 }
 
 fn parse_transclusion(
@@ -226,55 +253,48 @@ fn parse_line(line_number: usize, input: &str, settings: &ParserSettings) -> Fal
     })
 }
 
-pub fn find_links(
-    input: &mut Document,
+fn parse_links(
+    line: &str,
     from: &Path,
     settings: &ParserSettings,
     remove_marker: bool,
-) -> Fallible<Vec<PathBuf>> {
+    links_out: &mut Vec<PathBuf>,
+) -> Option<String> {
     let regex = &settings.link_following_pattern;
-    let mut paths = vec![];
 
-    for block in input.text_blocks_mut() {
-        for line in block.lines_mut().iter_mut() {
-            let mut offset = 0;
-            let mut new_line: Option<String> = None;
-            for capture in regex.1.captures_iter(line) {
-                if remove_marker {
-                    let index = capture.get(0).unwrap().start();
-                    let len = regex.0.len();
-                    if let Some(l) = &mut new_line {
-                        *l = format!("{}{}", &l[..(index - offset)], &l[(index + len - offset)..]);
-                    } else {
-                        new_line = Some(format!(
-                            "{}{}",
-                            &line[..(index - offset)],
-                            &line[(index + len - offset)..]
-                        ));
-                    }
-                    offset += len;
-                }
-
-                let link = capture.get(2).unwrap().as_str();
-                let mut path = from.parent().unwrap().to_path_buf();
-                path.push(link);
-                let path = PathBuf::from(path_clean::clean(
-                    &path.to_str().unwrap().replace("\\", "/"),
+    let mut offset = 0;
+    let mut new_line: Option<String> = None;
+    for capture in regex.1.captures_iter(line) {
+        if remove_marker {
+            let index = capture.get(0).unwrap().start();
+            let len = regex.0.len();
+            if let Some(l) = &mut new_line {
+                *l = format!("{}{}", &l[..(index - offset)], &l[(index + len - offset)..]);
+            } else {
+                new_line = Some(format!(
+                    "{}{}",
+                    &line[..(index - offset)],
+                    &line[(index + len - offset)..]
                 ));
-                if path.is_relative() && is_relative_link(link) {
-                    if File::open(&path).is_ok() {
-                        paths.push(path);
-                    } else {
-                        eprintln!("WARNING: link target not found for {}", path.display());
-                    }
-                }
             }
-            if let Some(new_line) = new_line {
-                *line = new_line;
+            offset += len;
+        }
+
+        let link = capture.get(2).unwrap().as_str();
+        let mut path = from.parent().unwrap().to_path_buf();
+        path.push(link);
+        let path = PathBuf::from(path_clean::clean(
+            &path.to_str().unwrap().replace("\\", "/"),
+        ));
+        if path.is_relative() && is_relative_link(link) {
+            if File::open(&path).is_ok() {
+                links_out.push(path);
+            } else {
+                eprintln!("WARNING: link target not found for {}", path.display());
             }
         }
     }
-    Ok(paths)
+    new_line
 }
 
 fn is_relative_link(link: &str) -> bool {

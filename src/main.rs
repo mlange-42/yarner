@@ -514,16 +514,16 @@ fn transclude_dry_run(
     language: Option<&str>,
     documents: &mut HashMap<PathBuf, Document>,
     track_code_files: &mut HashSet<PathBuf>,
-) -> Fallible<Document> {
+) -> Fallible<(Document, Vec<PathBuf>)> {
     let source_main = util::read_file(&file_name)?;
-    let document = parse::parse(&source_main, &file_name, parser)?;
+    let (document, mut links) = parse::parse(&source_main, &file_name, true, parser)?;
 
     let transclusions = document.transclusions();
 
     let mut trans_so_far = HashSet::new();
     for trans in transclusions {
         if !trans_so_far.contains(trans.file()) {
-            let doc = transclude_dry_run(
+            let (doc, sub_links) = transclude_dry_run(
                 parser,
                 trans.file(),
                 code_dir,
@@ -543,6 +543,7 @@ fn transclude_dry_run(
                 track_code_files,
             )?;
 
+            links.extend(sub_links.into_iter());
             documents.insert(trans.file().clone(), doc);
             trans_so_far.insert(trans.file().clone());
         } else {
@@ -550,19 +551,19 @@ fn transclude_dry_run(
         }
     }
 
-    Ok(document)
+    Ok((document, links))
 }
 
-fn transclude(parser: &ParserSettings, file_name: &Path) -> Fallible<Document> {
+fn transclude(parser: &ParserSettings, file_name: &Path) -> Fallible<(Document, Vec<PathBuf>)> {
     let source_main = util::read_file(&file_name)?;
-    let mut document = parse::parse(&source_main, &file_name, parser)?;
+    let (mut document, links) = parse::parse(&source_main, &file_name, false, parser)?;
 
     let transclusions = document.transclusions().cloned().collect::<Vec<_>>();
 
     let mut trans_so_far = HashSet::new();
     for trans in transclusions {
         if !trans_so_far.contains(trans.file()) {
-            let doc = transclude(parser, trans.file())?;
+            let (doc, _links) = transclude(parser, trans.file())?;
 
             // TODO: handle unwrap as error
             let ext = trans.file().extension().unwrap().to_str().unwrap();
@@ -579,7 +580,7 @@ fn transclude(parser: &ParserSettings, file_name: &Path) -> Fallible<Document> {
             return Err(format!("Multiple transclusions of {}", trans.file().display()).into());
         }
     }
-    Ok(document)
+    Ok((document, links))
 }
 
 #[allow(clippy::too_many_arguments)]
@@ -595,8 +596,7 @@ fn compile_all(
     track_code_files: &mut HashMap<PathBuf, Option<PathBuf>>,
 ) -> Fallible {
     if !track_input_files.contains(file_name) {
-        let mut document = transclude(parser, file_name)?;
-        let links = parse::find_links(&mut document, file_name, parser, true)?;
+        let (mut document, links) = transclude(parser, file_name)?;
 
         let file_str = file_name.to_str().unwrap();
         document.set_source(file_str);
@@ -648,7 +648,7 @@ fn compile_all_reverse(
     documents: &mut HashMap<PathBuf, Document>,
 ) -> Fallible {
     if !track_input_files.contains(file_name) {
-        let mut document = transclude_dry_run(
+        let (mut document, links) = transclude_dry_run(
             parser,
             file_name,
             code_dir,
@@ -657,7 +657,6 @@ fn compile_all_reverse(
             documents,
             track_code_files,
         )?;
-        let links = parse::find_links(&mut document, file_name, parser, false)?;
 
         let file_str = file_name.to_str().unwrap();
         document.set_source(file_str);
