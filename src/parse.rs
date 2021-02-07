@@ -206,7 +206,9 @@ fn parse_transclusion(
             let path = into.parent().unwrap_or_else(|| Path::new(".")).join(target);
 
             Ok(Some(Node::Transclusion(Transclusion::new(
-                path,
+                PathBuf::from(path_clean::clean(
+                    &path.to_str().unwrap().replace("\\", "/"),
+                )),
                 line.to_owned(),
             ))))
         } else {
