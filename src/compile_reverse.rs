@@ -2,9 +2,10 @@ use std::collections::hash_map::Entry::{Occupied, Vacant};
 use std::collections::{HashMap, HashSet};
 use std::path::{Path, PathBuf};
 
+use crate::code::RevCodeBlock;
 use crate::config::Config;
-use crate::parser::code::{CodeParser, RevCodeBlock};
 use crate::{
+    code,
     config::{LanguageSettings, ParserSettings},
     document::Document,
     parse,
@@ -82,7 +83,6 @@ pub fn collect_code_blocks(
 ) -> Fallible<HashMap<BlockKey, RevCodeBlock>> {
     let mut code_blocks: HashMap<BlockKey, RevCodeBlock> = HashMap::new();
 
-    let code_parser = CodeParser {};
     if !config.language.is_empty() {
         for file in code_files {
             let language = file.extension().and_then(|s| s.to_str());
@@ -93,7 +93,7 @@ pub fn collect_code_blocks(
                     .and_then(|lang| lang.block_labels.as_ref())
                 {
                     let source = util::read_file(&file)?;
-                    let blocks = code_parser.parse(&source, &config.parser, labels)?;
+                    let blocks = code::parse(&source, &config.parser, labels)?;
 
                     for block in blocks.into_iter() {
                         let path = PathBuf::from(&block.file);
