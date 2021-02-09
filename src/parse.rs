@@ -18,13 +18,12 @@ pub fn parse(
     is_reverse: bool,
     settings: &ParserSettings,
 ) -> Fallible<(Document, Vec<PathBuf>)> {
-    let mut state: Option<Node> = None;
     let mut nodes: Vec<Node> = vec![];
     let mut errors: Vec<Box<dyn Error>> = vec![];
     let mut links: Vec<PathBuf> = vec![];
 
     for (line_number, line) in input.lines().enumerate() {
-        let (is_code, is_alt_fenced_code) = if let Some(Node::Code(code_block)) = &state {
+        let (is_code, is_alt_fenced_code) = if let Some(Node::Code(code_block)) = nodes.last() {
             (true, code_block.alternative)
         } else {
             (false, false)
@@ -45,16 +44,15 @@ pub fn parse(
             } else {
                 &settings.fence_sequence
             };
-            match state.take() {
+            match nodes.last_mut() {
                 Some(Node::Code(code_block)) => {
-                    if line.starts_with(&code_block.indent) {
-                        nodes.push(Node::Code(code_block));
-                    } else {
+                    if !line.starts_with(&code_block.indent) {
                         errors
                             .push(format!("Incorrect indentation in line {}", line_number).into());
                     }
+                    nodes.push(Node::Text(TextBlock::new()));
                 }
-                previous => {
+                _previous => {
                     let indent_len = line.find(fence_sequence).unwrap();
                     let (indent, rest) = line.split_at(indent_len);
                     let rest = &rest[fence_sequence.len()..];
@@ -74,14 +72,12 @@ pub fn parse(
                         code_block = code_block.in_language(language);
                     }
                     code_block = code_block.alternative(starts_fenced_alt);
-                    state = Some(Node::Code(code_block));
-                    if let Some(node) = previous {
-                        nodes.push(node);
-                    }
+
+                    nodes.push(Node::Code(code_block));
                 }
             }
         } else {
-            match &mut state {
+            match nodes.last_mut() {
                 None => {
                     let parsed = parse_links(&line, path, settings, !is_reverse, &mut links);
                     let line = if parsed.is_some() {
@@ -89,16 +85,15 @@ pub fn parse(
                     } else {
                         line
                     };
-                    let mut new_block = TextBlock::new();
-                    new_block.add_line(line);
-                    state = Some(Node::Text(new_block));
                     match parse_transclusion(line, path, settings) {
                         Err(err) => errors.push(format!("{} (line {})", err, line_number).into()),
                         Ok(trans) => {
                             if let Some(node) = trans {
-                                let new_block = TextBlock::new();
-                                state = Some(Node::Text(new_block));
                                 nodes.push(node);
+                            } else {
+                                let mut new_block = TextBlock::new();
+                                new_block.add_line(line);
+                                nodes.push(Node::Text(new_block));
                             }
                         }
                     }
@@ -114,9 +109,7 @@ pub fn parse(
                         Err(err) => errors.push(format!("{} (line {})", err, line_number).into()),
                         Ok(trans) => match trans {
                             Some(node) => {
-                                let ret = state.take();
-                                state = Some(node);
-                                nodes.push(ret.unwrap());
+                                nodes.push(node);
                             }
                             None => block.add_line(line),
                         },
@@ -155,7 +148,7 @@ pub fn parse(
                         errors.push(format!("Incorrect indentation line {}", line_number).into());
                     }
                 }
-                Some(Node::Transclusion(trans)) => {
+                Some(Node::Transclusion(_trans)) => {
                     let parsed = parse_links(&line, path, settings, !is_reverse, &mut links);
                     let line = if parsed.is_some() {
                         parsed.as_ref().unwrap()
@@ -163,13 +156,27 @@ pub fn parse(
                         line
                     };
 
-                    let trans = trans.clone();
-                    let mut new_block = TextBlock::new();
-                    new_block.add_line(line);
-                    state = Some(Node::Text(new_block));
-                    nodes.push(Node::Transclusion(trans));
+                    match parse_transclusion(line, path, settings) {
+                        Err(err) => errors.push(format!("{} (line {})", err, line_number).into()),
+                        Ok(trans) => match trans {
+                            Some(node) => {
+                                nodes.push(node);
+                            }
+                            None => {
+                                let mut new_block = TextBlock::new();
+                                new_block.add_line(line);
+                                nodes.push(Node::Text(new_block));
+                            }
+                        },
+                    }
                 }
             }
+        }
+    }
+
+    if let Some(Node::Text(text)) = nodes.last() {
+        if text.lines().is_empty() {
+            nodes.pop();
         }
     }
 
@@ -179,10 +186,6 @@ pub fn parse(
             writeln!(&mut msg, "{}", error).unwrap();
         }
         return Err(msg.into());
-    }
-
-    if let Some(node) = state.take() {
-        nodes.push(node);
     }
 
     Ok((Document::new(nodes), links))
