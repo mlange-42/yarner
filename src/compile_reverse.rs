@@ -20,7 +20,7 @@ type BlockKey = (PathBuf, Option<String>, usize);
 pub fn compile_all(
     parser: &ParserSettings,
     doc_dir: Option<&Path>,
-    code_dir: Option<&Path>,
+    code_dir: &Path,
     file_name: &Path,
     entrypoint: Option<&str>,
     language: Option<&str>,
@@ -124,7 +124,7 @@ pub fn collect_code_blocks(
 fn compile(
     parser: &ParserSettings,
     document: &Document,
-    code_dir: Option<&Path>,
+    code_dir: &Path,
     file_name: &Path,
     entrypoint: Option<&str>,
     language: Option<&str>,
@@ -141,18 +141,13 @@ fn compile(
     );
 
     for (_entrypoint, (sub_file_name, _sub_source_file)) in entries {
-        match code_dir {
-            Some(code_dir) => {
-                let mut file_path = code_dir.to_owned();
-                file_path.push(sub_file_name);
-                if let Some(language) = language {
-                    file_path.set_extension(language);
-                }
-
-                track_code_files.insert(file_path);
-            }
-            None => eprintln!("WARNING: Missing output location for code, skipping code output."),
+        let mut file_path = code_dir.to_owned();
+        file_path.push(sub_file_name);
+        if let Some(language) = language {
+            file_path.set_extension(language);
         }
+
+        track_code_files.insert(file_path);
     }
 
     Ok(())
@@ -161,7 +156,7 @@ fn compile(
 fn transclude_dry_run(
     parser: &ParserSettings,
     file_name: &Path,
-    code_dir: Option<&Path>,
+    code_dir: &Path,
     entrypoint: Option<&str>,
     language: Option<&str>,
     documents: &mut HashMap<PathBuf, Document>,

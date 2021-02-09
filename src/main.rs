@@ -242,6 +242,27 @@ fn process_inputs_reverse(
     entrypoint: Option<&str>,
     language: Option<&str>,
 ) -> Fallible {
+    let code_dir = code_dir.ok_or({
+        r#"Missing code output location. Reverse mode not possible.
+  Add 'code = "code"' to section 'path' in file Yarner.toml"#
+    })?;
+
+    if !code_dir.exists() {
+        return Err(format!(
+            r#"Code output target '{}' not found. Reverse mode not possible.
+  You may have to run the forward mode first."#,
+            code_dir.display()
+        )
+        .into());
+    }
+    if !code_dir.is_dir() {
+        return Err(format!(
+            "Code output target '{}' is not a directory. Reverse mode not possible.",
+            code_dir.display()
+        )
+        .into());
+    }
+
     let mut any_input = false;
 
     let mut documents: HashMap<PathBuf, Document> = HashMap::new();
