@@ -41,19 +41,6 @@ impl CodeBlock {
         }
     }
 
-    /// Names this code block
-    pub fn named(self, name: String) -> Self {
-        Self {
-            name: Some(name),
-            ..self
-        }
-    }
-
-    /// Hides this code block
-    pub fn hidden(self, hidden: bool) -> Self {
-        Self { hidden, ..self }
-    }
-
     /// Marks the code block as fenced by alternative sequence
     pub fn alternative(self, alternative: bool) -> Self {
         Self {
@@ -73,11 +60,6 @@ impl CodeBlock {
     /// Adds a line to this code block
     pub fn add_line(&mut self, line: Line) {
         self.source.push(line);
-    }
-
-    /// Appends another code block to the end of this one
-    pub fn append(&mut self, other: &CodeBlock) {
-        self.source.extend_from_slice(&other.source)
     }
 
     /// "Compiles" this code block into its output code
