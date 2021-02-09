@@ -1,8 +1,5 @@
 use std::error::Error;
-use std::ffi::OsStr;
 use std::fmt::{Display, Write};
-use std::iter::repeat;
-use std::path::{Path, PathBuf};
 
 pub type Fallible<T = ()> = Result<T, Box<dyn Error>>;
 
@@ -62,64 +59,9 @@ where
 {
 }
 
-pub fn modify_path(path: &Path, replace: &str) -> PathBuf {
-    if replace.is_empty() || replace == "_" {
-        return path.to_owned();
-    }
-
-    let replace = Path::new(replace)
-        .components()
-        .map(|comp| comp.as_os_str())
-        .chain(repeat(OsStr::new("_")));
-
-    let mut modified = PathBuf::new();
-
-    for (comp, replace) in path.components().zip(replace) {
-        if replace == "_" {
-            modified.push(comp);
-        } else if replace != "-" {
-            modified.push(replace);
-        }
-    }
-
-    modified
-}
-
-pub fn read_file(path: &Path) -> Fallible<String> {
-    std::fs::read_to_string(&path).map_err(|err| format!("{}: {}", err, path.display()).into())
-}
-
 #[cfg(test)]
 mod tests {
     use super::*;
-
-    #[test]
-    fn unmodified_path() {
-        assert_eq!(
-            modify_path(Path::new("foo/bar/baz.qux"), ""),
-            Path::new("foo/bar/baz.qux")
-        );
-
-        assert_eq!(
-            modify_path(Path::new("foo/bar/baz.qux"), "_"),
-            Path::new("foo/bar/baz.qux")
-        );
-
-        assert_eq!(
-            modify_path(Path::new("foo/bar/baz.qux"), "_/_/_"),
-            Path::new("foo/bar/baz.qux")
-        );
-
-        assert_eq!(
-            modify_path(Path::new("foo/bar/baz.qux"), "_/_"),
-            Path::new("foo/bar/baz.qux")
-        );
-
-        assert_eq!(
-            modify_path(Path::new("foo/bar/baz.qux"), "_/_/_/_"),
-            Path::new("foo/bar/baz.qux")
-        );
-    }
 
     #[test]
     fn collect_vals() {
@@ -149,52 +91,6 @@ mod tests {
         assert_eq!(
             vec!["foo", "bar", "baz"].join('/', '|'),
             "|foo|/|bar|/|baz|"
-        );
-    }
-
-    #[test]
-    fn drop_component_from_path() {
-        assert_eq!(
-            modify_path(Path::new("foo/bar/baz.qux"), "-/_/_"),
-            Path::new("bar/baz.qux")
-        );
-
-        assert_eq!(
-            modify_path(Path::new("foo/bar/baz.qux"), "_/-/_"),
-            Path::new("foo/baz.qux")
-        );
-
-        assert_eq!(
-            modify_path(Path::new("foo/bar/baz.qux"), "_/_/-"),
-            Path::new("foo/bar")
-        );
-
-        assert_eq!(
-            modify_path(Path::new("foo/bar/baz.qux"), "_/_/_/-"),
-            Path::new("foo/bar/baz.qux")
-        );
-    }
-
-    #[test]
-    fn replace_component_in_path() {
-        assert_eq!(
-            modify_path(Path::new("foo/bar/baz.qux"), "FOO/_/_"),
-            Path::new("FOO/bar/baz.qux")
-        );
-
-        assert_eq!(
-            modify_path(Path::new("foo/bar/baz.qux"), "_/BAR/_"),
-            Path::new("foo/BAR/baz.qux")
-        );
-
-        assert_eq!(
-            modify_path(Path::new("foo/bar/baz.qux"), "_/_/BAZ"),
-            Path::new("foo/bar/BAZ")
-        );
-
-        assert_eq!(
-            modify_path(Path::new("foo/bar/baz.qux"), "_/_/_/QUX"),
-            Path::new("foo/bar/baz.qux")
         );
     }
 }

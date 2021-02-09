@@ -1,15 +1,17 @@
-use std::collections::hash_map::Entry::{Occupied, Vacant};
-use std::collections::{HashMap, HashSet};
+use std::collections::{
+    hash_map::Entry::{Occupied, Vacant},
+    HashMap, HashSet,
+};
 use std::path::{Path, PathBuf};
 
-use crate::code::RevCodeBlock;
-use crate::config::Config;
 use crate::{
     code,
+    code::RevCodeBlock,
+    config::Config,
     config::{LanguageSettings, ParserSettings},
     document::Document,
-    parse,
-    util::{self, Fallible},
+    files, parse,
+    util::Fallible,
 };
 
 type BlockKey = (PathBuf, Option<String>, usize);
@@ -92,7 +94,7 @@ pub fn collect_code_blocks(
                     .get(language)
                     .and_then(|lang| lang.block_labels.as_ref())
                 {
-                    let source = util::read_file(&file)?;
+                    let source = files::read_file(&file)?;
                     let blocks = code::parse(&source, &config.parser, labels)?;
 
                     for block in blocks.into_iter() {
@@ -165,7 +167,7 @@ fn transclude_dry_run(
     documents: &mut HashMap<PathBuf, Document>,
     track_code_files: &mut HashSet<PathBuf>,
 ) -> Fallible<(Document, Vec<PathBuf>)> {
-    let source_main = util::read_file(&file_name)?;
+    let source_main = files::read_file(&file_name)?;
     let (document, mut links) = parse::parse(&source_main, &file_name, true, parser)?;
 
     let transclusions = document.transclusions();
