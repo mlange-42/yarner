@@ -19,6 +19,10 @@ impl TextBlock {
     pub fn add_line(&mut self, line: &str) {
         self.text.push(line.to_owned());
     }
+
+    pub fn lines(&self) -> &[String] {
+        &self.text
+    }
 }
 
 impl Display for TextBlock {
