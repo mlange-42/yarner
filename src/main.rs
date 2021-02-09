@@ -186,8 +186,9 @@ The normal workflow is:
         if has_reverse_config && !force {
             if let Some(code_dir) = code_dir {
                 if lock::code_changed(&lock_path, &PathBuf::from(code_dir))? {
-                    eprintln!("Code output has changed. Stopping to prevent overwrite. To run anyway, run with `yarner --force`");
-                    return Ok(());
+                    return Err(r#"Code output has changed. Stopping to prevent overwrite.
+  To run anyway, use `yarner --force`"#
+                        .into());
                 }
             }
         }
@@ -250,7 +251,7 @@ fn process_inputs_reverse(
     if !code_dir.exists() {
         return Err(format!(
             r#"Code output target '{}' not found. Reverse mode not possible.
-  You may have to run the forward mode first."#,
+  You may have to run the forward mode first: `yarner`"#,
             code_dir.display()
         )
         .into());
