@@ -5,6 +5,7 @@ mod config;
 mod create;
 mod document;
 mod files;
+mod lock;
 mod parse;
 mod print;
 mod util;
@@ -17,6 +18,7 @@ use std::path::{Path, PathBuf};
 
 use clap::{crate_version, App, Arg, SubCommand};
 
+use crate::lock::{Hasher, Lock};
 use crate::{
     config::Config,
     document::Document,
@@ -92,6 +94,12 @@ The normal workflow is:
             .help("Produces clean code output, without block label comments.")
             .required(false)
             .takes_value(false))
+        .arg(Arg::with_name("force")
+            .long("force")
+            .short("F")
+            .help("Forces building, although it would result in overwriting changed files.")
+            .required(false)
+            .takes_value(false))
         .subcommand(SubCommand::with_name("init")
             .about("Creates a yarner project in the current directory")
         )
@@ -117,7 +125,15 @@ The normal workflow is:
         .check()
         .map_err(|err| format!("Invalid config file \"{}\": {}", config_path, err))?;
 
+    let has_reverse_config = config
+        .language
+        .values()
+        .any(|lang| lang.block_labels.is_some());
+
+    let lock_path = PathBuf::from(config_path).with_extension("lock");
+
     let clean_code = matches.is_present("clean");
+    let force = matches.is_present("force");
     for lang in config.language.values_mut() {
         lang.clean_code = clean_code;
     }
@@ -168,6 +184,14 @@ The normal workflow is:
             language,
         )?;
     } else {
+        if has_reverse_config && !force {
+            if let Some(code_dir) = code_dir {
+                if lock::code_changed(&lock_path, &PathBuf::from(code_dir))? {
+                    eprintln!("Code output has changed. Stopping to prevent overwrite. To run anyway, run with `yarner --force`");
+                    return Ok(());
+                }
+            }
+        }
         process_inputs_forward(
             &input_patterns,
             &config,
@@ -199,6 +223,20 @@ The normal workflow is:
                     false,
                 )?;
             }
+        }
+    }
+
+    if has_reverse_config {
+        if let Some(code_dir) = code_dir {
+            let mut code_hasher = Hasher::default();
+            code_hasher.consume_all(code_dir)?;
+            let code_hash = code_hasher.compute();
+
+            let lock = Lock {
+                code_hash,
+                source_hash: String::new(),
+            };
+            lock.write(&lock_path)?;
         }
     }
 
