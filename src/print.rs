@@ -1,8 +1,8 @@
 use crate::code::RevCodeBlock;
 use crate::config::{LanguageSettings, ParserSettings};
-use crate::document::code::{CodeBlock, Line, Source};
-use crate::document::transclusion::Transclusion;
-use crate::document::{CompileError, CompileErrorKind, Document, Node};
+use crate::document::{
+    CodeBlock, CompileError, CompileErrorKind, Document, Line, Node, Source, Transclusion,
+};
 use std::collections::HashMap;
 use std::fmt::Write;
 
@@ -91,7 +91,7 @@ pub fn print_code(
                     )
                     .unwrap();
                 }
-                writeln!(result, "{}", block.compile(&code_blocks, settings)?).unwrap();
+                writeln!(result, "{}", block.compile_with(&code_blocks, settings)?).unwrap();
 
                 if !clean && (idx == blocks.len() - 1 || block.name != blocks[idx + 1].name) {
                     write!(

@@ -1,10 +1,5 @@
 use crate::config::{ParserSettings, LINK_REGEX};
-use crate::document::{
-    code::{CodeBlock, Line, Source},
-    text::TextBlock,
-    transclusion::Transclusion,
-    Document, Node,
-};
+use crate::document::{CodeBlock, Document, Line, Node, Source, TextBlock, Transclusion};
 use crate::util::Fallible;
 use std::error::Error;
 use std::fmt::Write;
