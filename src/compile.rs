@@ -9,8 +9,8 @@ use std::path::{Path, PathBuf};
 use crate::{
     config::{LanguageSettings, ParserSettings},
     document::{CompileError, CompileErrorKind, Document},
-    parse, print,
-    util::{self, Fallible},
+    files, parse, print,
+    util::Fallible,
 };
 
 #[allow(clippy::too_many_arguments)]
@@ -159,7 +159,7 @@ fn compile(
 }
 
 fn transclude(parser: &ParserSettings, file_name: &Path) -> Fallible<(Document, Vec<PathBuf>)> {
-    let source_main = util::read_file(&file_name)?;
+    let source_main = files::read_file(&file_name)?;
     let (mut document, mut links) = parse::parse(&source_main, &file_name, false, parser)?;
 
     let transclusions = document.transclusions().cloned().collect::<Vec<_>>();

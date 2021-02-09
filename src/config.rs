@@ -1,12 +1,12 @@
 //! Config objects, to be read from Yarner.toml
+use std::collections::HashMap;
+use std::path::Path;
 
-use crate::util::{self, Fallible};
 use once_cell::sync::Lazy;
 use regex::Regex;
 use serde::{de::Error as _, Deserialize, Deserializer, Serialize};
-use std::collections::HashMap;
-use std::path::Path;
-use toml::from_str;
+
+use crate::{files, util::Fallible};
 
 const LINK_PATTERN: &str = r"\[([^\[\]]*)\]\((.*?)\)";
 pub static LINK_REGEX: Lazy<Regex> = Lazy::new(|| Regex::new(LINK_PATTERN).unwrap());
@@ -26,8 +26,8 @@ pub struct Config {
 
 impl Config {
     pub fn read<P: AsRef<Path>>(path: P) -> Fallible<Self> {
-        let buf = util::read_file(path.as_ref())?;
-        let val = from_str::<Self>(&buf)?;
+        let buf = files::read_file(path.as_ref())?;
+        let val = toml::from_str::<Self>(&buf)?;
 
         Ok(val)
     }
