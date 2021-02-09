@@ -1,12 +1,17 @@
+use std::collections::hash_map::Entry::{Occupied, Vacant};
 use std::collections::{HashMap, HashSet};
 use std::path::{Path, PathBuf};
 
+use crate::config::Config;
+use crate::parser::code::{CodeParser, RevCodeBlock};
 use crate::{
     config::{LanguageSettings, ParserSettings},
     document::Document,
     parse,
     util::{self, Fallible},
 };
+
+type BlockKey = (PathBuf, Option<String>, usize);
 
 #[allow(clippy::too_many_arguments)]
 pub fn compile_all(
@@ -68,6 +73,49 @@ pub fn compile_all(
     }
 
     Ok(())
+}
+
+/// Collects all code blocks from the given code files
+pub fn collect_code_blocks(
+    code_files: &HashSet<PathBuf>,
+    config: &Config,
+) -> Fallible<HashMap<BlockKey, RevCodeBlock>> {
+    let mut code_blocks: HashMap<BlockKey, RevCodeBlock> = HashMap::new();
+
+    let code_parser = CodeParser {};
+    if !config.language.is_empty() {
+        for file in code_files {
+            let language = file.extension().and_then(|s| s.to_str());
+            if let Some(language) = language {
+                if let Some(labels) = config
+                    .language
+                    .get(language)
+                    .and_then(|lang| lang.block_labels.as_ref())
+                {
+                    let source = util::read_file(&file)?;
+                    let blocks = code_parser.parse(&source, &config.parser, labels)?;
+
+                    for block in blocks.into_iter() {
+                        let path = PathBuf::from(&block.file);
+                        match code_blocks.entry((path, block.name.clone(), block.index)) {
+                            Occupied(entry) => {
+                                if entry.get().lines != block.lines {
+                                    return Err(format!("Reverse mode impossible due to multiple, differing occurrences of a code block: {} # {} # {}", &block.file, &block.name.unwrap_or_else(|| "".to_string()), block.index).into());
+                                } else {
+                                    eprintln!("  WARNING: multiple occurrences of a code block: {} # {} # {}", &block.file, &block.name.unwrap_or_else(|| "".to_string()), block.index)
+                                }
+                            }
+                            Vacant(entry) => {
+                                entry.insert(block);
+                            }
+                        }
+                    }
+                }
+            }
+        }
+    }
+
+    Ok(code_blocks)
 }
 
 #[allow(clippy::too_many_arguments)]

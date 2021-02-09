@@ -22,7 +22,6 @@ use clap::{crate_version, App, Arg, SubCommand};
 use crate::{
     config::Config,
     document::Document,
-    parser::code::{CodeParser, RevCodeBlock},
     util::{Fallible, JoinExt},
 };
 
@@ -288,52 +287,7 @@ fn process_inputs_reverse(
         .into());
     }
 
-    reverse(documents, code_files, &config)?;
-
-    Ok(())
-}
-
-fn reverse(
-    documents: HashMap<PathBuf, Document>,
-    code_files: HashSet<PathBuf>,
-    config: &Config,
-) -> Fallible {
-    let mut code_blocks: HashMap<(PathBuf, Option<String>, usize), RevCodeBlock> = HashMap::new();
-
-    let parser = CodeParser {};
-    if !config.language.is_empty() {
-        for file in code_files {
-            let language = file.extension().and_then(|s| s.to_str());
-            if let Some(language) = language {
-                if let Some(labels) = config
-                    .language
-                    .get(language)
-                    .and_then(|lang| lang.block_labels.as_ref())
-                {
-                    let source = util::read_file(&file)?;
-                    let blocks = parser.parse(&source, &config.parser, labels)?;
-
-                    for block in blocks.into_iter() {
-                        let path = PathBuf::from(&block.file);
-                        match code_blocks.entry((path, block.name.clone(), block.index)) {
-                            Occupied(entry) => {
-                                if entry.get().lines != block.lines {
-                                    return Err(format!("Reverse mode impossible due to multiple, differing occurrences of a code block: {} # {} # {}",
-                                                       &block.file, &block.name.unwrap_or_else(|| "".to_string()), block.index).into());
-                                } else {
-                                    eprintln!("  WARNING: multiple occurrences of a code block: {} # {} # {}", &block.file, &block.name.unwrap_or_else(|| "".to_string()), block.index)
-                                }
-                            }
-                            Vacant(entry) => {
-                                entry.insert(block);
-                            }
-                        }
-                    }
-                }
-            }
-        }
-    }
-
+    let code_blocks = compile_reverse::collect_code_blocks(&code_files, &config)?;
     for (path, doc) in documents {
         let blocks: HashMap<_, _> = code_blocks
             .iter()
