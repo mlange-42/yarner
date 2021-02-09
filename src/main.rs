@@ -1,10 +1,10 @@
+mod code;
 mod compile;
 mod compile_reverse;
 mod config;
 mod create;
 mod document;
 mod parse;
-mod parser;
 mod print;
 mod util;
 
