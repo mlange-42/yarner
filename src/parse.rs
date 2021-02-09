@@ -5,190 +5,214 @@ use crate::document::{
     transclusion::Transclusion,
     Document, Node,
 };
-use crate::util::{Fallible, TryCollectExt};
+use crate::util::Fallible;
 use std::error::Error;
 use std::fmt::Write;
 use std::fs::File;
 use std::path::{Path, PathBuf};
 
 #[allow(clippy::nonminimal_bool)]
-pub fn parse(input: &str, path: &Path, settings: &ParserSettings) -> Fallible<Document> {
-    #[derive(Default)]
-    struct State {
-        node: Option<Node>,
-    }
+pub fn parse(
+    input: &str,
+    path: &Path,
+    is_reverse: bool,
+    settings: &ParserSettings,
+) -> Fallible<(Document, Vec<PathBuf>)> {
+    let mut nodes: Vec<Node> = vec![];
+    let mut errors: Vec<Box<dyn Error>> = vec![];
+    let mut links: Vec<PathBuf> = vec![];
 
-    enum Parse {
-        Incomplete,
-        Complete(Node),
-        Error(Box<dyn Error>),
-    }
+    for (line_number, line) in input.lines().enumerate() {
+        let (is_code, is_alt_fenced_code) = if let Some(Node::Code(code_block)) = nodes.last() {
+            (true, code_block.alternative)
+        } else {
+            (false, false)
+        };
+        let starts_fenced_alt = line.trim_start().starts_with(&settings.fence_sequence_alt);
+        let starts_fenced = if starts_fenced_alt {
+            false
+        } else {
+            line.trim_start().starts_with(&settings.fence_sequence)
+        };
 
-    impl Parse {
-        fn error(err: Box<dyn Error>, line: usize) -> Self {
-            Self::Error(format!("{} (line {})", err, line).into())
+        if (!is_code && (starts_fenced || starts_fenced_alt))
+            || (is_code && starts_fenced && !is_alt_fenced_code)
+            || (is_code && starts_fenced_alt && is_alt_fenced_code)
+        {
+            let fence_sequence = if starts_fenced_alt {
+                &settings.fence_sequence_alt
+            } else {
+                &settings.fence_sequence
+            };
+            match nodes.last_mut() {
+                Some(Node::Code(code_block)) => {
+                    if !line.starts_with(&code_block.indent) {
+                        errors
+                            .push(format!("Incorrect indentation in line {}", line_number).into());
+                    }
+                    nodes.push(Node::Text(TextBlock::new()));
+                }
+                _previous => {
+                    let code_block = start_code(
+                        line,
+                        fence_sequence,
+                        &settings.default_language,
+                        starts_fenced_alt,
+                    );
+                    nodes.push(Node::Code(code_block));
+                }
+            }
+        } else {
+            match nodes.last_mut() {
+                Some(Node::Code(block)) => {
+                    if line.starts_with(&block.indent) {
+                        let error = extend_code(line, line_number, settings, block);
+
+                        if let Some(err) = error {
+                            errors.push(err);
+                        }
+                    } else {
+                        errors.push(format!("Incorrect indentation line {}", line_number).into());
+                    }
+                }
+
+                other => {
+                    let block = if let Some(Node::Text(block)) = other {
+                        Some(block)
+                    } else {
+                        None
+                    };
+                    let (node, error) = start_or_extend_text(
+                        &line,
+                        line_number,
+                        path,
+                        settings,
+                        is_reverse,
+                        &mut links,
+                        block,
+                    );
+                    if let Some(node) = node {
+                        nodes.push(node);
+                    }
+                    if let Some(error) = error {
+                        errors.push(error);
+                    }
+                }
+            }
         }
     }
 
-    let mut state = State::default();
-    let mut document = input
-        .lines()
-        .enumerate()
-        .scan(&mut state, |state, (line_number, line)| {
-            let (is_code, is_alt_fenced_code) = if let Some(Node::Code(code_block)) = &state.node {
-                (true, code_block.alternative)
-            } else {
-                (false, false)
-            };
-            let starts_fenced_alt = line.trim_start().starts_with(&settings.fence_sequence_alt);
-            let starts_fenced = if starts_fenced_alt {
-                false
-            } else {
-                line.trim_start().starts_with(&settings.fence_sequence)
-            };
-
-            if (!is_code && (starts_fenced || starts_fenced_alt))
-                || (is_code && starts_fenced && !is_alt_fenced_code)
-                || (is_code && starts_fenced_alt && is_alt_fenced_code)
-            {
-                let fence_sequence = if starts_fenced_alt {
-                    &settings.fence_sequence_alt
-                } else {
-                    &settings.fence_sequence
-                };
-                match state.node.take() {
-                    Some(Node::Code(code_block)) => {
-                        if line.starts_with(&code_block.indent) {
-                            state.node = None;
-                            Some(Parse::Complete(Node::Code(code_block)))
-                        } else {
-                            Some(Parse::Error(
-                                format!("Incorrect indentation in line {}", line_number).into(),
-                            ))
-                        }
-                    }
-                    previous => {
-                        let indent_len = line.find(fence_sequence).unwrap();
-                        let (indent, rest) = line.split_at(indent_len);
-                        let rest = &rest[fence_sequence.len()..];
-
-                        let mut code_block = CodeBlock::new().indented(indent);
-
-                        let language = rest.trim();
-                        let language = if language.is_empty() {
-                            match &settings.default_language {
-                                Some(language) => Some(language.to_owned()),
-                                None => None,
-                            }
-                        } else {
-                            Some(language.to_owned())
-                        };
-                        if let Some(language) = language {
-                            code_block = code_block.in_language(language);
-                        }
-                        code_block = code_block.alternative(starts_fenced_alt);
-                        state.node = Some(Node::Code(code_block));
-                        match previous {
-                            None => Some(Parse::Incomplete),
-                            Some(node) => Some(Parse::Complete(node)),
-                        }
-                    }
-                }
-            } else {
-                match &mut state.node {
-                    None => {
-                        let mut new_block = TextBlock::new();
-                        new_block.add_line(line);
-                        state.node = Some(Node::Text(new_block));
-                        match parse_transclusion(line, path, settings) {
-                            Err(err) => Some(Parse::error(err, line_number)),
-                            Ok(trans) => match trans {
-                                Some(node) => {
-                                    let new_block = TextBlock::new();
-                                    state.node = Some(Node::Text(new_block));
-
-                                    Some(Parse::Complete(node))
-                                }
-                                None => Some(Parse::Incomplete),
-                            },
-                        }
-                    }
-                    Some(Node::Text(block)) => match parse_transclusion(line, path, settings) {
-                        Err(err) => Some(Parse::error(err, line_number)),
-                        Ok(trans) => match trans {
-                            Some(node) => {
-                                let ret = state.node.take();
-                                state.node = Some(node);
-                                Some(Parse::Complete(ret.unwrap()))
-                            }
-                            None => {
-                                block.add_line(line);
-                                Some(Parse::Incomplete)
-                            }
-                        },
-                    },
-                    Some(Node::Code(block)) => {
-                        if line.starts_with(&block.indent) {
-                            if block.source.is_empty()
-                                && line.trim().starts_with(&settings.block_name_prefix)
-                            {
-                                let name = line.trim()[settings.block_name_prefix.len()..].trim();
-
-                                if let Some(stripped) = name.strip_prefix(&settings.hidden_prefix) {
-                                    block.name = Some(stripped.to_string());
-                                    block.hidden = true;
-                                } else {
-                                    block.name = Some(name.to_string());
-                                };
-
-                                Some(Parse::Incomplete)
-                            } else {
-                                let line = match parse_line(
-                                    line_number,
-                                    &line[block.indent.len()..],
-                                    settings,
-                                ) {
-                                    Ok(line) => line,
-                                    Err(error) => {
-                                        return Some(Parse::error(error, line_number));
-                                    }
-                                };
-                                block.add_line(line);
-                                Some(Parse::Incomplete)
-                            }
-                        } else {
-                            Some(Parse::Error(
-                                format!("Incorrect indentation line {}", line_number).into(),
-                            ))
-                        }
-                    }
-                    Some(Node::Transclusion(trans)) => {
-                        let trans = trans.clone();
-                        let mut new_block = TextBlock::new();
-                        new_block.add_line(line);
-                        state.node = Some(Node::Text(new_block));
-                        Some(Parse::Complete(Node::Transclusion(trans)))
-                    }
-                }
-            }
-        })
-        .filter_map(|parse| match parse {
-            Parse::Incomplete => None,
-            Parse::Error(error) => Some(Err(error)),
-            Parse::Complete(node) => Some(Ok(node)),
-        })
-        .try_collect()
-        .map_err(|errors| {
-            let mut msg = String::new();
-            for error in errors {
-                writeln!(&mut msg, "{}", error).unwrap();
-            }
-            msg
-        })?;
-    if let Some(node) = state.node.take() {
-        document.push(node);
+    if let Some(Node::Text(text)) = nodes.last() {
+        if text.lines().is_empty() {
+            nodes.pop();
+        }
     }
-    Ok(Document::new(document))
+
+    if !errors.is_empty() {
+        let mut msg = String::new();
+        for error in errors {
+            writeln!(&mut msg, "{}", error).unwrap();
+        }
+        return Err(msg.into());
+    }
+
+    Ok((Document::new(nodes), links))
+}
+
+fn start_code(
+    line: &str,
+    fence_sequence: &str,
+    default_language: &Option<String>,
+    is_alt_fenced: bool,
+) -> CodeBlock {
+    let indent_len = line.find(fence_sequence).unwrap();
+    let (indent, rest) = line.split_at(indent_len);
+    let rest = &rest[fence_sequence.len()..];
+
+    let mut code_block = CodeBlock::new().indented(indent);
+
+    let language = rest.trim();
+    let language = if language.is_empty() {
+        match default_language {
+            Some(language) => Some(language.to_owned()),
+            None => None,
+        }
+    } else {
+        Some(language.to_owned())
+    };
+    if let Some(language) = language {
+        code_block = code_block.in_language(language);
+    }
+    code_block.alternative(is_alt_fenced)
+}
+
+fn extend_code(
+    line: &str,
+    line_number: usize,
+    settings: &ParserSettings,
+    block: &mut CodeBlock,
+) -> Option<Box<dyn Error>> {
+    let mut error = None;
+    if block.source.is_empty() && line.trim().starts_with(&settings.block_name_prefix) {
+        let name = line.trim()[settings.block_name_prefix.len()..].trim();
+
+        if let Some(stripped) = name.strip_prefix(&settings.hidden_prefix) {
+            block.name = Some(stripped.to_string());
+            block.hidden = true;
+        } else {
+            block.name = Some(name.to_string());
+        };
+    } else {
+        let line = match parse_line(line_number, &line[block.indent.len()..], settings) {
+            Ok(line) => Some(line),
+            Err(err) => {
+                error = Some(format!("{} (line {})", err, line_number).into());
+                None
+            }
+        };
+        if let Some(line) = line {
+            block.add_line(line);
+        }
+    }
+    error
+}
+
+fn start_or_extend_text(
+    line: &str,
+    line_number: usize,
+    path: &Path,
+    settings: &ParserSettings,
+    is_reverse: bool,
+    mut links: &mut Vec<PathBuf>,
+    block: Option<&mut TextBlock>,
+) -> (Option<Node>, Option<Box<dyn Error>>) {
+    let parsed = parse_links(&line, path, settings, !is_reverse, &mut links);
+    let line = if parsed.is_some() {
+        parsed.as_ref().unwrap()
+    } else {
+        line
+    };
+    let mut node = None;
+    let mut error = None;
+    match parse_transclusion(line, path, settings) {
+        Err(err) => error = Some(format!("{} (line {})", err, line_number).into()),
+        Ok(trans) => match trans {
+            Some(nd) => {
+                node = Some(nd);
+            }
+            None => {
+                if let Some(block) = block {
+                    block.add_line(line);
+                } else {
+                    let mut new_block = TextBlock::new();
+                    new_block.add_line(line);
+                    node = Some(Node::Text(new_block));
+                };
+            }
+        },
+    }
+
+    (node, error)
 }
 
 fn parse_transclusion(
@@ -209,7 +233,9 @@ fn parse_transclusion(
             let path = into.parent().unwrap_or_else(|| Path::new(".")).join(target);
 
             Ok(Some(Node::Transclusion(Transclusion::new(
-                path,
+                PathBuf::from(path_clean::clean(
+                    &path.to_str().unwrap().replace("\\", "/"),
+                )),
                 line.to_owned(),
             ))))
         } else {
@@ -256,59 +282,53 @@ fn parse_line(line_number: usize, input: &str, settings: &ParserSettings) -> Fal
     })
 }
 
-pub fn find_links(
-    input: &mut Document,
+fn parse_links(
+    line: &str,
     from: &Path,
     settings: &ParserSettings,
     remove_marker: bool,
-) -> Fallible<Vec<PathBuf>> {
+    links_out: &mut Vec<PathBuf>,
+) -> Option<String> {
     let regex = &settings.link_following_pattern;
-    let mut paths = vec![];
 
-    for block in input.text_blocks_mut() {
-        for line in block.lines_mut().iter_mut() {
-            let mut offset = 0;
-            let mut new_line: Option<String> = None;
-            for capture in regex.1.captures_iter(line) {
-                if remove_marker {
-                    let index = capture.get(0).unwrap().start();
-                    let len = regex.0.len();
-                    if let Some(l) = &mut new_line {
-                        *l = format!("{}{}", &l[..(index - offset)], &l[(index + len - offset)..]);
-                    } else {
-                        new_line = Some(format!(
-                            "{}{}",
-                            &line[..(index - offset)],
-                            &line[(index + len - offset)..]
-                        ));
-                    }
-                    offset += len;
-                }
-
-                let link = capture.get(2).unwrap().as_str();
-                let mut path = from.parent().unwrap().to_path_buf();
-                path.push(link);
-                let path = PathBuf::from(path_clean::clean(
-                    &path.to_str().unwrap().replace("\\", "/"),
+    let mut offset = 0;
+    let mut new_line: Option<String> = None;
+    for capture in regex.1.captures_iter(line) {
+        if remove_marker {
+            let index = capture.get(0).unwrap().start();
+            let len = regex.0.len();
+            if let Some(l) = &mut new_line {
+                *l = format!("{}{}", &l[..(index - offset)], &l[(index + len - offset)..]);
+            } else {
+                new_line = Some(format!(
+                    "{}{}",
+                    &line[..(index - offset)],
+                    &line[(index + len - offset)..]
                 ));
-                if path.is_relative()
-                    && !link.starts_with('#')
-                    && !link.starts_with("http://")
-                    && !link.starts_with("https://")
-                    && !link.starts_with("ftp://")
-                {
-                    if File::open(&path).is_ok() {
-                        paths.push(path);
-                    } else {
-                        // TODO: move out of function?
-                        eprintln!("WARNING: link target not found for {}", path.display());
-                    }
-                }
             }
-            if let Some(new_line) = new_line {
-                *line = new_line;
+            offset += len;
+        }
+
+        let link = capture.get(2).unwrap().as_str();
+        let mut path = from.parent().unwrap().to_path_buf();
+        path.push(link);
+        let path = PathBuf::from(path_clean::clean(
+            &path.to_str().unwrap().replace("\\", "/"),
+        ));
+        if path.is_relative() && is_relative_link(link) {
+            if File::open(&path).is_ok() {
+                links_out.push(path);
+            } else {
+                eprintln!("WARNING: link target not found for {}", path.display());
             }
         }
     }
-    Ok(paths)
+    new_line
+}
+
+fn is_relative_link(link: &str) -> bool {
+    !link.starts_with('#')
+        && !link.starts_with("http://")
+        && !link.starts_with("https://")
+        && !link.starts_with("ftp://")
 }
