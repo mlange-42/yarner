@@ -53,121 +53,49 @@ pub fn parse(
                     nodes.push(Node::Text(TextBlock::new()));
                 }
                 _previous => {
-                    let indent_len = line.find(fence_sequence).unwrap();
-                    let (indent, rest) = line.split_at(indent_len);
-                    let rest = &rest[fence_sequence.len()..];
-
-                    let mut code_block = CodeBlock::new().indented(indent);
-
-                    let language = rest.trim();
-                    let language = if language.is_empty() {
-                        match &settings.default_language {
-                            Some(language) => Some(language.to_owned()),
-                            None => None,
-                        }
-                    } else {
-                        Some(language.to_owned())
-                    };
-                    if let Some(language) = language {
-                        code_block = code_block.in_language(language);
-                    }
-                    code_block = code_block.alternative(starts_fenced_alt);
-
+                    let code_block = start_code(
+                        line,
+                        fence_sequence,
+                        &settings.default_language,
+                        starts_fenced_alt,
+                    );
                     nodes.push(Node::Code(code_block));
                 }
             }
         } else {
             match nodes.last_mut() {
-                None => {
-                    let parsed = parse_links(&line, path, settings, !is_reverse, &mut links);
-                    let line = if parsed.is_some() {
-                        parsed.as_ref().unwrap()
-                    } else {
-                        line
-                    };
-                    match parse_transclusion(line, path, settings) {
-                        Err(err) => errors.push(format!("{} (line {})", err, line_number).into()),
-                        Ok(trans) => {
-                            if let Some(node) = trans {
-                                nodes.push(node);
-                            } else {
-                                let mut new_block = TextBlock::new();
-                                new_block.add_line(line);
-                                nodes.push(Node::Text(new_block));
-                            }
-                        }
-                    }
-                }
-                Some(Node::Text(block)) => {
-                    let parsed = parse_links(&line, path, settings, !is_reverse, &mut links);
-                    let line = if parsed.is_some() {
-                        parsed.as_ref().unwrap()
-                    } else {
-                        line
-                    };
-                    match parse_transclusion(line, path, settings) {
-                        Err(err) => errors.push(format!("{} (line {})", err, line_number).into()),
-                        Ok(trans) => match trans {
-                            Some(node) => {
-                                nodes.push(node);
-                            }
-                            None => block.add_line(line),
-                        },
-                    }
-                }
                 Some(Node::Code(block)) => {
                     if line.starts_with(&block.indent) {
-                        if block.source.is_empty()
-                            && line.trim().starts_with(&settings.block_name_prefix)
-                        {
-                            let name = line.trim()[settings.block_name_prefix.len()..].trim();
+                        let error = extend_code(line, line_number, settings, block);
 
-                            if let Some(stripped) = name.strip_prefix(&settings.hidden_prefix) {
-                                block.name = Some(stripped.to_string());
-                                block.hidden = true;
-                            } else {
-                                block.name = Some(name.to_string());
-                            };
-                        } else {
-                            let line = match parse_line(
-                                line_number,
-                                &line[block.indent.len()..],
-                                settings,
-                            ) {
-                                Ok(line) => Some(line),
-                                Err(error) => {
-                                    errors.push(format!("{} (line {})", error, line_number).into());
-                                    None
-                                }
-                            };
-                            if let Some(line) = line {
-                                block.add_line(line);
-                            }
+                        if let Some(err) = error {
+                            errors.push(err);
                         }
                     } else {
                         errors.push(format!("Incorrect indentation line {}", line_number).into());
                     }
                 }
-                Some(Node::Transclusion(_trans)) => {
-                    let parsed = parse_links(&line, path, settings, !is_reverse, &mut links);
-                    let line = if parsed.is_some() {
-                        parsed.as_ref().unwrap()
-                    } else {
-                        line
-                    };
 
-                    match parse_transclusion(line, path, settings) {
-                        Err(err) => errors.push(format!("{} (line {})", err, line_number).into()),
-                        Ok(trans) => match trans {
-                            Some(node) => {
-                                nodes.push(node);
-                            }
-                            None => {
-                                let mut new_block = TextBlock::new();
-                                new_block.add_line(line);
-                                nodes.push(Node::Text(new_block));
-                            }
-                        },
+                other => {
+                    let block = if let Some(Node::Text(block)) = other {
+                        Some(block)
+                    } else {
+                        None
+                    };
+                    let (node, error) = start_or_extend_text(
+                        &line,
+                        line_number,
+                        path,
+                        settings,
+                        is_reverse,
+                        &mut links,
+                        block,
+                    );
+                    if let Some(node) = node {
+                        nodes.push(node);
+                    }
+                    if let Some(error) = error {
+                        errors.push(error);
                     }
                 }
             }
@@ -189,6 +117,102 @@ pub fn parse(
     }
 
     Ok((Document::new(nodes), links))
+}
+
+fn start_code(
+    line: &str,
+    fence_sequence: &str,
+    default_language: &Option<String>,
+    is_alt_fenced: bool,
+) -> CodeBlock {
+    let indent_len = line.find(fence_sequence).unwrap();
+    let (indent, rest) = line.split_at(indent_len);
+    let rest = &rest[fence_sequence.len()..];
+
+    let mut code_block = CodeBlock::new().indented(indent);
+
+    let language = rest.trim();
+    let language = if language.is_empty() {
+        match default_language {
+            Some(language) => Some(language.to_owned()),
+            None => None,
+        }
+    } else {
+        Some(language.to_owned())
+    };
+    if let Some(language) = language {
+        code_block = code_block.in_language(language);
+    }
+    code_block.alternative(is_alt_fenced)
+}
+
+fn extend_code(
+    line: &str,
+    line_number: usize,
+    settings: &ParserSettings,
+    block: &mut CodeBlock,
+) -> Option<Box<dyn Error>> {
+    let mut error = None;
+    if block.source.is_empty() && line.trim().starts_with(&settings.block_name_prefix) {
+        let name = line.trim()[settings.block_name_prefix.len()..].trim();
+
+        if let Some(stripped) = name.strip_prefix(&settings.hidden_prefix) {
+            block.name = Some(stripped.to_string());
+            block.hidden = true;
+        } else {
+            block.name = Some(name.to_string());
+        };
+    } else {
+        let line = match parse_line(line_number, &line[block.indent.len()..], settings) {
+            Ok(line) => Some(line),
+            Err(err) => {
+                error = Some(format!("{} (line {})", err, line_number).into());
+                None
+            }
+        };
+        if let Some(line) = line {
+            block.add_line(line);
+        }
+    }
+    error
+}
+
+fn start_or_extend_text(
+    line: &str,
+    line_number: usize,
+    path: &Path,
+    settings: &ParserSettings,
+    is_reverse: bool,
+    mut links: &mut Vec<PathBuf>,
+    block: Option<&mut TextBlock>,
+) -> (Option<Node>, Option<Box<dyn Error>>) {
+    let parsed = parse_links(&line, path, settings, !is_reverse, &mut links);
+    let line = if parsed.is_some() {
+        parsed.as_ref().unwrap()
+    } else {
+        line
+    };
+    let mut node = None;
+    let mut error = None;
+    match parse_transclusion(line, path, settings) {
+        Err(err) => error = Some(format!("{} (line {})", err, line_number).into()),
+        Ok(trans) => match trans {
+            Some(nd) => {
+                node = Some(nd);
+            }
+            None => {
+                if let Some(block) = block {
+                    block.add_line(line);
+                } else {
+                    let mut new_block = TextBlock::new();
+                    new_block.add_line(line);
+                    node = Some(Node::Text(new_block));
+                };
+            }
+        },
+    }
+
+    (node, error)
 }
 
 fn parse_transclusion(
