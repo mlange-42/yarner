@@ -75,10 +75,10 @@ pub fn copy_files(
                     std::fs::create_dir_all(file_path.parent().unwrap()).unwrap();
                 }
                 let (from, to) = if reverse {
-                    eprintln!("Copying file {} to {}", file_path.display(), file.display());
+                    println!("Copying file {} to {}", file_path.display(), file.display());
                     (&file_path, &file)
                 } else {
-                    eprintln!("Copying file {} to {}", file.display(), file_path.display());
+                    println!("Copying file {} to {}", file.display(), file_path.display());
                     (&file, &file_path)
                 };
                 if let Err(err) = std::fs::copy(&from, &to) {

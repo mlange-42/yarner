@@ -76,7 +76,7 @@ fn compile(
     settings: &HashMap<String, LanguageSettings>,
     track_code_files: &mut HashMap<PathBuf, Option<PathBuf>>,
 ) -> Fallible {
-    eprintln!("Compiling file {}", file_name.display());
+    println!("Compiling file {}", file_name.display());
 
     let mut entries = document.entry_points(parser, language);
 
@@ -117,7 +117,7 @@ fn compile(
                 match track_code_files.entry(file_path.clone()) {
                     Occupied(entry) => {
                         if sub_source_file == *entry.get() {
-                            eprintln!("  Skipping file {} (already written)", file_path.display());
+                            println!("  Skipping file {} (already written)", file_path.display());
                             continue;
                         } else {
                             return Err(format!(
@@ -134,7 +134,7 @@ fn compile(
 
                 match print::print_code(document, entrypoint, language, settings) {
                     Ok(code) => {
-                        eprintln!("  Writing file {}", file_path.display());
+                        println!("  Writing file {}", file_path.display());
                         fs::create_dir_all(file_path.parent().unwrap()).unwrap();
                         let mut code_file = File::create(file_path).unwrap();
                         write!(code_file, "{}", code).unwrap()
