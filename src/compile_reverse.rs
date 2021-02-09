@@ -130,7 +130,7 @@ fn compile(
     language: Option<&str>,
     track_code_files: &mut HashSet<PathBuf>,
 ) -> Fallible {
-    eprintln!("Compiling file {}", file_name.display());
+    println!("Compiling file {}", file_name.display());
 
     let mut entries = document.entry_points(parser, language);
 
