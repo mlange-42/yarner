@@ -173,7 +173,7 @@ The normal workflow is:
 
     let language = matches.value_of("language");
 
-    if reverse {
+    let mut code_files = if reverse {
         process_inputs_reverse(
             &input_patterns,
             &config,
@@ -181,15 +181,11 @@ The normal workflow is:
             doc_dir,
             entrypoint,
             language,
-        )?;
+        )?
     } else {
-        if has_reverse_config && !force {
-            if let Some(code_dir) = code_dir {
-                if lock::code_changed(&lock_path, &PathBuf::from(code_dir))? {
-                    eprintln!("Code output has changed. Stopping to prevent overwrite. To run anyway, run with `yarner --force`");
-                    return Ok(());
-                }
-            }
+        if has_reverse_config && !force && lock::code_changed(&lock_path)? {
+            eprintln!("Code output has changed. Stopping to prevent overwrite. To run anyway, run with `yarner --force`");
+            return Ok(());
         }
         process_inputs_forward(
             &input_patterns,
@@ -198,17 +194,18 @@ The normal workflow is:
             doc_dir,
             entrypoint,
             language,
-        )?;
-    }
+        )?
+    };
 
     if let Some(code_dir) = code_dir {
         if let Some(code_file_patterns) = &config.paths.code_files {
-            files::copy_files(
+            let copy_out_files = files::copy_files(
                 code_file_patterns,
                 config.paths.code_paths.as_deref(),
                 code_dir,
                 reverse,
             )?;
+            code_files.extend(copy_out_files);
         }
     }
 
@@ -226,9 +223,7 @@ The normal workflow is:
     }
 
     if has_reverse_config {
-        if let Some(code_dir) = code_dir {
-            lock::write_lock(lock_path.as_ref(), code_dir)?;
-        }
+        lock::write_lock(lock_path, code_files)?;
     }
 
     Ok(())
@@ -241,7 +236,7 @@ fn process_inputs_reverse(
     doc_dir: Option<&Path>,
     entrypoint: Option<&str>,
     language: Option<&str>,
-) -> Fallible {
+) -> Fallible<HashSet<PathBuf>> {
     let mut any_input = false;
 
     let mut documents: HashMap<PathBuf, Document> = HashMap::new();
@@ -337,7 +332,7 @@ fn process_inputs_reverse(
         }
     }
 
-    Ok(())
+    Ok(code_files)
 }
 
 fn process_inputs_forward(
@@ -347,27 +342,25 @@ fn process_inputs_forward(
     doc_dir: Option<&Path>,
     entrypoint: Option<&str>,
     language: Option<&str>,
-) -> Result<(), String> {
+) -> Fallible<HashSet<PathBuf>> {
     let mut any_input = false;
     let mut track_code_files = HashMap::new();
     for pattern in input_patterns {
         let paths = match glob::glob(&pattern) {
             Ok(p) => p,
             Err(err) => {
-                return Err(format!(
-                    "Unable to process glob pattern \"{}\": {}",
-                    pattern, err
-                ))
+                return Err(
+                    format!("Unable to process glob pattern \"{}\": {}", pattern, err).into(),
+                )
             }
         };
         for path in paths {
             let input = match path {
                 Ok(p) => p,
                 Err(err) => {
-                    return Err(format!(
-                        "Unable to process glob pattern \"{}\": {}",
-                        pattern, err
-                    ))
+                    return Err(
+                        format!("Unable to process glob pattern \"{}\": {}", pattern, err).into(),
+                    )
                 }
             };
             if input.is_file() {
@@ -401,7 +394,8 @@ fn process_inputs_forward(
                         "Failed to compile source file \"{}\": {}",
                         file_name.display(),
                         error
-                    ));
+                    )
+                    .into());
                 }
             }
         }
@@ -413,8 +407,9 @@ fn process_inputs_forward(
                 For help, use:\n\
                  > yarner -h",
             input_patterns.iter().join(", ", '"')
-        ));
+        )
+        .into());
     }
 
-    Ok(())
+    Ok(track_code_files.keys().cloned().collect())
 }

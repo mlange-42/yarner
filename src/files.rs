@@ -9,6 +9,7 @@ use std::{
 };
 
 use crate::util::Fallible;
+use std::collections::HashSet;
 
 pub fn read_file_string(path: &Path) -> Fallible<String> {
     std::fs::read_to_string(&path).map_err(|err| format!("{}: {}", err, path.display()).into())
@@ -23,7 +24,7 @@ pub fn copy_files(
     path_mod: Option<&[String]>,
     target_dir: &Path,
     reverse: bool,
-) -> Result<(), String> {
+) -> Result<HashSet<PathBuf>, String> {
     match path_mod {
         Some(path_mod) if patterns.len() != path_mod.len() => {
             return Err(
@@ -33,6 +34,7 @@ pub fn copy_files(
         _ => (),
     }
     let mut track_copy_dest: HashMap<PathBuf, PathBuf> = HashMap::new();
+    let mut out_files: HashSet<PathBuf> = HashSet::new();
     for (idx, file_pattern) in patterns.iter().enumerate() {
         let path = path_mod.as_ref().map(|paths| &paths[idx]);
         let paths = match glob::glob(&file_pattern) {
@@ -88,10 +90,11 @@ pub fn copy_files(
                 if let Err(err) = std::fs::copy(&from, &to) {
                     return Err(format!("Error copying file {}: {}", file.display(), err));
                 }
+                out_files.insert(to.to_owned());
             }
         }
     }
-    Ok(())
+    Ok(out_files)
 }
 
 fn modify_path(path: &Path, replace: &str) -> PathBuf {

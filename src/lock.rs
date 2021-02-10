@@ -1,36 +1,34 @@
-use std::fs::{self, write};
+use std::fs::write;
 use std::path::{Path, PathBuf};
 
 use serde::{Deserialize, Serialize};
 
 use crate::{files, util::Fallible};
+use std::collections::{HashMap, HashSet};
 
-pub fn code_changed<P: AsRef<Path>>(lock_file: P, code_dir: P) -> Fallible<bool> {
-    if code_dir.as_ref().exists()
-        && code_dir.as_ref().is_dir()
-        && lock_file.as_ref().exists()
-        && lock_file.as_ref().is_file()
-    {
-        let mut code_hasher = Hasher::default();
-        code_hasher.consume_all(code_dir)?;
-        let code_hash = code_hasher.compute();
-
-        let lock = Lock::read(lock_file)?;
-
-        Ok(lock.code_hash != code_hash)
+pub fn code_changed<P: AsRef<Path>>(lock_file: P) -> Fallible<bool> {
+    if lock_file.as_ref().exists() && lock_file.as_ref().is_file() {
+        let _lock = Lock::read(lock_file)?;
+        Ok(false)
     } else {
         Ok(false)
     }
 }
 
-pub fn write_lock<P: AsRef<Path>>(lock_file: P, code_dir: P) -> Fallible {
+pub fn write_lock<P: AsRef<Path>>(lock_file: P, code_files: HashSet<PathBuf>) -> Fallible {
     let mut code_hasher = Hasher::default();
-    code_hasher.consume_all(code_dir)?;
-    let code_hash = code_hasher.compute();
+
+    let code_hashes = code_files
+        .iter()
+        .map(|p| match code_hasher.hash(p) {
+            Ok(hash) => Ok((p.clone(), hash)),
+            Err(err) => Err(err),
+        })
+        .collect::<Result<HashMap<_, _>, _>>()?;
 
     let lock = Lock {
-        code_hash,
-        source_hash: String::new(),
+        code_hashes,
+        source_hashes: HashMap::new(),
     };
     lock.write(&lock_file)
 }
@@ -38,8 +36,8 @@ pub fn write_lock<P: AsRef<Path>>(lock_file: P, code_dir: P) -> Fallible {
 /// Content for Yarner.lock files
 #[derive(Serialize, Deserialize)]
 struct Lock {
-    source_hash: String,
-    code_hash: String,
+    source_hashes: HashMap<PathBuf, String>,
+    code_hashes: HashMap<PathBuf, String>,
 }
 
 impl Lock {
@@ -71,22 +69,12 @@ impl Default for Hasher {
 }
 
 impl Hasher {
-    fn consume_all<P: AsRef<Path>>(&mut self, path: P) -> Fallible {
-        let root = PathBuf::from(path.as_ref());
-        if root.is_dir() {
-            let mut entries = fs::read_dir(root)?.collect::<Result<Vec<_>, _>>()?;
-            entries.sort_by_cached_key(|d| d.path());
-            for entry in entries {
-                self.consume_all(entry.path())?;
-            }
-        } else {
-            self.consume_file(root)?;
-        }
-        Ok(())
-    }
-
-    fn compute(self) -> String {
-        self.hasher.finalize().to_hex().to_string()
+    fn hash<P: AsRef<Path>>(&mut self, file: P) -> Fallible<String> {
+        self.hasher.reset();
+        self.consume_file(file)?;
+        let result = self.hasher.finalize().to_hex().to_string();
+        self.hasher.reset();
+        Ok(result)
     }
 
     fn consume_file<P: AsRef<Path>>(&mut self, file: P) -> Fallible {

@@ -404,8 +404,6 @@ impl Line {
 pub enum CompileErrorKind {
     /// An unknown macro name was encountered
     UnknownMacro(String),
-    /// There is no unnamed code block to use as the entrypoint
-    MissingEntrypoint,
 }
 
 /// Errors that were encountered while compiling the document
