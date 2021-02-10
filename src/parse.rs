@@ -1,8 +1,10 @@
 use crate::config::{ParserSettings, LINK_REGEX};
 use crate::document::{CodeBlock, Document, Line, Node, Source, TextBlock, Transclusion};
 use crate::util::Fallible;
+use regex::Captures;
 use std::error::Error;
 use std::fmt::Write;
+use std::ops::Deref;
 use std::path::{Path, PathBuf};
 
 #[allow(clippy::nonminimal_bool)]
@@ -288,38 +290,45 @@ fn parse_links(
     remove_marker: bool,
     links_out: &mut Vec<PathBuf>,
 ) -> Option<String> {
-    let marker = &settings.link_prefix;
-    let regex = &LINK_REGEX;
+    let marker = &settings.link_following_pattern.0;
+    let regex = &settings.link_following_pattern.1;
 
-    let mut offset = 0;
     let mut new_line: Option<String> = None;
-    for capture in regex.captures_iter(line) {
-        let index = capture.get(0).unwrap().start();
-        if line[..index].ends_with(marker) {
-            if remove_marker {
-                let len = marker.len();
-                if let Some(l) = &mut new_line {
-                    *l = format!("{}{}", &l[..(index - offset)], &l[(index + len - offset)..]);
-                } else {
-                    new_line = Some(format!(
-                        "{}{}",
-                        &line[..(index - offset)],
-                        &line[(index + len - offset)..]
-                    ));
-                }
-                offset += len;
-            }
 
-            let link = capture.get(2).unwrap().as_str();
-            let mut path = from.parent().unwrap().to_path_buf();
-            path.push(link);
-            if path.is_relative() && is_relative_link(link) {
-                let path = PathBuf::from(path_clean::clean(
-                    &path.to_str().unwrap().replace("\\", "/"),
-                ));
-                links_out.push(path);
-            }
-        }
+    if regex.is_match(line) {
+        let ln = if let Some(l) = &mut new_line {
+            l
+        } else {
+            new_line = Some(String::new());
+            new_line.as_mut().unwrap()
+        };
+
+        *ln = regex
+            .replace_all(line, |caps: &Captures| {
+                let label = &caps[2];
+                let link = &caps[3];
+                let follow = caps.get(1).is_some();
+
+                if follow {
+                    let mut path = from.parent().unwrap().to_path_buf();
+                    path.push(link);
+                    if path.is_relative() && is_relative_link(link) {
+                        let path = PathBuf::from(path_clean::clean(
+                            &path.to_str().unwrap().replace("\\", "/"),
+                        ));
+                        links_out.push(path);
+                    }
+                }
+
+                format!(
+                    "{}[{}]({})",
+                    if follow && remove_marker { "" } else { marker },
+                    label,
+                    link,
+                )
+            })
+            .deref()
+            .to_owned();
     }
     new_line
 }
@@ -334,7 +343,9 @@ fn is_relative_link(link: &str) -> bool {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::config::LINK_PATTERN;
     use crate::document::Source::Macro;
+    use regex::Regex;
 
     #[test]
     fn parse_text() {
@@ -457,7 +468,10 @@ text
             macro_end: ".".to_string(),
             transclusion_start: "@{{".to_string(),
             transclusion_end: "}}".to_string(),
-            link_prefix: "@".to_string(),
+            link_following_pattern: (
+                "@".to_string(),
+                Regex::new(&format!("(@)?{}", LINK_PATTERN)).unwrap(),
+            ),
             file_prefix: "file:".to_string(),
             hidden_prefix: "hidden:".to_string(),
         }

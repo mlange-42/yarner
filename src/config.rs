@@ -4,7 +4,7 @@ use std::path::Path;
 
 use once_cell::sync::Lazy;
 use regex::Regex;
-use serde::{Deserialize, Serialize};
+use serde::{de::Error as _, Deserialize, Deserializer, Serialize};
 
 use crate::{files, util::Fallible};
 
@@ -68,7 +68,10 @@ pub struct ParserSettings {
     /// The sequence to identify the end of a transclusion.
     pub transclusion_end: String,
     /// Prefix for links that should be followed during processing.
-    pub link_prefix: String,
+    /// Should be RegEx-compatible.
+    #[serde(rename(deserialize = "link_prefix"))]
+    #[serde(deserialize_with = "from_link_prefix")]
+    pub link_following_pattern: (String, Regex),
     /// Prefix for file-specific entry points.
     pub file_prefix: String,
     /// Name prefix for code blocks not shown in the docs.
@@ -95,6 +98,24 @@ Please comment out option `comments_as_aside` until the next version, and rename
 
         cloned
     }
+}
+
+fn from_link_prefix<'de, D>(deserializer: D) -> Result<(String, Regex), D::Error>
+where
+    D: Deserializer<'de>,
+{
+    let prefix: &str = Deserialize::deserialize(deserializer)?;
+    Ok((
+        prefix.to_string(),
+        Regex::new(&format!("({})?{}", prefix, LINK_PATTERN)).map_err(|err| {
+            D::Error::custom(format!(
+                "Error compiling Regex pattern {}{}\n{}",
+                prefix,
+                LINK_PATTERN,
+                err.to_string()
+            ))
+        })?,
+    ))
 }
 
 /// Config for paths
