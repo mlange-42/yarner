@@ -223,7 +223,7 @@ The normal workflow is:
     }
 
     if has_reverse_config {
-        lock::write_lock(lock_path, code_files)?;
+        lock::write_lock(lock_path, &code_files)?;
     }
 
     Ok(())

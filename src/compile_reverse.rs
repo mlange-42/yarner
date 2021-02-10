@@ -140,16 +140,21 @@ fn compile(
         (&file_name_without_ext, Some(PathBuf::from(file_name))),
     );
 
-    for (_entrypoint, (sub_file_name, _sub_source_file)) in entries {
+    for (entrypoint, (sub_file_name, _sub_source_file)) in entries {
         match code_dir {
             Some(code_dir) => {
-                let mut file_path = code_dir.to_owned();
-                file_path.push(sub_file_name);
-                if let Some(language) = language {
-                    file_path.set_extension(language);
-                }
+                if document
+                    .code_blocks_by_name(language)
+                    .contains_key(&entrypoint)
+                {
+                    let mut file_path = code_dir.to_owned();
+                    file_path.push(sub_file_name);
+                    if let Some(language) = language {
+                        file_path.set_extension(language);
+                    }
 
-                track_code_files.insert(file_path);
+                    track_code_files.insert(file_path);
+                }
             }
             None => eprintln!("WARNING: Missing output location for code, skipping code output."),
         }
