@@ -6,21 +6,22 @@ use serde::{Deserialize, Serialize, Serializer};
 use crate::{files, util::Fallible};
 use std::collections::{BTreeMap, HashSet};
 
-pub fn sources_changed<P: AsRef<Path>>(lock_file: P) -> Fallible<bool> {
+pub fn files_changed<P: AsRef<Path>>(lock_file: P, code: bool) -> Fallible<bool> {
     if lock_file.as_ref().is_file() {
-        let lock = Lock::read(lock_file)?;
-        let source_hashes = hash_files(lock.source_hashes.keys())?;
-        Ok(source_hashes != lock.source_hashes)
-    } else {
-        Ok(false)
-    }
-}
-
-pub fn code_changed<P: AsRef<Path>>(lock_file: P) -> Fallible<bool> {
-    if lock_file.as_ref().is_file() {
-        let lock = Lock::read(lock_file)?;
-        let code_hashes = hash_files(lock.code_hashes.keys())?;
-        Ok(code_hashes != lock.code_hashes)
+        let lock = Lock::read(&lock_file).map_err(|err| {
+            format!(
+                "Invalid lock file {}: {}\n  Delete the file of run with option `--force`.",
+                lock_file.as_ref().display(),
+                err.to_string()
+            )
+        })?;
+        let hashes = if code {
+            lock.code_hashes
+        } else {
+            lock.source_hashes
+        };
+        let source_hashes = hash_files(hashes.keys())?;
+        Ok(source_hashes != hashes)
     } else {
         Ok(false)
     }
