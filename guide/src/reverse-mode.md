@@ -95,6 +95,20 @@ fn main() {
 
 If files were copied as explained in chapter [Copying files](./copying-files.md), Yarner detects these in reverse mode and copies them back. I.e. code in copied files can be modified just like code extracted from code blocks, but without the need to care for block labels.
 
+## Lock file
+
+When reverse mode for a project is enabled (by providing the required language settings), a file `Yarner.lock` is created in the project's `root`.
+The file is required to prevent accidental overwrites of user edits is Markdown sources as well as code output.
+E.g., after editing the code output, Yarner will refuse to do a forward build as your changes would then be lost.
+To build the project nonetheless, run with option `--force`:
+
+```plaintext
+> yarner --force
+> yarner --force reverse
+```
+
+The file `Yarner.lock` should be ignored by Version Control Systems (i.e. add `Yarner.lock` to your `.gitignore`).
+
 ## Clean code output
 
 For clean code output without block labels, run Yarner with option `--clean`:

@@ -5,6 +5,7 @@ mod config;
 mod create;
 mod document;
 mod files;
+mod lock;
 mod parse;
 mod print;
 mod util;
@@ -92,6 +93,12 @@ The normal workflow is:
             .help("Produces clean code output, without block label comments.")
             .required(false)
             .takes_value(false))
+        .arg(Arg::with_name("force")
+            .long("force")
+            .short("F")
+            .help("Forces building, although it would result in overwriting changed files.")
+            .required(false)
+            .takes_value(false))
         .subcommand(SubCommand::with_name("init")
             .about("Creates a yarner project in the current directory")
         )
@@ -117,7 +124,15 @@ The normal workflow is:
         .check()
         .map_err(|err| format!("Invalid config file \"{}\": {}", config_path, err))?;
 
+    let has_reverse_config = config
+        .language
+        .values()
+        .any(|lang| lang.block_labels.is_some());
+
+    let lock_path = PathBuf::from(config_path).with_extension("lock");
+
     let clean_code = matches.is_present("clean");
+    let force = matches.is_present("force");
     for lang in config.language.values_mut() {
         lang.clean_code = clean_code;
     }
@@ -158,7 +173,14 @@ The normal workflow is:
 
     let language = matches.value_of("language");
 
-    if reverse {
+    let (mut source_files, mut code_files) = if reverse {
+        if has_reverse_config && !force && lock::files_changed(&lock_path, false)? {
+            return Err(
+                r#"Markdown sources have changed. Stopping to prevent overwrite.
+  To run anyway, use `yarner --force reverse`"#
+                    .into(),
+            );
+        }
         process_inputs_reverse(
             &input_patterns,
             &config,
@@ -166,8 +188,13 @@ The normal workflow is:
             doc_dir,
             entrypoint,
             language,
-        )?;
+        )?
     } else {
+        if has_reverse_config && !force && lock::files_changed(&lock_path, true)? {
+            return Err(r#"Code output has changed. Stopping to prevent overwrite.
+  To run anyway, use `yarner --force`"#
+                .into());
+        }
         process_inputs_forward(
             &input_patterns,
             &config,
@@ -175,17 +202,19 @@ The normal workflow is:
             doc_dir,
             entrypoint,
             language,
-        )?;
-    }
+        )?
+    };
 
     if let Some(code_dir) = code_dir {
         if let Some(code_file_patterns) = &config.paths.code_files {
-            files::copy_files(
+            let (copy_in, copy_out) = files::copy_files(
                 code_file_patterns,
                 config.paths.code_paths.as_deref(),
                 code_dir,
                 reverse,
             )?;
+            source_files.extend(copy_in);
+            code_files.extend(copy_out);
         }
     }
 
@@ -202,6 +231,10 @@ The normal workflow is:
         }
     }
 
+    if has_reverse_config {
+        lock::write_lock(lock_path, &source_files, &code_files)?;
+    }
+
     Ok(())
 }
 
@@ -212,11 +245,33 @@ fn process_inputs_reverse(
     doc_dir: Option<&Path>,
     entrypoint: Option<&str>,
     language: Option<&str>,
-) -> Fallible {
+) -> Fallible<(HashSet<PathBuf>, HashSet<PathBuf>)> {
+    let code_dir = code_dir.ok_or({
+        r#"Missing code output location. Reverse mode not possible.
+  Add 'code = "code"' to section 'path' in file Yarner.toml"#
+    })?;
+
+    if !code_dir.exists() {
+        return Err(format!(
+            r#"Code output target '{}' not found. Reverse mode not possible.
+  You may have to run the forward mode first: `yarner`"#,
+            code_dir.display()
+        )
+        .into());
+    }
+    if !code_dir.is_dir() {
+        return Err(format!(
+            "Code output target '{}' is not a directory. Reverse mode not possible.",
+            code_dir.display()
+        )
+        .into());
+    }
+
     let mut any_input = false;
 
     let mut documents: HashMap<PathBuf, Document> = HashMap::new();
     let mut code_files: HashSet<PathBuf> = HashSet::new();
+    let mut source_files: HashSet<PathBuf> = HashSet::new();
 
     for pattern in input_patterns {
         let paths = match glob::glob(&pattern) {
@@ -260,7 +315,7 @@ fn process_inputs_reverse(
                     entrypoint,
                     language,
                     &config.language,
-                    &mut HashSet::new(),
+                    &mut source_files,
                     &mut code_files,
                     &mut documents,
                 ) {
@@ -308,7 +363,7 @@ fn process_inputs_reverse(
         }
     }
 
-    Ok(())
+    Ok((source_files, code_files))
 }
 
 fn process_inputs_forward(
@@ -318,27 +373,26 @@ fn process_inputs_forward(
     doc_dir: Option<&Path>,
     entrypoint: Option<&str>,
     language: Option<&str>,
-) -> Result<(), String> {
+) -> Fallible<(HashSet<PathBuf>, HashSet<PathBuf>)> {
     let mut any_input = false;
+    let mut track_source_files = HashSet::new();
     let mut track_code_files = HashMap::new();
     for pattern in input_patterns {
         let paths = match glob::glob(&pattern) {
             Ok(p) => p,
             Err(err) => {
-                return Err(format!(
-                    "Unable to process glob pattern \"{}\": {}",
-                    pattern, err
-                ))
+                return Err(
+                    format!("Unable to process glob pattern \"{}\": {}", pattern, err).into(),
+                )
             }
         };
         for path in paths {
             let input = match path {
                 Ok(p) => p,
                 Err(err) => {
-                    return Err(format!(
-                        "Unable to process glob pattern \"{}\": {}",
-                        pattern, err
-                    ))
+                    return Err(
+                        format!("Unable to process glob pattern \"{}\": {}", pattern, err).into(),
+                    )
                 }
             };
             if input.is_file() {
@@ -365,14 +419,15 @@ fn process_inputs_forward(
                     entrypoint,
                     language,
                     &config.language,
-                    &mut HashSet::new(),
+                    &mut track_source_files,
                     &mut track_code_files,
                 ) {
                     return Err(format!(
                         "Failed to compile source file \"{}\": {}",
                         file_name.display(),
                         error
-                    ));
+                    )
+                    .into());
                 }
             }
         }
@@ -384,8 +439,12 @@ fn process_inputs_forward(
                 For help, use:\n\
                  > yarner -h",
             input_patterns.iter().join(", ", '"')
-        ));
+        )
+        .into());
     }
 
-    Ok(())
+    Ok((
+        track_source_files,
+        track_code_files.keys().cloned().collect(),
+    ))
 }

@@ -8,7 +8,7 @@ use std::path::{Path, PathBuf};
 
 use crate::{
     config::{LanguageSettings, ParserSettings},
-    document::{CompileError, CompileErrorKind, Document},
+    document::Document,
     files, parse, print,
     util::Fallible,
 };
@@ -101,55 +101,54 @@ fn compile(
     for (entrypoint, (sub_file_name, sub_source_file)) in entries {
         match code_dir {
             Some(code_dir) => {
-                let mut file_path = code_dir.to_owned();
-                file_path.push(sub_file_name);
-                if let Some(language) = language {
-                    file_path.set_extension(language);
-                }
+                let code_blocks = document.code_blocks_by_name(language);
+                if let Some(entry_blocks) = code_blocks.get(&entrypoint) {
+                    let mut file_path = code_dir.to_owned();
+                    file_path.push(sub_file_name);
+                    if let Some(language) = language {
+                        file_path.set_extension(language);
+                    }
 
-                let extension = file_path
-                    .extension()
-                    .and_then(|ext| ext.to_str())
-                    .unwrap_or("")
-                    .to_string();
-                let settings = settings.get(&extension);
+                    let extension = file_path
+                        .extension()
+                        .and_then(|ext| ext.to_str())
+                        .unwrap_or("")
+                        .to_string();
+                    let settings = settings.get(&extension);
 
-                match track_code_files.entry(file_path.clone()) {
-                    Occupied(entry) => {
-                        if sub_source_file == *entry.get() {
-                            println!("  Skipping file {} (already written)", file_path.display());
-                            continue;
-                        } else {
-                            return Err(format!(
-                                "Multiple distinct locations point to code file {}",
-                                file_path.display()
-                            )
-                            .into());
+                    // TODO: only track files that are really created!
+                    match track_code_files.entry(file_path.clone()) {
+                        Occupied(entry) => {
+                            if sub_source_file == *entry.get() {
+                                println!(
+                                    "  Skipping file {} (already written)",
+                                    file_path.display()
+                                );
+                                continue;
+                            } else {
+                                return Err(format!(
+                                    "Multiple distinct locations point to code file {}",
+                                    file_path.display()
+                                )
+                                .into());
+                            }
+                        }
+                        Vacant(entry) => {
+                            entry.insert(sub_source_file);
                         }
                     }
-                    Vacant(entry) => {
-                        entry.insert(sub_source_file);
-                    }
-                }
 
-                match print::print_code(document, entrypoint, language, settings) {
-                    Ok(code) => {
-                        println!("  Writing file {}", file_path.display());
-                        fs::create_dir_all(file_path.parent().unwrap()).unwrap();
-                        let mut code_file = File::create(file_path).unwrap();
-                        write!(code_file, "{}", code).unwrap()
-                    }
-                    Err(CompileError::Single {
-                        kind: CompileErrorKind::MissingEntrypoint,
-                        ..
-                    }) => {
-                        eprintln!(
-                            "  WARNING: No entrypoint for file {}, skipping code output.",
-                            sub_file_name.display()
-                        );
-                    }
-                    Err(err) => return Err(Box::new(err)),
-                };
+                    let code = print::print_code(&code_blocks, entry_blocks, settings)?;
+                    println!("  Writing file {}", file_path.display());
+                    fs::create_dir_all(file_path.parent().unwrap())?;
+                    let mut code_file = File::create(file_path)?;
+                    write!(code_file, "{}", code)?;
+                } else {
+                    eprintln!(
+                        "  No entrypoint for file {}, skipping code output.",
+                        sub_file_name.display()
+                    );
+                }
             }
             None => eprintln!("WARNING: Missing output location for code, skipping code output."),
         }
@@ -159,7 +158,7 @@ fn compile(
 }
 
 fn transclude(parser: &ParserSettings, file_name: &Path) -> Fallible<(Document, Vec<PathBuf>)> {
-    let source_main = files::read_file(&file_name)?;
+    let source_main = files::read_file_string(&file_name)?;
     let (mut document, mut links) = parse::parse(&source_main, &file_name, false, parser)?;
 
     let transclusions = document.transclusions().cloned().collect::<Vec<_>>();

@@ -9,9 +9,14 @@ use std::{
 };
 
 use crate::util::Fallible;
+use std::collections::HashSet;
 
-pub fn read_file(path: &Path) -> Fallible<String> {
+pub fn read_file_string(path: &Path) -> Fallible<String> {
     std::fs::read_to_string(&path).map_err(|err| format!("{}: {}", err, path.display()).into())
+}
+
+pub fn read_file(path: &Path) -> Fallible<Vec<u8>> {
+    std::fs::read(&path).map_err(|err| format!("{}: {}", err, path.display()).into())
 }
 
 pub fn copy_files(
@@ -19,7 +24,7 @@ pub fn copy_files(
     path_mod: Option<&[String]>,
     target_dir: &Path,
     reverse: bool,
-) -> Result<(), String> {
+) -> Result<(HashSet<PathBuf>, HashSet<PathBuf>), String> {
     match path_mod {
         Some(path_mod) if patterns.len() != path_mod.len() => {
             return Err(
@@ -54,11 +59,14 @@ pub fn copy_files(
             };
             if file.is_file() {
                 let out_path = path.map_or(file.clone(), |path| modify_path(&file, &path));
-                match track_copy_dest.entry(out_path.clone()) {
+                let mut file_path = target_dir.to_owned();
+                file_path.push(out_path);
+
+                match track_copy_dest.entry(file_path.clone()) {
                     Occupied(entry) => {
                         return Err(format!(
                             "Attempted to copy multiple code files to {}: from {} and {}",
-                            out_path.display(),
+                            file_path.display(),
                             entry.get().display(),
                             file.display()
                         ));
@@ -67,9 +75,6 @@ pub fn copy_files(
                         entry.insert(file.clone());
                     }
                 }
-
-                let mut file_path = target_dir.to_owned();
-                file_path.push(out_path);
 
                 if !reverse {
                     std::fs::create_dir_all(file_path.parent().unwrap()).unwrap();
@@ -87,7 +92,10 @@ pub fn copy_files(
             }
         }
     }
-    Ok(())
+    Ok((
+        track_copy_dest.values().cloned().collect(),
+        track_copy_dest.keys().cloned().collect(),
+    ))
 }
 
 fn modify_path(path: &Path, replace: &str) -> PathBuf {

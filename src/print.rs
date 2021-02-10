@@ -1,8 +1,6 @@
 use crate::code::RevCodeBlock;
 use crate::config::{LanguageSettings, ParserSettings};
-use crate::document::{
-    CodeBlock, CompileError, CompileErrorKind, Document, Line, Node, Source, Transclusion,
-};
+use crate::document::{CodeBlock, CompileError, Document, Line, Node, Source, Transclusion};
 use std::collections::HashMap;
 use std::fmt::Write;
 
@@ -27,9 +25,8 @@ pub fn print_docs(document: &Document, settings: &ParserSettings) -> String {
 
 /// Formats this `Document` as a string containing the compiled code
 pub fn print_code(
-    document: &Document,
-    entrypoint: Option<&str>,
-    language: Option<&str>,
+    code_blocks: &HashMap<Option<&str>, Vec<&CodeBlock>>,
+    entry_blocks: &[&CodeBlock],
     settings: Option<&LanguageSettings>,
 ) -> Result<String, CompileError> {
     let block_labels = settings.and_then(|s| s.block_labels.as_ref());
@@ -52,71 +49,54 @@ pub fn print_code(
 
     let clean = settings.map_or(true, |set| set.clean_code || set.block_labels.is_none());
 
-    let code_blocks = document.code_blocks_by_name(language);
     let mut result = String::new();
-    match code_blocks.get(&entrypoint) {
-        Some(blocks) => {
-            let mut block_count: HashMap<&Option<String>, usize> = HashMap::new();
-            for (idx, block) in blocks.iter().enumerate() {
-                let index = {
-                    let count = block_count.entry(&block.name).or_default();
-                    *count += 1;
-                    *count - 1
-                };
+    let mut block_count: HashMap<&Option<String>, usize> = HashMap::new();
+    for (idx, block) in entry_blocks.iter().enumerate() {
+        let index = {
+            let count = block_count.entry(&block.name).or_default();
+            *count += 1;
+            *count - 1
+        };
 
-                let path = block.source_file.to_owned().unwrap_or_default();
-                let name = if block.is_unnamed {
-                    ""
-                } else {
-                    block.name.as_deref().unwrap_or("")
-                };
+        let path = block.source_file.to_owned().unwrap_or_default();
+        let name = if block.is_unnamed {
+            ""
+        } else {
+            block.name.as_deref().unwrap_or("")
+        };
 
-                if !clean {
-                    let sep = if idx == 0 || block.name != blocks[idx - 1].name {
-                        &block_start
-                    } else {
-                        &block_next
-                    };
-                    writeln!(
-                        result,
-                        "{} {}{}{}{}{}{}{}",
-                        comment_start,
-                        sep,
-                        path,
-                        block_name_sep,
-                        name,
-                        block_name_sep,
-                        index,
-                        comment_end,
-                    )
-                    .unwrap();
-                }
-                writeln!(result, "{}", block.compile_with(&code_blocks, settings)?).unwrap();
-
-                if !clean && (idx == blocks.len() - 1 || block.name != blocks[idx + 1].name) {
-                    write!(
-                        result,
-                        "{} {}{}{}{}{}{}{}",
-                        comment_start,
-                        block_end,
-                        path,
-                        block_name_sep,
-                        name,
-                        block_name_sep,
-                        index,
-                        comment_end,
-                    )
-                    .unwrap();
-                }
-            }
+        if !clean {
+            let sep = if idx == 0 || block.name != entry_blocks[idx - 1].name {
+                &block_start
+            } else {
+                &block_next
+            };
+            writeln!(
+                result,
+                "{} {}{}{}{}{}{}{}",
+                comment_start, sep, path, block_name_sep, name, block_name_sep, index, comment_end,
+            )
+            .unwrap();
         }
-        None => {
-            return Err(CompileError::Single {
-                line_number: 0,
-                kind: CompileErrorKind::MissingEntrypoint,
-            })
+        writeln!(result, "{}", block.compile_with(&code_blocks, settings)?).unwrap();
+
+        if !clean && (idx == entry_blocks.len() - 1 || block.name != entry_blocks[idx + 1].name) {
+            write!(
+                result,
+                "{} {}{}{}{}{}{}{}",
+                comment_start,
+                block_end,
+                path,
+                block_name_sep,
+                name,
+                block_name_sep,
+                index,
+                comment_end,
+            )
+            .unwrap();
         }
     }
+
     if settings.map(|s| s.eof_newline).unwrap_or(true) && !result.ends_with('\n') {
         writeln!(result).unwrap();
     }

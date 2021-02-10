@@ -20,7 +20,7 @@ type BlockKey = (PathBuf, Option<String>, usize);
 pub fn compile_all(
     parser: &ParserSettings,
     doc_dir: Option<&Path>,
-    code_dir: Option<&Path>,
+    code_dir: &Path,
     file_name: &Path,
     entrypoint: Option<&str>,
     language: Option<&str>,
@@ -51,7 +51,7 @@ pub fn compile_all(
             entrypoint,
             language,
             track_code_files,
-        )?;
+        );
 
         documents.insert(file_name.to_owned(), document);
 
@@ -94,7 +94,7 @@ pub fn collect_code_blocks(
                     .get(language)
                     .and_then(|lang| lang.block_labels.as_ref())
                 {
-                    let source = files::read_file(&file)?;
+                    let source = files::read_file_string(&file)?;
                     let blocks = code::parse(&source, &config.parser, labels)?;
 
                     for block in blocks.into_iter() {
@@ -124,12 +124,12 @@ pub fn collect_code_blocks(
 fn compile(
     parser: &ParserSettings,
     document: &Document,
-    code_dir: Option<&Path>,
+    code_dir: &Path,
     file_name: &Path,
     entrypoint: Option<&str>,
     language: Option<&str>,
     track_code_files: &mut HashSet<PathBuf>,
-) -> Fallible {
+) {
     println!("Compiling file {}", file_name.display());
 
     let mut entries = document.entry_points(parser, language);
@@ -140,34 +140,32 @@ fn compile(
         (&file_name_without_ext, Some(PathBuf::from(file_name))),
     );
 
-    for (_entrypoint, (sub_file_name, _sub_source_file)) in entries {
-        match code_dir {
-            Some(code_dir) => {
-                let mut file_path = code_dir.to_owned();
-                file_path.push(sub_file_name);
-                if let Some(language) = language {
-                    file_path.set_extension(language);
-                }
-
-                track_code_files.insert(file_path);
+    for (entrypoint, (sub_file_name, _sub_source_file)) in entries {
+        if document
+            .code_blocks_by_name(language)
+            .contains_key(&entrypoint)
+        {
+            let mut file_path = code_dir.to_owned();
+            file_path.push(sub_file_name);
+            if let Some(language) = language {
+                file_path.set_extension(language);
             }
-            None => eprintln!("WARNING: Missing output location for code, skipping code output."),
+
+            track_code_files.insert(file_path);
         }
     }
-
-    Ok(())
 }
 
 fn transclude_dry_run(
     parser: &ParserSettings,
     file_name: &Path,
-    code_dir: Option<&Path>,
+    code_dir: &Path,
     entrypoint: Option<&str>,
     language: Option<&str>,
     documents: &mut HashMap<PathBuf, Document>,
     track_code_files: &mut HashSet<PathBuf>,
 ) -> Fallible<(Document, Vec<PathBuf>)> {
-    let source_main = files::read_file(&file_name)?;
+    let source_main = files::read_file_string(&file_name)?;
     let (document, mut links) = parse::parse(&source_main, &file_name, true, parser)?;
 
     let transclusions = document.transclusions();
@@ -193,7 +191,7 @@ fn transclude_dry_run(
                 entrypoint,
                 language,
                 track_code_files,
-            )?;
+            );
 
             links.extend(sub_links.into_iter());
             documents.insert(trans.file().clone(), doc);
