@@ -282,40 +282,43 @@ fn parse_line(line_number: usize, input: &str, settings: &ParserSettings) -> Fal
 
 fn parse_links(
     line: &str,
-    root_file: &Path,
+    _root_file: &Path,
     from: &Path,
     settings: &ParserSettings,
     remove_marker: bool,
     links_out: &mut Vec<PathBuf>,
 ) -> Option<String> {
-    let regex = &settings.link_following_pattern;
+    let marker = &settings.link_prefix;
+    let regex = &LINK_REGEX;
 
     let mut offset = 0;
     let mut new_line: Option<String> = None;
-    for capture in regex.1.captures_iter(line) {
-        if remove_marker {
-            let index = capture.get(0).unwrap().start();
-            let len = regex.0.len();
-            if let Some(l) = &mut new_line {
-                *l = format!("{}{}", &l[..(index - offset)], &l[(index + len - offset)..]);
-            } else {
-                new_line = Some(format!(
-                    "{}{}",
-                    &line[..(index - offset)],
-                    &line[(index + len - offset)..]
-                ));
+    for capture in regex.captures_iter(line) {
+        let index = capture.get(0).unwrap().start();
+        if line[..index].ends_with(marker) {
+            if remove_marker {
+                let len = marker.len();
+                if let Some(l) = &mut new_line {
+                    *l = format!("{}{}", &l[..(index - offset)], &l[(index + len - offset)..]);
+                } else {
+                    new_line = Some(format!(
+                        "{}{}",
+                        &line[..(index - offset)],
+                        &line[(index + len - offset)..]
+                    ));
+                }
+                offset += len;
             }
-            offset += len;
-        }
 
-        let link = capture.get(2).unwrap().as_str();
-        let mut path = from.parent().unwrap().to_path_buf();
-        path.push(link);
-        if path.is_relative() && is_relative_link(link) {
-            let path = PathBuf::from(path_clean::clean(
-                &path.to_str().unwrap().replace("\\", "/"),
-            ));
-            links_out.push(path);
+            let link = capture.get(2).unwrap().as_str();
+            let mut path = from.parent().unwrap().to_path_buf();
+            path.push(link);
+            if path.is_relative() && is_relative_link(link) {
+                let path = PathBuf::from(path_clean::clean(
+                    &path.to_str().unwrap().replace("\\", "/"),
+                ));
+                links_out.push(path);
+            }
         }
     }
     new_line
@@ -331,9 +334,7 @@ fn is_relative_link(link: &str) -> bool {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::config;
     use crate::document::Source::Macro;
-    use regex::Regex;
 
     #[test]
     fn parse_text() {
@@ -342,7 +343,14 @@ mod tests {
 
 text
 "#;
-        let (doc, links) = parse(text, Path::new("README.md"), false, &settings).unwrap();
+        let (doc, links) = parse(
+            text,
+            Path::new("README.md"),
+            Path::new("README.md"),
+            false,
+            &settings,
+        )
+        .unwrap();
 
         assert_eq!(doc.nodes.len(), 1);
         assert_eq!(links.len(), 0);
@@ -362,7 +370,14 @@ code
 
 text
 "#;
-        let (doc, links) = parse(text, Path::new("README.md"), false, &settings).unwrap();
+        let (doc, links) = parse(
+            text,
+            Path::new("README.md"),
+            Path::new("README.md"),
+            false,
+            &settings,
+        )
+        .unwrap();
 
         assert_eq!(doc.nodes.len(), 3);
         assert_eq!(links.len(), 0);
@@ -390,7 +405,14 @@ text
 
 text
 "#;
-        let (doc, links) = parse(text, Path::new("README.md"), false, &settings).unwrap();
+        let (doc, links) = parse(
+            text,
+            Path::new("README.md"),
+            Path::new("README.md"),
+            false,
+            &settings,
+        )
+        .unwrap();
 
         assert_eq!(doc.nodes.len(), 3);
         assert_eq!(links.len(), 0);
@@ -410,7 +432,14 @@ text
 
 text
 "#;
-        let (doc, links) = parse(text, Path::new("README.md"), false, &settings).unwrap();
+        let (doc, links) = parse(
+            text,
+            Path::new("README.md"),
+            Path::new("README.md"),
+            false,
+            &settings,
+        )
+        .unwrap();
 
         assert_eq!(doc.nodes.len(), 1);
         assert_eq!(links.len(), 1);
@@ -428,10 +457,7 @@ text
             macro_end: ".".to_string(),
             transclusion_start: "@{{".to_string(),
             transclusion_end: "}}".to_string(),
-            link_following_pattern: (
-                "@".to_string(),
-                Regex::new(&format!("@{}", config::LINK_PATTERN)).unwrap(),
-            ),
+            link_prefix: "@".to_string(),
             file_prefix: "file:".to_string(),
             hidden_prefix: "hidden:".to_string(),
         }
