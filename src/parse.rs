@@ -8,6 +8,7 @@ use std::path::{Path, PathBuf};
 #[allow(clippy::nonminimal_bool)]
 pub fn parse(
     input: &str,
+    root_file: &Path,
     path: &Path,
     is_reverse: bool,
     settings: &ParserSettings,
@@ -79,6 +80,7 @@ pub fn parse(
                     let (node, error) = start_or_extend_text(
                         &line,
                         line_number,
+                        root_file,
                         path,
                         settings,
                         is_reverse,
@@ -171,16 +173,18 @@ fn extend_code(
     error
 }
 
+#[allow(clippy::too_many_arguments)]
 fn start_or_extend_text(
     line: &str,
     line_number: usize,
+    root_file: &Path,
     path: &Path,
     settings: &ParserSettings,
     is_reverse: bool,
     mut links: &mut Vec<PathBuf>,
     block: Option<&mut TextBlock>,
 ) -> (Option<Node>, Option<Box<dyn Error>>) {
-    let parsed = parse_links(&line, path, settings, !is_reverse, &mut links);
+    let parsed = parse_links(&line, root_file, path, settings, !is_reverse, &mut links);
     let line = if parsed.is_some() {
         parsed.as_ref().unwrap()
     } else {
@@ -278,6 +282,7 @@ fn parse_line(line_number: usize, input: &str, settings: &ParserSettings) -> Fal
 
 fn parse_links(
     line: &str,
+    root_file: &Path,
     from: &Path,
     settings: &ParserSettings,
     remove_marker: bool,
@@ -306,10 +311,10 @@ fn parse_links(
         let link = capture.get(2).unwrap().as_str();
         let mut path = from.parent().unwrap().to_path_buf();
         path.push(link);
-        let path = PathBuf::from(path_clean::clean(
-            &path.to_str().unwrap().replace("\\", "/"),
-        ));
         if path.is_relative() && is_relative_link(link) {
+            let path = PathBuf::from(path_clean::clean(
+                &path.to_str().unwrap().replace("\\", "/"),
+            ));
             links_out.push(path);
         }
     }
