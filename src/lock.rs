@@ -4,7 +4,7 @@ use std::path::{Path, PathBuf};
 use serde::{Deserialize, Serialize, Serializer};
 
 use crate::{files, util::Fallible};
-use std::collections::{BTreeMap, HashMap, HashSet};
+use std::collections::{BTreeMap, HashSet};
 
 pub fn sources_changed<P: AsRef<Path>>(lock_file: P) -> Fallible<bool> {
     if lock_file.as_ref().is_file() {
@@ -38,40 +38,38 @@ pub fn write_lock<P: AsRef<Path>>(
     lock.write(&lock_file)
 }
 
-fn hash_files<'a>(files: impl Iterator<Item = &'a PathBuf>) -> Fallible<HashMap<PathBuf, String>> {
+fn hash_files<'a>(files: impl Iterator<Item = &'a PathBuf>) -> Fallible<BTreeMap<PathBuf, String>> {
     files
         .map(|p| match hash_file(p) {
             Ok(hash) => Ok((p.clone(), hash)),
             Err(err) => Err(err),
         })
-        .collect::<Result<HashMap<_, _>, _>>()
+        .collect::<Result<BTreeMap<_, _>, _>>()
 }
 
 fn hash_file<P: AsRef<Path>>(file: P) -> Fallible<String> {
-    let mut hasher = blake3::Hasher::new();
     let bytes = files::read_file(file.as_ref())?;
-    hasher.update(&bytes);
-    Ok(hasher.finalize().to_hex().to_string())
+    Ok(blake3::hash(&bytes).to_hex().to_string())
 }
 
 /// Content for Yarner.lock files
 #[derive(Serialize, Deserialize)]
 struct Lock {
     #[serde(serialize_with = "ordered_map")]
-    source_hashes: HashMap<PathBuf, String>,
+    source_hashes: BTreeMap<PathBuf, String>,
     #[serde(serialize_with = "ordered_map")]
-    code_hashes: HashMap<PathBuf, String>,
+    code_hashes: BTreeMap<PathBuf, String>,
 }
 
-fn ordered_map<S>(value: &HashMap<PathBuf, String>, serializer: S) -> Result<S::Ok, S::Error>
+fn ordered_map<S>(value: &BTreeMap<PathBuf, String>, serializer: S) -> Result<S::Ok, S::Error>
 where
     S: Serializer,
 {
-    let ordered: BTreeMap<_, _> = value
+    let cleaned: BTreeMap<_, _> = value
         .iter()
         .map(|(k, v)| (k.to_str().unwrap_or("non-uft8-path").replace('\\', "/"), v))
         .collect();
-    ordered.serialize(serializer)
+    cleaned.serialize(serializer)
 }
 
 impl Lock {
