@@ -58,19 +58,23 @@ pub fn compile_all(
         track_input_files.insert(file_name.to_owned());
 
         for file in links {
-            if !track_input_files.contains(&file) {
-                compile_all(
-                    parser,
-                    doc_dir,
-                    code_dir,
-                    &file,
-                    entrypoint,
-                    language,
-                    settings,
-                    track_input_files,
-                    track_code_files,
-                    documents,
-                )?;
+            if file.is_file() {
+                if !track_input_files.contains(&file) {
+                    compile_all(
+                        parser,
+                        doc_dir,
+                        code_dir,
+                        &file,
+                        entrypoint,
+                        language,
+                        settings,
+                        track_input_files,
+                        track_code_files,
+                        documents,
+                    )?;
+                }
+            } else {
+                eprintln!("WARNING: link target not found for {}", file.display());
             }
         }
     }

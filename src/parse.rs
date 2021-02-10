@@ -3,7 +3,6 @@ use crate::document::{CodeBlock, Document, Line, Node, Source, TextBlock, Transc
 use crate::util::Fallible;
 use std::error::Error;
 use std::fmt::Write;
-use std::fs::File;
 use std::path::{Path, PathBuf};
 
 #[allow(clippy::nonminimal_bool)]
@@ -311,11 +310,7 @@ fn parse_links(
             &path.to_str().unwrap().replace("\\", "/"),
         ));
         if path.is_relative() && is_relative_link(link) {
-            if File::open(&path).is_ok() {
-                links_out.push(path);
-            } else {
-                eprintln!("WARNING: link target not found for {}", path.display());
-            }
+            links_out.push(path);
         }
     }
     new_line
@@ -326,4 +321,114 @@ fn is_relative_link(link: &str) -> bool {
         && !link.starts_with("http://")
         && !link.starts_with("https://")
         && !link.starts_with("ftp://")
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::config;
+    use crate::document::Source::Macro;
+    use regex::Regex;
+
+    #[test]
+    fn parse_text() {
+        let settings = default_settings();
+        let text = r#"# Caption
+
+text
+"#;
+        let (doc, links) = parse(text, Path::new("README.md"), false, &settings).unwrap();
+
+        assert_eq!(doc.nodes.len(), 1);
+        assert_eq!(links.len(), 0);
+        matches!(doc.nodes[0], Node::Text(_));
+    }
+
+    #[test]
+    fn parse_code() {
+        let settings = default_settings();
+        let text = r#"# Caption
+
+```
+//- Code
+code
+// ==> Macro.
+```
+
+text
+"#;
+        let (doc, links) = parse(text, Path::new("README.md"), false, &settings).unwrap();
+
+        assert_eq!(doc.nodes.len(), 3);
+        assert_eq!(links.len(), 0);
+        assert!(if let Node::Code(block) = &doc.nodes[1] {
+            assert_eq!(links.len(), 0);
+            assert_eq!(block.name, Some(String::from("Code")));
+            assert_eq!(block.source.len(), 2);
+            if let Macro(name) = &block.source[1].source {
+                assert_eq!(name, "Macro");
+                true
+            } else {
+                false
+            }
+        } else {
+            false
+        });
+    }
+
+    #[test]
+    fn parse_transclusion() {
+        let settings = default_settings();
+        let text = r#"# Caption
+
+@{{[test.md](test.md)}}
+
+text
+"#;
+        let (doc, links) = parse(text, Path::new("README.md"), false, &settings).unwrap();
+
+        assert_eq!(doc.nodes.len(), 3);
+        assert_eq!(links.len(), 0);
+        assert!(if let Node::Transclusion(trans) = &doc.nodes[1] {
+            trans.file() == &PathBuf::from("test.md")
+        } else {
+            false
+        });
+    }
+
+    #[test]
+    fn parse_link() {
+        let settings = default_settings();
+        let text = r#"# Caption
+
+@[test.md](test.md)
+
+text
+"#;
+        let (doc, links) = parse(text, Path::new("README.md"), false, &settings).unwrap();
+
+        assert_eq!(doc.nodes.len(), 1);
+        assert_eq!(links.len(), 1);
+        assert_eq!(links[0], PathBuf::from("test.md"));
+    }
+
+    fn default_settings() -> ParserSettings {
+        ParserSettings {
+            fence_sequence: "```".to_string(),
+            fence_sequence_alt: "~~~".to_string(),
+            default_language: None,
+            comments_as_aside: false,
+            block_name_prefix: "//-".to_string(),
+            macro_start: "// ==>".to_string(),
+            macro_end: ".".to_string(),
+            transclusion_start: "@{{".to_string(),
+            transclusion_end: "}}".to_string(),
+            link_following_pattern: (
+                "@".to_string(),
+                Regex::new(&format!("@{}", config::LINK_PATTERN)).unwrap(),
+            ),
+            file_prefix: "file:".to_string(),
+            hidden_prefix: "hidden:".to_string(),
+        }
+    }
 }

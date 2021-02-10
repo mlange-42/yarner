@@ -8,8 +8,8 @@ use serde::{de::Error as _, Deserialize, Deserializer, Serialize};
 
 use crate::{files, util::Fallible};
 
-const LINK_PATTERN: &str = r"\[([^\[\]]*)\]\((.*?)\)";
-pub static LINK_REGEX: Lazy<Regex> = Lazy::new(|| Regex::new(LINK_PATTERN).unwrap());
+pub(crate) const LINK_PATTERN: &str = r"\[([^\[\]]*)\]\((.*?)\)";
+pub(crate) static LINK_REGEX: Lazy<Regex> = Lazy::new(|| Regex::new(LINK_PATTERN).unwrap());
 
 /// Top-level config
 #[derive(Deserialize, Debug)]
@@ -197,5 +197,18 @@ impl BlockLabels {
             );
         }
         Ok(())
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    const CONFIG: &str = include_str!("create/Yarner.toml");
+
+    #[test]
+    fn config_template() {
+        let config = toml::from_str::<Config>(CONFIG).unwrap();
+        config.check().unwrap();
     }
 }
