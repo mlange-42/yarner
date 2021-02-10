@@ -8,8 +8,8 @@ use serde::{de::Error as _, Deserialize, Deserializer, Serialize};
 
 use crate::{files, util::Fallible};
 
-const LINK_PATTERN: &str = r"\[([^\[\]]*)\]\((.*?)\)";
-pub static LINK_REGEX: Lazy<Regex> = Lazy::new(|| Regex::new(LINK_PATTERN).unwrap());
+pub(crate) const LINK_PATTERN: &str = r"\[([^\[\]]*)\]\((.*?)\)";
+pub(crate) static LINK_REGEX: Lazy<Regex> = Lazy::new(|| Regex::new(LINK_PATTERN).unwrap());
 
 /// Top-level config
 #[derive(Deserialize, Debug)]
