@@ -175,8 +175,11 @@ The normal workflow is:
 
     let (mut source_files, mut code_files) = if reverse {
         if has_reverse_config && !force && lock::sources_changed(&lock_path)? {
-            eprintln!("Markdown sources have changed. Stopping to prevent overwrite. To run anyway, run with `yarner --force reverse`");
-            return Ok(());
+            return Err(
+                r#"Markdown sources have changed. Stopping to prevent overwrite.
+  To run anyway, use `yarner --force reverse`"#
+                    .into(),
+            );
         }
         process_inputs_reverse(
             &input_patterns,
@@ -188,8 +191,9 @@ The normal workflow is:
         )?
     } else {
         if has_reverse_config && !force && lock::code_changed(&lock_path)? {
-            eprintln!("Code output has changed. Stopping to prevent overwrite. To run anyway, run with `yarner --force`");
-            return Ok(());
+            return Err(r#"Code output has changed. Stopping to prevent overwrite.
+  To run anyway, use `yarner --force`"#
+                .into());
         }
         process_inputs_forward(
             &input_patterns,
@@ -242,6 +246,27 @@ fn process_inputs_reverse(
     entrypoint: Option<&str>,
     language: Option<&str>,
 ) -> Fallible<(HashSet<PathBuf>, HashSet<PathBuf>)> {
+    let code_dir = code_dir.ok_or({
+        r#"Missing code output location. Reverse mode not possible.
+  Add 'code = "code"' to section 'path' in file Yarner.toml"#
+    })?;
+
+    if !code_dir.exists() {
+        return Err(format!(
+            r#"Code output target '{}' not found. Reverse mode not possible.
+  You may have to run the forward mode first: `yarner`"#,
+            code_dir.display()
+        )
+        .into());
+    }
+    if !code_dir.is_dir() {
+        return Err(format!(
+            "Code output target '{}' is not a directory. Reverse mode not possible.",
+            code_dir.display()
+        )
+        .into());
+    }
+
     let mut any_input = false;
 
     let mut documents: HashMap<PathBuf, Document> = HashMap::new();
