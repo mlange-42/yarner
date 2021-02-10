@@ -23,22 +23,34 @@ pub fn code_changed<P: AsRef<Path>>(lock_file: P, code_dir: P) -> Fallible<bool>
     }
 }
 
+pub fn write_lock<P: AsRef<Path>>(lock_file: P, code_dir: P) -> Fallible {
+    let mut code_hasher = Hasher::default();
+    code_hasher.consume_all(code_dir)?;
+    let code_hash = code_hasher.compute();
+
+    let lock = Lock {
+        code_hash,
+        source_hash: String::new(),
+    };
+    lock.write(&lock_file)
+}
+
 /// Content for Yarner.lock files
 #[derive(Serialize, Deserialize)]
-pub struct Lock {
-    pub source_hash: String,
-    pub code_hash: String,
+struct Lock {
+    source_hash: String,
+    code_hash: String,
 }
 
 impl Lock {
-    pub fn read<P: AsRef<Path>>(path: P) -> Fallible<Self> {
+    fn read<P: AsRef<Path>>(path: P) -> Fallible<Self> {
         let buf = files::read_file_string(path.as_ref())?;
         let val = toml::from_str::<Self>(&buf)?;
 
         Ok(val)
     }
 
-    pub fn write<P: AsRef<Path>>(&self, path: P) -> Fallible {
+    fn write<P: AsRef<Path>>(&self, path: P) -> Fallible {
         let str = toml::to_string(self)?;
         write(path, str)?;
 
@@ -46,7 +58,7 @@ impl Lock {
     }
 }
 
-pub struct Hasher {
+struct Hasher {
     hasher: blake3::Hasher,
 }
 
@@ -59,11 +71,12 @@ impl Default for Hasher {
 }
 
 impl Hasher {
-    pub fn consume_all<P: AsRef<Path>>(&mut self, path: P) -> Fallible {
+    fn consume_all<P: AsRef<Path>>(&mut self, path: P) -> Fallible {
         let root = PathBuf::from(path.as_ref());
         if root.is_dir() {
-            for entry in fs::read_dir(root)? {
-                let entry = entry?;
+            let mut entries = fs::read_dir(root)?.collect::<Result<Vec<_>, _>>()?;
+            entries.sort_by_cached_key(|d| d.path());
+            for entry in entries {
                 self.consume_all(entry.path())?;
             }
         } else {
@@ -72,11 +85,11 @@ impl Hasher {
         Ok(())
     }
 
-    pub fn compute(self) -> String {
-        format!("{}", self.hasher.finalize().to_hex())
+    fn compute(self) -> String {
+        self.hasher.finalize().to_hex().to_string()
     }
 
-    pub fn consume_file<P: AsRef<Path>>(&mut self, file: P) -> Fallible {
+    fn consume_file<P: AsRef<Path>>(&mut self, file: P) -> Fallible {
         let bytes = files::read_file(file.as_ref())?;
         self.hasher.update(&bytes);
 

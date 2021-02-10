@@ -18,7 +18,6 @@ use std::path::{Path, PathBuf};
 
 use clap::{crate_version, App, Arg, SubCommand};
 
-use crate::lock::{Hasher, Lock};
 use crate::{
     config::Config,
     document::Document,
@@ -228,15 +227,7 @@ The normal workflow is:
 
     if has_reverse_config {
         if let Some(code_dir) = code_dir {
-            let mut code_hasher = Hasher::default();
-            code_hasher.consume_all(code_dir)?;
-            let code_hash = code_hasher.compute();
-
-            let lock = Lock {
-                code_hash,
-                source_hash: String::new(),
-            };
-            lock.write(&lock_path)?;
+            lock::write_lock(lock_path.as_ref(), code_dir)?;
         }
     }
 
