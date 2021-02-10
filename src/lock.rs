@@ -39,13 +39,19 @@ pub fn write_lock<P: AsRef<Path>>(
 }
 
 fn hash_files<'a>(files: impl Iterator<Item = &'a PathBuf>) -> Fallible<HashMap<PathBuf, String>> {
-    let mut code_hasher = Hasher::default();
     files
-        .map(|p| match code_hasher.hash(p) {
+        .map(|p| match hash_file(p) {
             Ok(hash) => Ok((p.clone(), hash)),
             Err(err) => Err(err),
         })
         .collect::<Result<HashMap<_, _>, _>>()
+}
+
+fn hash_file<P: AsRef<Path>>(file: P) -> Fallible<String> {
+    let mut hasher = blake3::Hasher::new();
+    let bytes = files::read_file(file.as_ref())?;
+    hasher.update(&bytes);
+    Ok(hasher.finalize().to_hex().to_string())
 }
 
 /// Content for Yarner.lock files
@@ -79,35 +85,6 @@ impl Lock {
     fn write<P: AsRef<Path>>(&self, path: P) -> Fallible {
         let str = toml::to_string(self)?;
         write(path, str)?;
-
-        Ok(())
-    }
-}
-
-struct Hasher {
-    hasher: blake3::Hasher,
-}
-
-impl Default for Hasher {
-    fn default() -> Self {
-        Self {
-            hasher: blake3::Hasher::new(),
-        }
-    }
-}
-
-impl Hasher {
-    fn hash<P: AsRef<Path>>(&mut self, file: P) -> Fallible<String> {
-        self.hasher.reset();
-        self.consume_file(file)?;
-        let result = self.hasher.finalize().to_hex().to_string();
-        self.hasher.reset();
-        Ok(result)
-    }
-
-    fn consume_file<P: AsRef<Path>>(&mut self, file: P) -> Fallible {
-        let bytes = files::read_file(file.as_ref())?;
-        self.hasher.update(&bytes);
 
         Ok(())
     }
