@@ -1,7 +1,7 @@
 use std::fs::write;
 use std::path::{Path, PathBuf};
 
-use serde::{Deserialize, Serialize, Serializer};
+use serde::{Deserialize, Serialize};
 
 use crate::{files, util::Fallible};
 use std::collections::{BTreeMap, HashSet};
@@ -39,10 +39,20 @@ pub fn write_lock<P: AsRef<Path>>(
     lock.write(&lock_file)
 }
 
-fn hash_files<'a>(files: impl Iterator<Item = &'a PathBuf>) -> Fallible<BTreeMap<PathBuf, String>> {
+fn hash_files<'a, P: 'a>(files: impl Iterator<Item = &'a P>) -> Fallible<BTreeMap<String, String>>
+where
+    P: AsRef<Path>,
+{
     files
         .map(|p| match hash_file(p) {
-            Ok(hash) => Ok((p.clone(), hash)),
+            Ok(hash) => match p.as_ref().to_str() {
+                None => Err(format!(
+                    "Can't hash file due to non-unicode character in path: {}",
+                    p.as_ref().display()
+                )
+                .into()),
+                Some(p) => Ok((p.replace('\\', "/"), hash)),
+            },
             Err(err) => Err(err),
         })
         .collect::<Result<BTreeMap<_, _>, _>>()
@@ -56,21 +66,8 @@ fn hash_file<P: AsRef<Path>>(file: P) -> Fallible<String> {
 /// Content for Yarner.lock files
 #[derive(Serialize, Deserialize)]
 struct Lock {
-    #[serde(serialize_with = "ordered_map")]
-    source_hashes: BTreeMap<PathBuf, String>,
-    #[serde(serialize_with = "ordered_map")]
-    code_hashes: BTreeMap<PathBuf, String>,
-}
-
-fn ordered_map<S>(value: &BTreeMap<PathBuf, String>, serializer: S) -> Result<S::Ok, S::Error>
-where
-    S: Serializer,
-{
-    let cleaned: BTreeMap<_, _> = value
-        .iter()
-        .map(|(k, v)| (k.to_str().unwrap_or("non-uft8-path").replace('\\', "/"), v))
-        .collect();
-    cleaned.serialize(serializer)
+    source_hashes: BTreeMap<String, String>,
+    code_hashes: BTreeMap<String, String>,
 }
 
 impl Lock {
