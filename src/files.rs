@@ -24,7 +24,7 @@ pub fn copy_files(
     path_mod: Option<&[String]>,
     target_dir: &Path,
     reverse: bool,
-) -> Result<HashSet<PathBuf>, String> {
+) -> Result<(HashSet<PathBuf>, HashSet<PathBuf>), String> {
     match path_mod {
         Some(path_mod) if patterns.len() != path_mod.len() => {
             return Err(
@@ -34,6 +34,7 @@ pub fn copy_files(
         _ => (),
     }
     let mut track_copy_dest: HashMap<PathBuf, PathBuf> = HashMap::new();
+    let mut source_files: HashSet<PathBuf> = HashSet::new();
     let mut out_files: HashSet<PathBuf> = HashSet::new();
     for (idx, file_pattern) in patterns.iter().enumerate() {
         let path = path_mod.as_ref().map(|paths| &paths[idx]);
@@ -90,11 +91,12 @@ pub fn copy_files(
                 if let Err(err) = std::fs::copy(&from, &to) {
                     return Err(format!("Error copying file {}: {}", file.display(), err));
                 }
+                source_files.insert(from.to_owned());
                 out_files.insert(to.to_owned());
             }
         }
     }
-    Ok(out_files)
+    Ok((source_files, out_files))
 }
 
 fn modify_path(path: &Path, replace: &str) -> PathBuf {
