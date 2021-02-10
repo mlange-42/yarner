@@ -1,13 +1,11 @@
-use std::fs::{self, read_to_string, write, File};
-use std::io::{BufReader, Read};
+use std::fs::{self, write};
 use std::path::{Path, PathBuf};
 
-use md5::Context;
 use serde::{Deserialize, Serialize};
 
-use crate::util::Fallible;
+use crate::{files, util::Fallible};
 
-pub fn code_changed<P: AsRef<Path>>(lock_file: P, code_dir: P) -> std::io::Result<bool> {
+pub fn code_changed<P: AsRef<Path>>(lock_file: P, code_dir: P) -> Fallible<bool> {
     if code_dir.as_ref().exists()
         && code_dir.as_ref().is_dir()
         && lock_file.as_ref().exists()
@@ -33,8 +31,8 @@ pub struct Lock {
 }
 
 impl Lock {
-    pub fn read<P: AsRef<Path>>(path: P) -> std::io::Result<Self> {
-        let buf = read_to_string(path)?;
+    pub fn read<P: AsRef<Path>>(path: P) -> Fallible<Self> {
+        let buf = files::read_file_string(path.as_ref())?;
         let val = toml::from_str::<Self>(&buf)?;
 
         Ok(val)
@@ -49,19 +47,19 @@ impl Lock {
 }
 
 pub struct Hasher {
-    hasher: Context,
+    hasher: blake3::Hasher,
 }
 
 impl Default for Hasher {
     fn default() -> Self {
         Self {
-            hasher: Context::new(),
+            hasher: blake3::Hasher::new(),
         }
     }
 }
 
 impl Hasher {
-    pub fn consume_all<P: AsRef<Path>>(&mut self, path: P) -> std::io::Result<()> {
+    pub fn consume_all<P: AsRef<Path>>(&mut self, path: P) -> Fallible {
         let root = PathBuf::from(path.as_ref());
         if root.is_dir() {
             for entry in fs::read_dir(root)? {
@@ -75,21 +73,12 @@ impl Hasher {
     }
 
     pub fn compute(self) -> String {
-        hex::encode(self.hasher.compute().as_ref())
+        format!("{}", self.hasher.finalize().to_hex())
     }
 
-    pub fn consume_file<P: AsRef<Path>>(&mut self, file: P) -> std::io::Result<()> {
-        let f = File::open(file)?;
-        let mut buffer = [0; 1024];
-        let mut reader = BufReader::new(f);
-
-        loop {
-            let count = reader.read(&mut buffer)?;
-            if count == 0 {
-                break;
-            }
-            self.hasher.consume(&buffer[..count]);
-        }
+    pub fn consume_file<P: AsRef<Path>>(&mut self, file: P) -> Fallible {
+        let bytes = files::read_file(file.as_ref())?;
+        self.hasher.update(&bytes);
 
         Ok(())
     }

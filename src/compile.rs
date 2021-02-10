@@ -159,7 +159,7 @@ fn compile(
 }
 
 fn transclude(parser: &ParserSettings, file_name: &Path) -> Fallible<(Document, Vec<PathBuf>)> {
-    let source_main = files::read_file(&file_name)?;
+    let source_main = files::read_file_string(&file_name)?;
     let (mut document, mut links) = parse::parse(&source_main, &file_name, false, parser)?;
 
     let transclusions = document.transclusions().cloned().collect::<Vec<_>>();

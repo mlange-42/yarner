@@ -10,8 +10,12 @@ use std::{
 
 use crate::util::Fallible;
 
-pub fn read_file(path: &Path) -> Fallible<String> {
+pub fn read_file_string(path: &Path) -> Fallible<String> {
     std::fs::read_to_string(&path).map_err(|err| format!("{}: {}", err, path.display()).into())
+}
+
+pub fn read_file(path: &Path) -> Fallible<Vec<u8>> {
+    std::fs::read(&path).map_err(|err| format!("{}: {}", err, path.display()).into())
 }
 
 pub fn copy_files(

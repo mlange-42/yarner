@@ -26,7 +26,7 @@ pub struct Config {
 
 impl Config {
     pub fn read<P: AsRef<Path>>(path: P) -> Fallible<Self> {
-        let buf = files::read_file(path.as_ref())?;
+        let buf = files::read_file_string(path.as_ref())?;
         let val = toml::from_str::<Self>(&buf)?;
 
         Ok(val)

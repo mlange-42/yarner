@@ -94,7 +94,7 @@ pub fn collect_code_blocks(
                     .get(language)
                     .and_then(|lang| lang.block_labels.as_ref())
                 {
-                    let source = files::read_file(&file)?;
+                    let source = files::read_file_string(&file)?;
                     let blocks = code::parse(&source, &config.parser, labels)?;
 
                     for block in blocks.into_iter() {
@@ -167,7 +167,7 @@ fn transclude_dry_run(
     documents: &mut HashMap<PathBuf, Document>,
     track_code_files: &mut HashSet<PathBuf>,
 ) -> Fallible<(Document, Vec<PathBuf>)> {
-    let source_main = files::read_file(&file_name)?;
+    let source_main = files::read_file_string(&file_name)?;
     let (document, mut links) = parse::parse(&source_main, &file_name, true, parser)?;
 
     let transclusions = document.transclusions();
