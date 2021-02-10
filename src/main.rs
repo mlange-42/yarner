@@ -174,6 +174,10 @@ The normal workflow is:
     let language = matches.value_of("language");
 
     let (mut source_files, mut code_files) = if reverse {
+        if has_reverse_config && !force && lock::sources_changed(&lock_path)? {
+            eprintln!("Markdown sources have changed. Stopping to prevent overwrite. To run anyway, run with `yarner --force reverse`");
+            return Ok(());
+        }
         process_inputs_reverse(
             &input_patterns,
             &config,

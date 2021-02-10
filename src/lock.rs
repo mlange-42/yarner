@@ -6,6 +6,16 @@ use serde::{Deserialize, Serialize, Serializer};
 use crate::{files, util::Fallible};
 use std::collections::{BTreeMap, HashMap, HashSet};
 
+pub fn sources_changed<P: AsRef<Path>>(lock_file: P) -> Fallible<bool> {
+    if lock_file.as_ref().is_file() {
+        let lock = Lock::read(lock_file)?;
+        let source_hashes = hash_files(lock.source_hashes.keys())?;
+        Ok(source_hashes != lock.source_hashes)
+    } else {
+        Ok(false)
+    }
+}
+
 pub fn code_changed<P: AsRef<Path>>(lock_file: P) -> Fallible<bool> {
     if lock_file.as_ref().is_file() {
         let lock = Lock::read(lock_file)?;
@@ -47,13 +57,14 @@ struct Lock {
     code_hashes: HashMap<PathBuf, String>,
 }
 
-fn ordered_map<S, K, V>(value: &HashMap<K, V>, serializer: S) -> Result<S::Ok, S::Error>
+fn ordered_map<S>(value: &HashMap<PathBuf, String>, serializer: S) -> Result<S::Ok, S::Error>
 where
     S: Serializer,
-    K: Ord + Serialize,
-    V: Serialize,
 {
-    let ordered: BTreeMap<_, _> = value.iter().collect();
+    let ordered: BTreeMap<_, _> = value
+        .iter()
+        .map(|(k, v)| (k.to_str().unwrap_or("non-uft8-path").replace('\\', "/"), v))
+        .collect();
     ordered.serialize(serializer)
 }
 

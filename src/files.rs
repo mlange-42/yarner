@@ -34,8 +34,6 @@ pub fn copy_files(
         _ => (),
     }
     let mut track_copy_dest: HashMap<PathBuf, PathBuf> = HashMap::new();
-    let mut source_files: HashSet<PathBuf> = HashSet::new();
-    let mut out_files: HashSet<PathBuf> = HashSet::new();
     for (idx, file_pattern) in patterns.iter().enumerate() {
         let path = path_mod.as_ref().map(|paths| &paths[idx]);
         let paths = match glob::glob(&file_pattern) {
@@ -61,11 +59,14 @@ pub fn copy_files(
             };
             if file.is_file() {
                 let out_path = path.map_or(file.clone(), |path| modify_path(&file, &path));
-                match track_copy_dest.entry(out_path.clone()) {
+                let mut file_path = target_dir.to_owned();
+                file_path.push(out_path);
+
+                match track_copy_dest.entry(file_path.clone()) {
                     Occupied(entry) => {
                         return Err(format!(
                             "Attempted to copy multiple code files to {}: from {} and {}",
-                            out_path.display(),
+                            file_path.display(),
                             entry.get().display(),
                             file.display()
                         ));
@@ -74,9 +75,6 @@ pub fn copy_files(
                         entry.insert(file.clone());
                     }
                 }
-
-                let mut file_path = target_dir.to_owned();
-                file_path.push(out_path);
 
                 if !reverse {
                     std::fs::create_dir_all(file_path.parent().unwrap()).unwrap();
@@ -91,12 +89,13 @@ pub fn copy_files(
                 if let Err(err) = std::fs::copy(&from, &to) {
                     return Err(format!("Error copying file {}: {}", file.display(), err));
                 }
-                source_files.insert(from.to_owned());
-                out_files.insert(to.to_owned());
             }
         }
     }
-    Ok((source_files, out_files))
+    Ok((
+        track_copy_dest.values().cloned().collect(),
+        track_copy_dest.keys().cloned().collect(),
+    ))
 }
 
 fn modify_path(path: &Path, replace: &str) -> PathBuf {
