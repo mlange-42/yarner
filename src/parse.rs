@@ -341,11 +341,7 @@ text
 
         assert_eq!(doc.nodes.len(), 1);
         assert_eq!(links.len(), 0);
-        assert!(if let Node::Text(_) = doc.nodes[0] {
-            true
-        } else {
-            false
-        });
+        matches!(doc.nodes[0], Node::Text(_));
     }
 
     #[test]

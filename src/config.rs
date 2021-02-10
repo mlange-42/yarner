@@ -199,3 +199,16 @@ impl BlockLabels {
         Ok(())
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    const CONFIG: &str = include_str!("create/Yarner.toml");
+
+    #[test]
+    fn config_template() {
+        let config = toml::from_str::<Config>(CONFIG).unwrap();
+        config.check().unwrap();
+    }
+}
