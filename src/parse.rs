@@ -186,7 +186,7 @@ fn start_or_extend_text(
     mut links: &mut Vec<PathBuf>,
     block: Option<&mut TextBlock>,
 ) -> (Option<Node>, Option<Box<dyn Error>>) {
-    let parsed = parse_links(&line, root_file, path, settings, !is_reverse, &mut links);
+    let parsed = parse_links(&line, root_file, path, settings, is_reverse, &mut links);
     let line = if parsed.is_some() {
         parsed.as_ref().unwrap()
     } else {
@@ -284,10 +284,10 @@ fn parse_line(line_number: usize, input: &str, settings: &ParserSettings) -> Fal
 
 fn parse_links(
     line: &str,
-    _root_file: &Path,
+    root_file: &Path,
     from: &Path,
     settings: &ParserSettings,
-    remove_marker: bool,
+    is_reverse: bool,
     links_out: &mut Vec<PathBuf>,
 ) -> Option<String> {
     let marker = &settings.link_following_pattern.0;
@@ -309,23 +309,46 @@ fn parse_links(
                 let link = &caps[3];
                 let follow = caps.get(1).is_some();
 
-                if follow {
-                    let mut path = from.parent().unwrap().to_path_buf();
-                    path.push(link);
-                    if path.is_relative() && is_relative_link(link) {
-                        let path = PathBuf::from(path_clean::clean(
-                            &path.to_str().unwrap().replace("\\", "/"),
-                        ));
+                let mut path = from.parent().unwrap().to_path_buf();
+                path.push(link);
+
+                if path.is_relative() && is_relative_link(link) {
+                    let path = PathBuf::from(path_clean::clean(
+                        &path.to_str().unwrap().replace("\\", "/"),
+                    ));
+
+                    let line = if is_reverse {
+                        format!(
+                            "{}[{}]({})",
+                            if follow { marker } else { "" },
+                            label,
+                            &caps[3],
+                        )
+                    } else {
+                        let new_link = pathdiff::diff_paths(&path, root_file.parent().unwrap())
+                            .and_then(|p| p.as_path().to_str().map(|s| s.replace('\\', "/")))
+                            .unwrap_or_else(|| "invalid path".to_owned());
+
+                        format!(
+                            "{}[{}]({})",
+                            if is_reverse && follow { marker } else { "" },
+                            if label == link { &new_link } else { label },
+                            new_link,
+                        )
+                    };
+
+                    if follow {
                         links_out.push(path);
                     }
+                    line
+                } else {
+                    format!(
+                        "{}[{}]({})",
+                        if is_reverse && follow { marker } else { "" },
+                        label,
+                        &caps[3],
+                    )
                 }
-
-                format!(
-                    "{}[{}]({})",
-                    if follow && remove_marker { "" } else { marker },
-                    label,
-                    link,
-                )
             })
             .deref()
             .to_owned();
