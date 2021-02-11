@@ -15,7 +15,7 @@
   - [Paths](./config-paths.md)
   - [Languages](./config-languages.md)
   - [Command line arguments](./command-line-arguments.md)
-- [Advanced topics](./advanced/advanced-topics.md)
+- [Advanced topics (under construction)](./advanced/advanced-topics.md)
   - [Continuous integration](./advanced/continuous-integration.md)
   - [Project structure](./advanced/project-structure.md)
   - [Effective Markdown](./advanced/effective-markdown.md)

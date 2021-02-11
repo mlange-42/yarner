@@ -68,12 +68,13 @@ The project structure of the above example looks like this:
 project
   |
   |-- code/              <code output>
-  |     `-- main.rs
+  |     '-- main.rs
   |
   |-- docs/              <doc output>
-  |     `-- main.rs.md
+  |     '-- main.rs.md
   |
-  `-- main.rs.md         <source document>
+  |-- main.rs.md         <source document>
+  '-- Yarner.toml        <config>
 ```
 
 Project structure is flexible an can be configured in the project's `Yarner.toml`.
