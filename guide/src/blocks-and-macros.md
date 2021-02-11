@@ -47,7 +47,7 @@ fn main() {
 }
 ```
 
-### File extensions
+## File extensions
 
 A Rust file without the `.rs` extension is not very useful. We can rename the main file from `README.md` to `main.rs.md`.
 Further, in file `Yarner.toml`, we change option `files` in section `[paths]` to:
@@ -59,6 +59,26 @@ files = ["main.rs.md"]
 Yarner now produces the files `code/main.rs` and `docs/main.rs.md`.
 
 Please note that only the `md` extension is stripped for the code output, while any extension-like parts of the main file name are preserved.
+
+## Project structure
+
+The project structure of the above example looks like this:
+
+```plaintext
+project
+  |
+  |-- code/              <code output>
+  |     `-- main.rs
+  |
+  |-- docs/              <doc output>
+  |     `-- main.rs.md
+  |
+  `-- main.rs.md         <source document>
+```
+
+Project structure is flexible an can be configured in the project's `Yarner.toml`.
+See chapters [Paths](./config-paths.md) for configuration, and [Project structure](./project-structure.md)
+for other possible layouts.
 
 ## Macros
 
