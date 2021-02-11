@@ -294,61 +294,89 @@ fn parse_links(
     let regex = &settings.link_following_pattern.1;
 
     if regex.is_match(line) {
-        let ln = regex
-            .replace_all(line, |caps: &Captures| {
-                let label = &caps[2];
-                let link = &caps[3];
+        if is_reverse {
+            for caps in regex.captures_iter(line) {
                 let follow = caps.get(1).is_some();
+                if let Some(path) = absolute_link(&caps[3], from) {
+                    if follow {
+                        links_out.push(path);
+                    }
+                }
+            }
+            None
+        } else {
+            let ln = regex
+                .replace_all(line, |caps: &Captures| {
+                    let label = &caps[2];
+                    let link = &caps[3];
+                    let follow = caps.get(1).is_some();
 
-                let mut path = from.parent().unwrap().to_path_buf();
-                path.push(link);
+                    if let Some(path) = absolute_link(link, from) {
+                        let new_link = relative_link(&path, root_file);
 
-                if path.is_relative() && is_relative_link(link) {
-                    let path = PathBuf::from(path_clean::clean(
-                        &path.to_str().unwrap().replace("\\", "/"),
-                    ));
-
-                    let line = if is_reverse {
-                        format!("{}[{}]({})", if follow { marker } else { "" }, label, link,)
-                    } else {
-                        let new_link = pathdiff::diff_paths(&path, root_file.parent().unwrap())
-                            .and_then(|p| p.as_path().to_str().map(|s| s.replace('\\', "/")))
-                            .unwrap_or_else(|| "invalid path".to_owned());
-
-                        format!(
+                        let line = format!(
                             "{}[{}]({})",
                             if is_reverse && follow { marker } else { "" },
                             if label == link { &new_link } else { label },
                             new_link,
-                        )
-                    };
+                        );
 
-                    if follow {
-                        links_out.push(path);
+                        if follow {
+                            links_out.push(path);
+                        }
+                        line
+                    } else {
+                        format!(
+                            "{}[{}]({})",
+                            if is_reverse && follow { marker } else { "" },
+                            label,
+                            link,
+                        )
                     }
-                    line
-                } else {
-                    format!(
-                        "{}[{}]({})",
-                        if is_reverse && follow { marker } else { "" },
-                        label,
-                        link,
-                    )
-                }
-            })
-            .deref()
-            .to_owned();
-        Some(ln)
+                })
+                .deref()
+                .to_owned();
+            Some(ln)
+        }
     } else {
         None
     }
 }
 
+fn absolute_link<P>(link: &str, from: P) -> Option<PathBuf>
+where
+    P: AsRef<Path>,
+{
+    if is_relative_link(&link) {
+        let mut path = from.as_ref().parent().unwrap().to_path_buf();
+        path.push(link);
+
+        let path = PathBuf::from(path_clean::clean(
+            &path.to_str().unwrap().replace("\\", "/"),
+        ));
+
+        Some(path)
+    } else {
+        None
+    }
+}
+
+fn relative_link<P, B>(abs_link: P, root: B) -> String
+where
+    P: AsRef<Path>,
+    B: AsRef<Path>,
+{
+    pathdiff::diff_paths(&abs_link, root.as_ref().parent().unwrap())
+        .and_then(|p| p.as_path().to_str().map(|s| s.replace('\\', "/")))
+        .unwrap_or_else(|| "invalid path".to_owned())
+}
+
 fn is_relative_link(link: &str) -> bool {
     !link.starts_with('#')
-        && !link.starts_with("http://")
-        && !link.starts_with("https://")
-        && !link.starts_with("ftp://")
+        && !link.contains("file://")
+        && !link.contains("http://")
+        && !link.contains("https://")
+        && !link.contains("ftp://")
 }
 
 #[cfg(test)]
@@ -357,6 +385,45 @@ mod tests {
     use crate::config::LINK_PATTERN;
     use crate::document::Source::Macro;
     use regex::Regex;
+
+    #[test]
+    fn absolute_link() {
+        assert_eq!(
+            super::absolute_link("linked.md", "README.md"),
+            Some(PathBuf::from("linked.md"))
+        );
+
+        assert_eq!(
+            super::absolute_link("linked.md", "src/README.md"),
+            Some(PathBuf::from("src/linked.md"))
+        );
+
+        assert_eq!(
+            super::absolute_link("../linked.md", "src/README.md"),
+            Some(PathBuf::from("linked.md"))
+        );
+    }
+
+    #[test]
+    fn relative_link() {
+        assert_eq!(super::relative_link("linked.md", "README.md"), "linked.md");
+        assert_eq!(
+            super::relative_link("src/linked.md", "README.md"),
+            "src/linked.md"
+        );
+        assert_eq!(
+            super::relative_link("src/linked.md", "src/README.md"),
+            "linked.md"
+        );
+        assert_eq!(
+            super::relative_link("docs/linked.md", "src/README.md"),
+            "../docs/linked.md"
+        );
+        assert_eq!(
+            super::relative_link("linked.md", "src/README.md"),
+            "../linked.md"
+        );
+    }
 
     #[test]
     fn parse_text() {
