@@ -293,17 +293,8 @@ fn parse_links(
     let marker = &settings.link_following_pattern.0;
     let regex = &settings.link_following_pattern.1;
 
-    let mut new_line: Option<String> = None;
-
     if regex.is_match(line) {
-        let ln = if let Some(l) = &mut new_line {
-            l
-        } else {
-            new_line = Some(String::new());
-            new_line.as_mut().unwrap()
-        };
-
-        *ln = regex
+        let ln = regex
             .replace_all(line, |caps: &Captures| {
                 let label = &caps[2];
                 let link = &caps[3];
@@ -318,12 +309,7 @@ fn parse_links(
                     ));
 
                     let line = if is_reverse {
-                        format!(
-                            "{}[{}]({})",
-                            if follow { marker } else { "" },
-                            label,
-                            &caps[3],
-                        )
+                        format!("{}[{}]({})", if follow { marker } else { "" }, label, link,)
                     } else {
                         let new_link = pathdiff::diff_paths(&path, root_file.parent().unwrap())
                             .and_then(|p| p.as_path().to_str().map(|s| s.replace('\\', "/")))
@@ -346,14 +332,16 @@ fn parse_links(
                         "{}[{}]({})",
                         if is_reverse && follow { marker } else { "" },
                         label,
-                        &caps[3],
+                        link,
                     )
                 }
             })
             .deref()
             .to_owned();
+        Some(ln)
+    } else {
+        None
     }
-    new_line
 }
 
 fn is_relative_link(link: &str) -> bool {
