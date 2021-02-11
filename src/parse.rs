@@ -426,7 +426,148 @@ mod tests {
     }
 
     #[test]
-    fn parse_text() {
+    fn parse_single_link() {
+        let settings = default_settings();
+        let from = Path::new("README.md");
+        let root = Path::new("README.md");
+
+        let line = "A single @[link](link-1.md).";
+        let mut links = vec![];
+        let new_line = super::parse_links(line, &root, &from, &settings, false, &mut links);
+        assert_eq!(new_line, Some("A single [link](link-1.md).".to_owned()));
+        assert_eq!(links.len(), 1);
+        assert_eq!(links[0], PathBuf::from("link-1.md"));
+    }
+
+    #[test]
+    fn parse_two_links() {
+        let settings = default_settings();
+        let from = Path::new("README.md");
+        let root = Path::new("README.md");
+
+        let line = "One @[link](link-1.md) and another @[link](link-2.md).";
+        let mut links = vec![];
+        let new_line = super::parse_links(line, &root, &from, &settings, false, &mut links);
+        assert_eq!(
+            new_line,
+            Some("One [link](link-1.md) and another [link](link-2.md).".to_owned())
+        );
+        assert_eq!(links.len(), 2);
+        assert_eq!(links[0], PathBuf::from("link-1.md"));
+        assert_eq!(links[1], PathBuf::from("link-2.md"));
+    }
+
+    #[test]
+    fn parse_parent_folder_link() {
+        let settings = default_settings();
+        let from = Path::new("src/README.md");
+        let root = Path::new("src/README.md");
+
+        let line = "A single @[link](../link-1.md).";
+        let mut links = vec![];
+        let new_line = super::parse_links(line, &root, &from, &settings, false, &mut links);
+        assert_eq!(new_line, Some("A single [link](../link-1.md).".to_owned()));
+        assert_eq!(links.len(), 1);
+        assert_eq!(links[0], PathBuf::from("link-1.md"));
+    }
+
+    #[test]
+    fn parse_sibling_folder_link() {
+        let settings = default_settings();
+        let from = Path::new("src/README.md");
+        let root = Path::new("src/README.md");
+
+        let line = "A single @[link](../docs/link-1.md).";
+        let mut links = vec![];
+        let new_line = super::parse_links(line, &root, &from, &settings, false, &mut links);
+        assert_eq!(
+            new_line,
+            Some("A single [link](../docs/link-1.md).".to_owned())
+        );
+        assert_eq!(links.len(), 1);
+        assert_eq!(links[0], PathBuf::from("docs/link-1.md"));
+    }
+
+    #[test]
+    fn parse_transcluded_child_folder_link() {
+        let settings = default_settings();
+        let from = Path::new("src/transcluded.md");
+        let root = Path::new("README.md");
+
+        let line = "A single @[link](link-1.md).";
+        let mut links = vec![];
+        let new_line = super::parse_links(line, &root, &from, &settings, false, &mut links);
+        assert_eq!(new_line, Some("A single [link](src/link-1.md).".to_owned()));
+        assert_eq!(links.len(), 1);
+        assert_eq!(links[0], PathBuf::from("src/link-1.md"));
+    }
+
+    #[test]
+    fn parse_transcluded_sibling_folder_link() {
+        let settings = default_settings();
+        let from = Path::new("docs/transcluded.md");
+        let root = Path::new("src/README.md");
+
+        let line = "A single @[link](link-1.md).";
+        let mut links = vec![];
+        let new_line = super::parse_links(line, &root, &from, &settings, false, &mut links);
+        assert_eq!(
+            new_line,
+            Some("A single [link](../docs/link-1.md).".to_owned())
+        );
+        assert_eq!(links.len(), 1);
+        assert_eq!(links[0], PathBuf::from("docs/link-1.md"));
+    }
+
+    #[test]
+    fn parse_transcluded_parent_folder_link() {
+        let settings = default_settings();
+        let from = Path::new("transcluded.md");
+        let root = Path::new("src/README.md");
+
+        let line = "A single @[link](docs/link-1.md).";
+        let mut links = vec![];
+        let new_line = super::parse_links(line, &root, &from, &settings, false, &mut links);
+        assert_eq!(
+            new_line,
+            Some("A single [link](../docs/link-1.md).".to_owned())
+        );
+        assert_eq!(links.len(), 1);
+        assert_eq!(links[0], PathBuf::from("docs/link-1.md"));
+    }
+
+    #[test]
+    fn parse_absolute_link() {
+        let settings = default_settings();
+        let from = Path::new("README.md");
+        let root = Path::new("README.md");
+
+        let line = "An absolute @[link](https://github.com/mlange-42/yarner).";
+        let mut links = vec![];
+        let new_line = super::parse_links(line, &root, &from, &settings, false, &mut links);
+        assert_eq!(
+            new_line,
+            Some("An absolute [link](https://github.com/mlange-42/yarner).".to_owned())
+        );
+        assert_eq!(links.len(), 0);
+    }
+
+    #[test]
+    fn parse_single_link_reverse() {
+        let settings = default_settings();
+        let from = Path::new("docs/README.md");
+        let root = Path::new("docs/README.md");
+
+        let line = "A single @[link](link-1.md).";
+        let mut links = vec![];
+        let new_line = super::parse_links(line, &root, &from, &settings, true, &mut links);
+        assert_eq!(new_line, None);
+        assert_eq!(links.len(), 1);
+        assert_eq!(links[0], PathBuf::from("docs/link-1.md"));
+    }
+
+    #[test]
+    fn parse_doc_text() {
         let settings = default_settings();
         let text = r#"# Caption
 
@@ -447,7 +588,7 @@ text
     }
 
     #[test]
-    fn parse_code() {
+    fn parse_doc_code() {
         let settings = default_settings();
         let text = r#"# Caption
 
@@ -486,7 +627,7 @@ text
     }
 
     #[test]
-    fn parse_transclusion() {
+    fn parse_doc_transclusion() {
         let settings = default_settings();
         let text = r#"# Caption
 
@@ -513,7 +654,7 @@ text
     }
 
     #[test]
-    fn parse_link() {
+    fn parse_doc_link() {
         let settings = default_settings();
         let text = r#"# Caption
 
