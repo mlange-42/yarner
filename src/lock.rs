@@ -20,7 +20,13 @@ pub fn files_changed<P: AsRef<Path>>(lock_file: P, code: bool) -> Fallible<bool>
         } else {
             lock.source_hashes
         };
-        let source_hashes = hash_files(hashes.keys())?;
+        let source_hashes = hash_files(hashes.keys()).map_err(|err| {
+            format!(
+                "Unable to hash {} file: {}\n  Run forced to re-create code files: `yarner --force`.",
+                if code {"code"} else {"source"},
+                err.to_string()
+            )
+        })?;
         Ok(source_hashes != hashes)
     } else {
         Ok(false)
