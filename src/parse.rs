@@ -63,11 +63,7 @@ pub fn parse(
             match nodes.last_mut() {
                 Some(Node::Code(block)) => {
                     if line.starts_with(&block.indent) {
-                        let error = extend_code(line, line_number, settings, block);
-
-                        if let Some(err) = error {
-                            errors.push(err);
-                        }
+                        extend_code(line, line_number, settings, block);
                     } else {
                         errors.push(format!("Incorrect indentation line {}", line_number).into());
                     }
@@ -144,13 +140,7 @@ fn start_code(
     code_block.alternative(is_alt_fenced)
 }
 
-fn extend_code(
-    line: &str,
-    line_number: usize,
-    settings: &ParserSettings,
-    block: &mut CodeBlock,
-) -> Option<Box<dyn Error>> {
-    let mut error = None;
+fn extend_code(line: &str, line_number: usize, settings: &ParserSettings, block: &mut CodeBlock) {
     if block.source.is_empty() && line.trim().starts_with(&settings.block_name_prefix) {
         let name = line.trim()[settings.block_name_prefix.len()..].trim();
 
@@ -161,18 +151,9 @@ fn extend_code(
             block.name = Some(name.to_string());
         };
     } else {
-        let line = match parse_line(line_number, &line[block.indent.len()..], settings) {
-            Ok(line) => Some(line),
-            Err(err) => {
-                error = Some(format!("{} (line {})", err, line_number).into());
-                None
-            }
-        };
-        if let Some(line) = line {
-            block.add_line(line);
-        }
+        let line = parse_line(line_number, &line[block.indent.len()..], settings);
+        block.add_line(line);
     }
-    error
 }
 
 #[allow(clippy::too_many_arguments)]
@@ -247,7 +228,7 @@ fn parse_transclusion(
 }
 
 /// Parses a line as code, returning the parsed `Line` object
-fn parse_line(line_number: usize, input: &str, settings: &ParserSettings) -> Fallible<Line> {
+fn parse_line(line_number: usize, input: &str, settings: &ParserSettings) -> Line {
     let indent_len = input.chars().take_while(|ch| ch.is_whitespace()).count();
     let (indent, rest) = input.split_at(indent_len);
 
@@ -265,21 +246,21 @@ fn parse_line(line_number: usize, input: &str, settings: &ParserSettings) -> Fal
 
     if let Some(stripped) = rest.strip_prefix(&settings.macro_start) {
         if let Some(name) = stripped.strip_suffix(&settings.macro_end) {
-            return Ok(Line {
+            return Line {
                 line_number,
                 indent: indent.to_owned(),
                 source: Source::Macro(name.trim().to_owned()),
                 comment,
-            });
+            };
         }
     }
 
-    Ok(Line {
+    Line {
         line_number,
         indent: indent.to_owned(),
         source: Source::Source(rest.to_owned()),
         comment,
-    })
+    }
 }
 
 fn parse_links(
