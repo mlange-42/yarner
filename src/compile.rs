@@ -26,7 +26,7 @@ pub fn compile_all(
     track_code_files: &mut HashMap<PathBuf, Option<PathBuf>>,
 ) -> Fallible {
     if !track_input_files.contains(file_name) {
-        let (mut document, links) = transclude(parser, file_name)?;
+        let (mut document, links) = transclude(parser, file_name, file_name)?;
 
         let file_str = file_name.to_str().unwrap();
         document.set_source(file_str);
@@ -161,16 +161,21 @@ fn compile(
     Ok(())
 }
 
-fn transclude(parser: &ParserSettings, file_name: &Path) -> Fallible<(Document, Vec<PathBuf>)> {
+fn transclude(
+    parser: &ParserSettings,
+    root_file: &Path,
+    file_name: &Path,
+) -> Fallible<(Document, Vec<PathBuf>)> {
     let source_main = files::read_file_string(&file_name)?;
-    let (mut document, mut links) = parse::parse(&source_main, &file_name, false, parser)?;
+    let (mut document, mut links) =
+        parse::parse(&source_main, &root_file, &file_name, false, parser)?;
 
     let transclusions = document.transclusions().cloned().collect::<Vec<_>>();
 
     let mut trans_so_far = HashSet::new();
     for trans in transclusions {
         if !trans_so_far.contains(trans.file()) {
-            let (doc, sub_links) = transclude(parser, trans.file())?;
+            let (doc, sub_links) = transclude(parser, root_file, trans.file())?;
 
             // TODO: handle unwrap as error
             let ext = trans.file().extension().unwrap().to_str().unwrap();

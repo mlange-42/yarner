@@ -107,7 +107,7 @@ where
     let prefix: &str = Deserialize::deserialize(deserializer)?;
     Ok((
         prefix.to_string(),
-        Regex::new(&format!("{}{}", prefix, LINK_PATTERN)).map_err(|err| {
+        Regex::new(&format!("({})?{}", prefix, LINK_PATTERN)).map_err(|err| {
             D::Error::custom(format!(
                 "Error compiling Regex pattern {}{}\n{}",
                 prefix,

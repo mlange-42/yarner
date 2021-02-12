@@ -1,13 +1,16 @@
 use crate::config::{ParserSettings, LINK_REGEX};
 use crate::document::{CodeBlock, Document, Line, Node, Source, TextBlock, Transclusion};
 use crate::util::Fallible;
+use regex::Captures;
 use std::error::Error;
 use std::fmt::Write;
+use std::ops::Deref;
 use std::path::{Path, PathBuf};
 
 #[allow(clippy::nonminimal_bool)]
 pub fn parse(
     input: &str,
+    root_file: &Path,
     path: &Path,
     is_reverse: bool,
     settings: &ParserSettings,
@@ -60,11 +63,7 @@ pub fn parse(
             match nodes.last_mut() {
                 Some(Node::Code(block)) => {
                     if line.starts_with(&block.indent) {
-                        let error = extend_code(line, line_number, settings, block);
-
-                        if let Some(err) = error {
-                            errors.push(err);
-                        }
+                        extend_code(line, line_number, settings, block);
                     } else {
                         errors.push(format!("Incorrect indentation line {}", line_number).into());
                     }
@@ -79,6 +78,7 @@ pub fn parse(
                     let (node, error) = start_or_extend_text(
                         &line,
                         line_number,
+                        root_file,
                         path,
                         settings,
                         is_reverse,
@@ -140,13 +140,7 @@ fn start_code(
     code_block.alternative(is_alt_fenced)
 }
 
-fn extend_code(
-    line: &str,
-    line_number: usize,
-    settings: &ParserSettings,
-    block: &mut CodeBlock,
-) -> Option<Box<dyn Error>> {
-    let mut error = None;
+fn extend_code(line: &str, line_number: usize, settings: &ParserSettings, block: &mut CodeBlock) {
     if block.source.is_empty() && line.trim().starts_with(&settings.block_name_prefix) {
         let name = line.trim()[settings.block_name_prefix.len()..].trim();
 
@@ -157,30 +151,23 @@ fn extend_code(
             block.name = Some(name.to_string());
         };
     } else {
-        let line = match parse_line(line_number, &line[block.indent.len()..], settings) {
-            Ok(line) => Some(line),
-            Err(err) => {
-                error = Some(format!("{} (line {})", err, line_number).into());
-                None
-            }
-        };
-        if let Some(line) = line {
-            block.add_line(line);
-        }
+        let line = parse_line(line_number, &line[block.indent.len()..], settings);
+        block.add_line(line);
     }
-    error
 }
 
+#[allow(clippy::too_many_arguments)]
 fn start_or_extend_text(
     line: &str,
     line_number: usize,
+    root_file: &Path,
     path: &Path,
     settings: &ParserSettings,
     is_reverse: bool,
     mut links: &mut Vec<PathBuf>,
     block: Option<&mut TextBlock>,
 ) -> (Option<Node>, Option<Box<dyn Error>>) {
-    let parsed = parse_links(&line, path, settings, !is_reverse, &mut links);
+    let parsed = parse_links(&line, root_file, path, settings, is_reverse, &mut links);
     let line = if parsed.is_some() {
         parsed.as_ref().unwrap()
     } else {
@@ -241,7 +228,7 @@ fn parse_transclusion(
 }
 
 /// Parses a line as code, returning the parsed `Line` object
-fn parse_line(line_number: usize, input: &str, settings: &ParserSettings) -> Fallible<Line> {
+fn parse_line(line_number: usize, input: &str, settings: &ParserSettings) -> Line {
     let indent_len = input.chars().take_while(|ch| ch.is_whitespace()).count();
     let (indent, rest) = input.split_at(indent_len);
 
@@ -259,85 +246,322 @@ fn parse_line(line_number: usize, input: &str, settings: &ParserSettings) -> Fal
 
     if let Some(stripped) = rest.strip_prefix(&settings.macro_start) {
         if let Some(name) = stripped.strip_suffix(&settings.macro_end) {
-            return Ok(Line {
+            return Line {
                 line_number,
                 indent: indent.to_owned(),
                 source: Source::Macro(name.trim().to_owned()),
                 comment,
-            });
+            };
         }
     }
 
-    Ok(Line {
+    Line {
         line_number,
         indent: indent.to_owned(),
         source: Source::Source(rest.to_owned()),
         comment,
-    })
+    }
 }
 
 fn parse_links(
     line: &str,
+    root_file: &Path,
     from: &Path,
     settings: &ParserSettings,
-    remove_marker: bool,
+    is_reverse: bool,
     links_out: &mut Vec<PathBuf>,
 ) -> Option<String> {
-    let regex = &settings.link_following_pattern;
+    let marker = &settings.link_following_pattern.0;
+    let regex = &settings.link_following_pattern.1;
 
-    let mut offset = 0;
-    let mut new_line: Option<String> = None;
-    for capture in regex.1.captures_iter(line) {
-        if remove_marker {
-            let index = capture.get(0).unwrap().start();
-            let len = regex.0.len();
-            if let Some(l) = &mut new_line {
-                *l = format!("{}{}", &l[..(index - offset)], &l[(index + len - offset)..]);
-            } else {
-                new_line = Some(format!(
-                    "{}{}",
-                    &line[..(index - offset)],
-                    &line[(index + len - offset)..]
-                ));
+    if regex.is_match(line) {
+        if is_reverse {
+            for caps in regex.captures_iter(line) {
+                let follow = caps.get(1).is_some();
+                if let Some(path) = absolute_link(&caps[3], from) {
+                    if follow {
+                        links_out.push(path);
+                    }
+                }
             }
-            offset += len;
-        }
+            None
+        } else {
+            let ln = regex
+                .replace_all(line, |caps: &Captures| {
+                    let label = &caps[2];
+                    let link = &caps[3];
+                    let follow = caps.get(1).is_some();
 
-        let link = capture.get(2).unwrap().as_str();
-        let mut path = from.parent().unwrap().to_path_buf();
+                    if let Some(path) = absolute_link(link, from) {
+                        let new_link = relative_link(&path, root_file);
+
+                        let line = format!(
+                            "{}[{}]({})",
+                            if is_reverse && follow { marker } else { "" },
+                            if label == link { &new_link } else { label },
+                            new_link,
+                        );
+
+                        if follow {
+                            links_out.push(path);
+                        }
+                        line
+                    } else {
+                        format!(
+                            "{}[{}]({})",
+                            if is_reverse && follow { marker } else { "" },
+                            label,
+                            link,
+                        )
+                    }
+                })
+                .deref()
+                .to_owned();
+            Some(ln)
+        }
+    } else {
+        None
+    }
+}
+
+fn absolute_link<P>(link: &str, from: P) -> Option<PathBuf>
+where
+    P: AsRef<Path>,
+{
+    if is_relative_link(&link) {
+        let mut path = from.as_ref().parent().unwrap().to_path_buf();
         path.push(link);
+
         let path = PathBuf::from(path_clean::clean(
             &path.to_str().unwrap().replace("\\", "/"),
         ));
-        if path.is_relative() && is_relative_link(link) {
-            links_out.push(path);
-        }
+
+        Some(path)
+    } else {
+        None
     }
-    new_line
+}
+
+fn relative_link<P, B>(abs_link: P, root: B) -> String
+where
+    P: AsRef<Path>,
+    B: AsRef<Path>,
+{
+    pathdiff::diff_paths(&abs_link, root.as_ref().parent().unwrap())
+        .and_then(|p| p.as_path().to_str().map(|s| s.replace('\\', "/")))
+        .unwrap_or_else(|| "invalid path".to_owned())
 }
 
 fn is_relative_link(link: &str) -> bool {
     !link.starts_with('#')
-        && !link.starts_with("http://")
-        && !link.starts_with("https://")
-        && !link.starts_with("ftp://")
+        && !link.contains("file://")
+        && !link.contains("http://")
+        && !link.contains("https://")
+        && !link.contains("ftp://")
 }
 
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::config;
+    use crate::config::LINK_PATTERN;
     use crate::document::Source::Macro;
     use regex::Regex;
 
     #[test]
-    fn parse_text() {
+    fn absolute_link() {
+        assert_eq!(
+            super::absolute_link("linked.md", "README.md"),
+            Some(PathBuf::from("linked.md"))
+        );
+
+        assert_eq!(
+            super::absolute_link("linked.md", "src/README.md"),
+            Some(PathBuf::from("src/linked.md"))
+        );
+
+        assert_eq!(
+            super::absolute_link("../linked.md", "src/README.md"),
+            Some(PathBuf::from("linked.md"))
+        );
+    }
+
+    #[test]
+    fn relative_link() {
+        assert_eq!(super::relative_link("linked.md", "README.md"), "linked.md");
+        assert_eq!(
+            super::relative_link("src/linked.md", "README.md"),
+            "src/linked.md"
+        );
+        assert_eq!(
+            super::relative_link("src/linked.md", "src/README.md"),
+            "linked.md"
+        );
+        assert_eq!(
+            super::relative_link("docs/linked.md", "src/README.md"),
+            "../docs/linked.md"
+        );
+        assert_eq!(
+            super::relative_link("linked.md", "src/README.md"),
+            "../linked.md"
+        );
+    }
+
+    #[test]
+    fn parse_single_link() {
+        let settings = default_settings();
+        let from = Path::new("README.md");
+        let root = Path::new("README.md");
+
+        let line = "A single @[link](link-1.md).";
+        let mut links = vec![];
+        let new_line = super::parse_links(line, &root, &from, &settings, false, &mut links);
+        assert_eq!(new_line, Some("A single [link](link-1.md).".to_owned()));
+        assert_eq!(links.len(), 1);
+        assert_eq!(links[0], PathBuf::from("link-1.md"));
+    }
+
+    #[test]
+    fn parse_two_links() {
+        let settings = default_settings();
+        let from = Path::new("README.md");
+        let root = Path::new("README.md");
+
+        let line = "One @[link](link-1.md) and another @[link](link-2.md).";
+        let mut links = vec![];
+        let new_line = super::parse_links(line, &root, &from, &settings, false, &mut links);
+        assert_eq!(
+            new_line,
+            Some("One [link](link-1.md) and another [link](link-2.md).".to_owned())
+        );
+        assert_eq!(links.len(), 2);
+        assert_eq!(links[0], PathBuf::from("link-1.md"));
+        assert_eq!(links[1], PathBuf::from("link-2.md"));
+    }
+
+    #[test]
+    fn parse_parent_folder_link() {
+        let settings = default_settings();
+        let from = Path::new("src/README.md");
+        let root = Path::new("src/README.md");
+
+        let line = "A single @[link](../link-1.md).";
+        let mut links = vec![];
+        let new_line = super::parse_links(line, &root, &from, &settings, false, &mut links);
+        assert_eq!(new_line, Some("A single [link](../link-1.md).".to_owned()));
+        assert_eq!(links.len(), 1);
+        assert_eq!(links[0], PathBuf::from("link-1.md"));
+    }
+
+    #[test]
+    fn parse_sibling_folder_link() {
+        let settings = default_settings();
+        let from = Path::new("src/README.md");
+        let root = Path::new("src/README.md");
+
+        let line = "A single @[link](../docs/link-1.md).";
+        let mut links = vec![];
+        let new_line = super::parse_links(line, &root, &from, &settings, false, &mut links);
+        assert_eq!(
+            new_line,
+            Some("A single [link](../docs/link-1.md).".to_owned())
+        );
+        assert_eq!(links.len(), 1);
+        assert_eq!(links[0], PathBuf::from("docs/link-1.md"));
+    }
+
+    #[test]
+    fn parse_transcluded_child_folder_link() {
+        let settings = default_settings();
+        let from = Path::new("src/transcluded.md");
+        let root = Path::new("README.md");
+
+        let line = "A single @[link](link-1.md).";
+        let mut links = vec![];
+        let new_line = super::parse_links(line, &root, &from, &settings, false, &mut links);
+        assert_eq!(new_line, Some("A single [link](src/link-1.md).".to_owned()));
+        assert_eq!(links.len(), 1);
+        assert_eq!(links[0], PathBuf::from("src/link-1.md"));
+    }
+
+    #[test]
+    fn parse_transcluded_sibling_folder_link() {
+        let settings = default_settings();
+        let from = Path::new("docs/transcluded.md");
+        let root = Path::new("src/README.md");
+
+        let line = "A single @[link](link-1.md).";
+        let mut links = vec![];
+        let new_line = super::parse_links(line, &root, &from, &settings, false, &mut links);
+        assert_eq!(
+            new_line,
+            Some("A single [link](../docs/link-1.md).".to_owned())
+        );
+        assert_eq!(links.len(), 1);
+        assert_eq!(links[0], PathBuf::from("docs/link-1.md"));
+    }
+
+    #[test]
+    fn parse_transcluded_parent_folder_link() {
+        let settings = default_settings();
+        let from = Path::new("transcluded.md");
+        let root = Path::new("src/README.md");
+
+        let line = "A single @[link](docs/link-1.md).";
+        let mut links = vec![];
+        let new_line = super::parse_links(line, &root, &from, &settings, false, &mut links);
+        assert_eq!(
+            new_line,
+            Some("A single [link](../docs/link-1.md).".to_owned())
+        );
+        assert_eq!(links.len(), 1);
+        assert_eq!(links[0], PathBuf::from("docs/link-1.md"));
+    }
+
+    #[test]
+    fn parse_absolute_link() {
+        let settings = default_settings();
+        let from = Path::new("README.md");
+        let root = Path::new("README.md");
+
+        let line = "An absolute @[link](https://github.com/mlange-42/yarner).";
+        let mut links = vec![];
+        let new_line = super::parse_links(line, &root, &from, &settings, false, &mut links);
+        assert_eq!(
+            new_line,
+            Some("An absolute [link](https://github.com/mlange-42/yarner).".to_owned())
+        );
+        assert_eq!(links.len(), 0);
+    }
+
+    #[test]
+    fn parse_single_link_reverse() {
+        let settings = default_settings();
+        let from = Path::new("docs/README.md");
+        let root = Path::new("docs/README.md");
+
+        let line = "A single @[link](link-1.md).";
+        let mut links = vec![];
+        let new_line = super::parse_links(line, &root, &from, &settings, true, &mut links);
+        assert_eq!(new_line, None);
+        assert_eq!(links.len(), 1);
+        assert_eq!(links[0], PathBuf::from("docs/link-1.md"));
+    }
+
+    #[test]
+    fn parse_doc_text() {
         let settings = default_settings();
         let text = r#"# Caption
 
 text
 "#;
-        let (doc, links) = parse(text, Path::new("README.md"), false, &settings).unwrap();
+        let (doc, links) = parse(
+            text,
+            Path::new("README.md"),
+            Path::new("README.md"),
+            false,
+            &settings,
+        )
+        .unwrap();
 
         assert_eq!(doc.nodes.len(), 1);
         assert_eq!(links.len(), 0);
@@ -345,7 +569,7 @@ text
     }
 
     #[test]
-    fn parse_code() {
+    fn parse_doc_code() {
         let settings = default_settings();
         let text = r#"# Caption
 
@@ -357,7 +581,14 @@ code
 
 text
 "#;
-        let (doc, links) = parse(text, Path::new("README.md"), false, &settings).unwrap();
+        let (doc, links) = parse(
+            text,
+            Path::new("README.md"),
+            Path::new("README.md"),
+            false,
+            &settings,
+        )
+        .unwrap();
 
         assert_eq!(doc.nodes.len(), 3);
         assert_eq!(links.len(), 0);
@@ -377,7 +608,7 @@ text
     }
 
     #[test]
-    fn parse_transclusion() {
+    fn parse_doc_transclusion() {
         let settings = default_settings();
         let text = r#"# Caption
 
@@ -385,7 +616,14 @@ text
 
 text
 "#;
-        let (doc, links) = parse(text, Path::new("README.md"), false, &settings).unwrap();
+        let (doc, links) = parse(
+            text,
+            Path::new("README.md"),
+            Path::new("README.md"),
+            false,
+            &settings,
+        )
+        .unwrap();
 
         assert_eq!(doc.nodes.len(), 3);
         assert_eq!(links.len(), 0);
@@ -397,7 +635,7 @@ text
     }
 
     #[test]
-    fn parse_link() {
+    fn parse_doc_link() {
         let settings = default_settings();
         let text = r#"# Caption
 
@@ -405,7 +643,14 @@ text
 
 text
 "#;
-        let (doc, links) = parse(text, Path::new("README.md"), false, &settings).unwrap();
+        let (doc, links) = parse(
+            text,
+            Path::new("README.md"),
+            Path::new("README.md"),
+            false,
+            &settings,
+        )
+        .unwrap();
 
         assert_eq!(doc.nodes.len(), 1);
         assert_eq!(links.len(), 1);
@@ -425,7 +670,7 @@ text
             transclusion_end: "}}".to_string(),
             link_following_pattern: (
                 "@".to_string(),
-                Regex::new(&format!("@{}", config::LINK_PATTERN)).unwrap(),
+                Regex::new(&format!("(@)?{}", LINK_PATTERN)).unwrap(),
             ),
             file_prefix: "file:".to_string(),
             hidden_prefix: "hidden:".to_string(),

@@ -33,6 +33,7 @@ pub fn compile_all(
         let (mut document, links) = transclude_dry_run(
             parser,
             file_name,
+            file_name,
             code_dir,
             entrypoint,
             language,
@@ -160,8 +161,10 @@ fn compile(
     }
 }
 
+#[allow(clippy::too_many_arguments)]
 fn transclude_dry_run(
     parser: &ParserSettings,
+    root_file: &Path,
     file_name: &Path,
     code_dir: &Path,
     entrypoint: Option<&str>,
@@ -170,7 +173,7 @@ fn transclude_dry_run(
     track_code_files: &mut HashSet<PathBuf>,
 ) -> Fallible<(Document, Vec<PathBuf>)> {
     let source_main = files::read_file_string(&file_name)?;
-    let (document, mut links) = parse::parse(&source_main, &file_name, true, parser)?;
+    let (document, mut links) = parse::parse(&source_main, &root_file, &file_name, true, parser)?;
 
     let transclusions = document.transclusions();
 
@@ -179,6 +182,7 @@ fn transclude_dry_run(
         if !trans_so_far.contains(trans.file()) {
             let (doc, sub_links) = transclude_dry_run(
                 parser,
+                root_file,
                 trans.file(),
                 code_dir,
                 entrypoint,
