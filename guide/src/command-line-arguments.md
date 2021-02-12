@@ -23,6 +23,7 @@ USAGE:
 
 FLAGS:
     -C, --clean      Produces clean code output, without block label comments.
+    -F, --force      Forces building, although it would result in overwriting changed files.
     -h, --help       Prints help information
     -V, --version    Prints version information
 
