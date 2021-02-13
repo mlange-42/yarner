@@ -82,13 +82,13 @@ println!("Hello World!");
 With language settings for Rust as given above, the generated code in `main.rs` looks like this:
 
 ```rust,noplaypen
-// <@main.rs.md#
+// <@main.rs.md##0
 fn main() {
     // <@main.rs.md#Say hello#0
     println!("Hello World!");
     // @>main.rs.md#Say hello#0
 }
-// @>main.rs.md#
+// @>main.rs.md##0
 ```
 
 ## Copied files
