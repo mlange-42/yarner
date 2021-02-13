@@ -35,12 +35,7 @@ pub fn parse(
     parser: &ParserSettings,
     block_labels: &BlockLabels,
 ) -> Fallible<Vec<RevCodeBlock>> {
-    let start = format!(
-        "{} {}",
-        block_labels.comment_start, block_labels.block_start
-    );
-    let next = format!("{} {}", block_labels.comment_start, block_labels.block_next);
-    let end = format!("{} {}", block_labels.comment_start, block_labels.block_end);
+    let (start, next, end) = label_prefixes(block_labels);
     let block_name_sep = "#";
 
     let mut blocks = vec![];
@@ -122,4 +117,136 @@ pub fn parse(
     }
 
     Ok(blocks)
+}
+
+fn label_prefixes(block_labels: &BlockLabels) -> (String, String, String) {
+    let start = format!(
+        "{} {}",
+        block_labels.comment_start, block_labels.block_start
+    );
+    let next = format!("{} {}", block_labels.comment_start, block_labels.block_next);
+    let end = format!("{} {}", block_labels.comment_start, block_labels.block_end);
+
+    (start, next, end)
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::config::Config;
+
+    #[test]
+    fn simple_unnamed_block() {
+        let config = toml::from_str::<Config>(include_str!("create/Yarner.toml")).unwrap();
+        let labels = default_block_labels();
+
+        let code = r#"
+// <@README.md##0
+fn main() {}
+// @>README.md##0
+
+"#;
+        let blocks = parse(code, &config.parser, &labels).unwrap();
+
+        assert_eq!(blocks.len(), 1);
+        assert_eq!(blocks[0].name, None);
+        assert_eq!(blocks[0].file, "README.md");
+        assert_eq!(blocks[0].index, 0);
+        assert_eq!(blocks[0].lines, vec!["fn main() {}"]);
+    }
+
+    #[test]
+    fn simple_named_block() {
+        let config = toml::from_str::<Config>(include_str!("create/Yarner.toml")).unwrap();
+        let labels = default_block_labels();
+
+        let code = r#"
+// <@README.md#Block name#0
+fn main() {}
+// @>README.md#Block name#0
+
+"#;
+        let blocks = parse(code, &config.parser, &labels).unwrap();
+
+        assert_eq!(blocks.len(), 1);
+        assert_eq!(blocks[0].name, Some("Block name".to_owned()));
+        assert_eq!(blocks[0].file, "README.md");
+        assert_eq!(blocks[0].index, 0);
+        assert_eq!(blocks[0].lines, vec!["fn main() {}"]);
+    }
+
+    #[test]
+    fn nested_block() {
+        let config = toml::from_str::<Config>(include_str!("create/Yarner.toml")).unwrap();
+        let labels = default_block_labels();
+
+        let code = r#"
+// <@README.md##0
+fn main() {}
+// <@README.md#Inner#0
+fn print() {}
+// @>README.md#Inner#0
+// @>README.md##0
+
+"#;
+        let blocks = parse(code, &config.parser, &labels).unwrap();
+
+        assert_eq!(blocks.len(), 2);
+
+        assert_eq!(blocks[0].name, Some("Inner".to_owned()));
+        assert_eq!(blocks[0].file, "README.md");
+        assert_eq!(blocks[0].index, 0);
+        assert_eq!(blocks[0].lines, vec!["fn print() {}"]);
+
+        assert_eq!(blocks[1].name, None);
+        assert_eq!(blocks[1].file, "README.md");
+        assert_eq!(blocks[1].index, 0);
+        assert_eq!(blocks[1].lines, vec!["fn main() {}", "// ==> Inner."]);
+    }
+
+    #[test]
+    fn multiple_block_same_name() {
+        let config = toml::from_str::<Config>(include_str!("create/Yarner.toml")).unwrap();
+        let labels = default_block_labels();
+
+        let code = r#"
+// <@README.md##0
+fn main() {}
+// <@README.md#Inner#0
+fn print() {}
+// <@>README.md#Inner#1
+fn beep() {}
+// @>README.md#Inner#1
+// @>README.md##0
+
+"#;
+        let blocks = parse(code, &config.parser, &labels).unwrap();
+
+        assert_eq!(blocks.len(), 3);
+
+        assert_eq!(blocks[0].name, Some("Inner".to_owned()));
+        assert_eq!(blocks[0].file, "README.md");
+        assert_eq!(blocks[0].index, 0);
+        assert_eq!(blocks[0].lines, vec!["fn print() {}"]);
+
+        assert_eq!(blocks[1].name, Some("Inner".to_owned()));
+        assert_eq!(blocks[1].file, "README.md");
+        assert_eq!(blocks[1].index, 1);
+        assert_eq!(blocks[1].lines, vec!["fn beep() {}"]);
+
+        assert_eq!(blocks[2].name, None);
+        assert_eq!(blocks[2].file, "README.md");
+        assert_eq!(blocks[2].index, 0);
+        assert_eq!(blocks[2].lines, vec!["fn main() {}", "// ==> Inner."]);
+    }
+
+    fn default_block_labels() -> BlockLabels {
+        BlockLabels {
+            comment_start: "//".to_string(),
+            comment_end: None,
+            block_start: "<@".to_string(),
+            block_next: "<@>".to_string(),
+            block_end: "@>".to_string(),
+        }
+    }
 }
