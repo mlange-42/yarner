@@ -1,6 +1,6 @@
 # Project structure
 
-Yarner offers flexibility regarding the structure of projects. This chapter presents project layouts recommended for different use cases.
+Yarner offers flexibility regarding the structure of projects. This chapter presents some project layouts recommended for different use cases.
 
 [[_TOC_]]
 
@@ -25,15 +25,15 @@ The default setup created by `init` uses the setting listed above and produces t
 
 ```plaintext
 project
-  |
-  |-- code/              <code output>
-  |-- docs/              <doc output>
-  |
-  |-- README.md          <source document>
-  '-- Yarner.toml        <config>
+  │
+  ├── code/              <code output>
+  ├── docs/              <doc output>
+  │
+  ├── README.md          <source document>
+  └── Yarner.toml        <config>
 ```
 
-The structure is well suited for small projects that use only a single source file and no marked links (`@`) or transclusions. In this case, the documentation output looks exactly like the sources. The source file (e.g. `README.md`) can thus be used as the documentation directly, and directory `docs` can be ignored by Git (in file `.gitignore`):
+The structure is well suited for small projects that use only a single source file and no transclusions or links to be followed (`@`). In this case, the documentation output looks exactly like the sources. The source file (e.g. `README.md`) can thus be used as the documentation directly, and directory `docs` can be ignored by Git (in file `.gitignore`):
 
 ```plaintext
 /docs/
@@ -45,14 +45,14 @@ Another possible structure is to have the Markdown sources in a separate sub-fol
 
 ```plaintext
 project
-  |
-  |-- code/              <code output>
-  |-- docs/              <doc output>
-  |-- lp/                <source files>
-  |     |-- README.md
-  |     '-- ...
-  |
-  '-- Yarner.toml        <config>
+  │
+  ├── code/              <code output>
+  ├── docs/              <doc output>
+  ├── lp/                <source files>
+  │     ├── README.md
+  │     └── ...
+  │
+  └── Yarner.toml        <config>
 ```
 
 The required settings look like this:
@@ -68,7 +68,7 @@ files = ["README.md"]
 
 This layout is suitable for larger projects with potentially many linked or transcluded source files.
 
-Here, an additional file `README.md` that contains no Literate Programming code can be placed at the top level of the project. The compiled documentation for readers (after transclusion, with clean links) can be found in directory `docs`.
+Here, an additional file `README.md` that contains no Literate Programming code can be placed at the top level of the project. The compiled documentation for readers (after transclusion, and with clean links) can be found in directory `docs`.
 
 ## Top-level documentation structure
 
@@ -76,13 +76,13 @@ A further useful layout is to place the documentation output at the top project 
 
 ```plaintext
 project
-  |
-  |-- code/              <code output>
-  |-- lp/                <source files>
-  |     |-- README.md
-  |     '-- ...
-  |
-  '-- Yarner.toml        <config>
+  │
+  ├── code/              <code output>
+  ├── lp/                <source files>
+  │     ├── README.md
+  │     └── ...
+  │
+  └── Yarner.toml        <config>
 ```
 
 The required settings look like this:
@@ -98,4 +98,4 @@ files = ["README.md"]
 
 Here, the "compiled" documentation output (e.g. `README.md`) is placed directly in the project directory and thus presented to the reader.
 
-This structure is useful for larger projects that use link following and transclusions, but still want the Literate Programming document directly presented to the reader, e.g. as repository `README.md`.
+This structure is useful for larger projects that use link following and transclusions, but still want the Literate Programming document directly presented to the reader, e.g. as the repository's `README.md`.

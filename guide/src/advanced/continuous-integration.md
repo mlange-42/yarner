@@ -1,6 +1,6 @@
 # Continuous integration
 
-This chapter shows some examples how to use Yarner with Continuous integration.
+This chapter shows some examples how to use Yarner with Continuous integration, and how to publish Literate Programming documents.
 
 [[_TOC_]]
 

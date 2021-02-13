@@ -1,6 +1,6 @@
 # Effective Markdown
 
-This chapter gives advice on how to use Markdown effectively, with Yarner and in general. It lists tools like editors and explains how to create rendered documents.
+This chapter gives advice on how to use Markdown effectively, with Yarner and in general. It lists tools like editors and explains how to create rendered documents. Further, it provides tips like how to render math formulas with Markdown.
 
 [[_TOC_]]
 
@@ -16,7 +16,7 @@ When working with Git and a Git forge like GitHub or GitLab, Markdown offers the
 
 [**Notepad++**](https://notepad-plus-plus.org) is a versatile Open Source text editor. Syntax highlighting for Markdown is available as [plugin](https://github.com/Edditoria/markdown-plus-plus)
 
-[**Atom**](https://atom.io/) is a powerful and extensible Open Source text editor. Markdown syntax highlighting is built-in. For rendered Markdown preview, multiple plugins are available, e.g. [Markdown Preview Plus](https://atom.io/packages/markdown-preview-plus).
+[**Atom**](https://atom.io/) is a powerful and extensible Open Source text editor. Markdown syntax highlighting is built-in. For a rendered Markdown preview, multiple plugins are available, e.g. [Markdown Preview Plus](https://atom.io/packages/markdown-preview-plus).
 
 Most **IDEs** support Markdown syntax highlighting, and some even a rendered preview (potentially via a plugin).
 
@@ -121,3 +121,7 @@ graph TD;
 ~~~
 
 Mermaid is supported by GitLab, MarkText, Typora, and by mdBook through a pre-processor.
+
+## Further reading
+
+* The [Markdown Guide](https://www.markdownguide.org/)

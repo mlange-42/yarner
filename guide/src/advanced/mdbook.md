@@ -13,7 +13,7 @@ To create a project for mdBook and Yarner, run both with their sub-command `init
 > mdbook init
 ```
 
-Delete the file `README.md` created by Yarner (or better, fill it with a readme for the project). Further, the correct paths need to be set in file `Yarne.toml`. See the next section.
+Delete the file `README.md` created by Yarner (or better, fill it with a readme for the project). Further, the correct paths need to be set in file `Yarner.toml`. See the next section.
 
 ## Settings
 

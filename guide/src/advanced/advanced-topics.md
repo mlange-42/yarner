@@ -4,7 +4,7 @@
 
 This part of the guide provides more advanced information for effective work with Yarner, and with Markdown in general.
 
-Chapter [**Continuous integration**](./continuous-integration.md) demonstrates how to automate Yarner using different CIs (GitLab, GitHub Actions, GitHub Travis-CI).
+Chapter [**Continuous integration**](./continuous-integration.md) demonstrates how to automate Yarner using different CIs (GitLab, GitHub Actions, GitHub Travis-CI), and how to publish the documentation output.
 
 Chapter [**Project structure**](./project-structure.md) presents some typical project layouts for different Yarner use cases.
 
