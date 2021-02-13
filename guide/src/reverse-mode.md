@@ -82,13 +82,13 @@ println!("Hello World!");
 With language settings for Rust as given above, the generated code in `main.rs` looks like this:
 
 ```rust,noplaypen
-// <@main.rs.md#
+// <@main.rs.md##0
 fn main() {
     // <@main.rs.md#Say hello#0
     println!("Hello World!");
     // @>main.rs.md#Say hello#0
 }
-// @>main.rs.md#
+// @>main.rs.md##0
 ```
 
 ## Copied files
@@ -98,7 +98,7 @@ If files were copied as explained in chapter [Copying files](./copying-files.md)
 ## Lock file
 
 When reverse mode for a project is enabled (by providing the required language settings), a file `Yarner.lock` is created in the project's `root`.
-The file is required to prevent accidental overwrites of user edits is Markdown sources as well as code output.
+The file is required to prevent accidental overwrites of user edits in Markdown sources as well as code output.
 E.g., after editing the code output, Yarner will refuse to do a forward build as your changes would then be lost.
 To build the project nonetheless, run with option `--force`:
 

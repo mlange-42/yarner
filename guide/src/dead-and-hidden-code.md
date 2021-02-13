@@ -6,9 +6,7 @@ In some cases, it may be desirable to have code blocks that don't go into code o
 
 ## Dead code
 
-Code blocks like examples may be intended to be excluded from code output. 
-This can be achieved by giving a block a name that is not used in any macro.
-In this example, the code block named `Example` will be absent from the generated code as it is not referenced from anywhere:
+Code blocks like examples may be intended to be excluded from code output. This can be achieved by giving a block a name that is not used in any macro. In this example, the code block named `Example` will be absent from the generated code as it is not referenced from anywhere:
 
 ````markdown
 # Dead code example
@@ -29,18 +27,17 @@ fn say_hello("Paul");
 ```
 ````
 
-Additionally, if the option `entrypoint` in section `[paths]` of the `Yarner.toml` is set, unnamed blocks are excluded from code output.
+Additionally, if the option `entrypoint` in section `[paths]` of the `Yarner.toml` is set, unnamed blocks are excluded from code output. This can be useful to ignore e.g. simple command line usage examples intended to instruct the reader rather than for code output.
 
 ## Hidden code
 
-Sometimes, it can be useful to exclude code that is of limited interest for the reader from documentation output.
-This can be achieved by prefixing block names with `hidden:` (the default, configurable):
+Sometimes, it can be useful to exclude code that is of limited interest for the reader from documentation output. This can be achieved by prefixing block names with `hidden:` (the default, configurable):
 
 ````
 ```rust
 //- hidden:A hidden function
 fn hidden() {
-    
+
 }
 ```
 ````
@@ -55,7 +52,9 @@ The prefixes `hidden:` and `file:` can be combined, but only in that order:
 ```rust
 //- hidden:file:secrets.rs
 fn hidden() {
-    
+
 }
 ```
 ````
+
+> Also note the features for [Links and transclusions](./links-and-transclusions.md) and for [Copying files](./copying-files.md). It is not necessary to have all code in the main document, nor to have it in Markdown code blocks at all.
