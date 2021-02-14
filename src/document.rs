@@ -40,31 +40,17 @@ impl Document {
     }
 
     /// Gets all the code blocks of this document
-    pub fn code_blocks<'a>(
-        &'a self,
-        language: Option<&'a str>,
-    ) -> impl Iterator<Item = &'a CodeBlock> {
-        self.nodes.iter().filter_map(move |node| match node {
-            Node::Code(block) => {
-                if let (Some(lhs), Some(rhs)) = (language, &block.language) {
-                    if lhs != rhs {
-                        return None;
-                    }
-                }
-
-                Some(block)
-            }
+    pub fn code_blocks(&self) -> impl Iterator<Item = &CodeBlock> {
+        self.nodes.iter().filter_map(|node| match node {
+            Node::Code(block) => Some(block),
             _ => None,
         })
     }
 
-    pub fn code_blocks_by_name<'a>(
-        &'a self,
-        language: Option<&'a str>,
-    ) -> HashMap<Option<&'a str>, Vec<&'a CodeBlock>> {
+    pub fn code_blocks_by_name(&self) -> HashMap<Option<&str>, Vec<&CodeBlock>> {
         let mut code_blocks = HashMap::<_, Vec<&CodeBlock>>::new();
 
-        for block in self.code_blocks(language) {
+        for block in self.code_blocks() {
             code_blocks
                 .entry(block.name.as_deref())
                 .or_default()
@@ -113,11 +99,10 @@ impl Document {
     pub fn entry_points<'a>(
         &'a self,
         settings: &ParserSettings,
-        language: Option<&'a str>,
     ) -> HashMap<Option<&'a str>, (&'a Path, Option<PathBuf>)> {
         let mut entries = HashMap::new();
         let pref = &settings.file_prefix;
-        for block in self.code_blocks(language) {
+        for block in self.code_blocks() {
             if let Some(name) = block.name.as_deref() {
                 if let Some(rest) = name.strip_prefix(pref) {
                     entries.insert(

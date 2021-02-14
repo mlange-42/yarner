@@ -20,7 +20,6 @@ pub fn compile_all(
     code_dir: Option<&Path>,
     file_name: &Path,
     entrypoint: Option<&str>,
-    language: Option<&str>,
     settings: &HashMap<String, LanguageSettings>,
     track_input_files: &mut HashSet<PathBuf>,
     track_code_files: &mut HashMap<PathBuf, Option<PathBuf>>,
@@ -38,7 +37,6 @@ pub fn compile_all(
             code_dir,
             file_name,
             entrypoint,
-            language,
             settings,
             track_code_files,
         )?;
@@ -53,7 +51,6 @@ pub fn compile_all(
                         code_dir,
                         &file,
                         entrypoint,
-                        language,
                         settings,
                         track_input_files,
                         track_code_files,
@@ -76,13 +73,12 @@ fn compile(
     code_dir: Option<&Path>,
     file_name: &Path,
     entrypoint: Option<&str>,
-    language: Option<&str>,
     settings: &HashMap<String, LanguageSettings>,
     track_code_files: &mut HashMap<PathBuf, Option<PathBuf>>,
 ) -> Fallible {
     println!("Compiling file {}", file_name.display());
 
-    let mut entries = document.entry_points(parser, language);
+    let mut entries = document.entry_points(parser);
 
     let file_name_without_ext = file_name.with_extension("");
     entries.insert(
@@ -105,13 +101,10 @@ fn compile(
     for (entrypoint, (sub_file_name, sub_source_file)) in entries {
         match code_dir {
             Some(code_dir) => {
-                let code_blocks = document.code_blocks_by_name(language);
+                let code_blocks = document.code_blocks_by_name();
                 if let Some(entry_blocks) = code_blocks.get(&entrypoint) {
                     let mut file_path = code_dir.to_owned();
                     file_path.push(sub_file_name);
-                    if let Some(language) = language {
-                        file_path.set_extension(language);
-                    }
 
                     let extension = file_path
                         .extension()

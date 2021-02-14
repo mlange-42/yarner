@@ -23,7 +23,6 @@ pub fn compile_all(
     code_dir: &Path,
     file_name: &Path,
     entrypoint: Option<&str>,
-    language: Option<&str>,
     settings: &HashMap<String, LanguageSettings>,
     track_input_files: &mut HashSet<PathBuf>,
     track_code_files: &mut HashSet<PathBuf>,
@@ -36,7 +35,6 @@ pub fn compile_all(
             file_name,
             code_dir,
             entrypoint,
-            language,
             documents,
             track_code_files,
         )?;
@@ -50,7 +48,6 @@ pub fn compile_all(
             code_dir,
             file_name,
             entrypoint,
-            language,
             track_code_files,
         );
 
@@ -67,7 +64,6 @@ pub fn compile_all(
                         code_dir,
                         &file,
                         entrypoint,
-                        language,
                         settings,
                         track_input_files,
                         track_code_files,
@@ -132,12 +128,11 @@ fn compile(
     code_dir: &Path,
     file_name: &Path,
     entrypoint: Option<&str>,
-    language: Option<&str>,
     track_code_files: &mut HashSet<PathBuf>,
 ) {
     println!("Compiling file {}", file_name.display());
 
-    let mut entries = document.entry_points(parser, language);
+    let mut entries = document.entry_points(parser);
 
     let file_name_without_ext = file_name.with_extension("");
     entries.insert(
@@ -146,15 +141,9 @@ fn compile(
     );
 
     for (entrypoint, (sub_file_name, _sub_source_file)) in entries {
-        if document
-            .code_blocks_by_name(language)
-            .contains_key(&entrypoint)
-        {
+        if document.code_blocks_by_name().contains_key(&entrypoint) {
             let mut file_path = code_dir.to_owned();
             file_path.push(sub_file_name);
-            if let Some(language) = language {
-                file_path.set_extension(language);
-            }
 
             track_code_files.insert(file_path);
         }
@@ -168,7 +157,6 @@ fn transclude_dry_run(
     file_name: &Path,
     code_dir: &Path,
     entrypoint: Option<&str>,
-    language: Option<&str>,
     documents: &mut HashMap<PathBuf, Document>,
     track_code_files: &mut HashSet<PathBuf>,
 ) -> Fallible<(Document, Vec<PathBuf>)> {
@@ -186,7 +174,6 @@ fn transclude_dry_run(
                 trans.file(),
                 code_dir,
                 entrypoint,
-                language,
                 documents,
                 track_code_files,
             )?;
@@ -197,7 +184,6 @@ fn transclude_dry_run(
                 code_dir,
                 trans.file(),
                 entrypoint,
-                language,
                 track_code_files,
             );
 

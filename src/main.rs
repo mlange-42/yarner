@@ -76,12 +76,6 @@ The normal workflow is:
             .value_name("entrypoint")
             .help("The named entrypoint to use when tangling code. Defaults to the unnamed code block.")
             .takes_value(true))
-        .arg(Arg::with_name("language")
-            .short("l")
-            .long("language")
-            .value_name("language")
-            .help("The language to output the tangled code in. Only code blocks in this language will be used.")
-            .takes_value(true))
         .arg(Arg::with_name("input")
             .help("The input source file(s) as glob pattern(s). If none are specified, uses 'path' -> 'files' from config file.")
             .value_name("input")
@@ -171,8 +165,6 @@ The normal workflow is:
 
     let reverse = matches.subcommand_matches("reverse").is_some();
 
-    let language = matches.value_of("language");
-
     let (mut source_files, mut code_files) = if reverse {
         if has_reverse_config
             && !force
@@ -185,14 +177,7 @@ The normal workflow is:
                     .into(),
             );
         }
-        process_inputs_reverse(
-            &input_patterns,
-            &config,
-            code_dir,
-            doc_dir,
-            entrypoint,
-            language,
-        )?
+        process_inputs_reverse(&input_patterns, &config, code_dir, doc_dir, entrypoint)?
     } else {
         if has_reverse_config
             && !force
@@ -203,14 +188,7 @@ The normal workflow is:
   To run anyway, use `yarner --force`"#
                 .into());
         }
-        process_inputs_forward(
-            &input_patterns,
-            &config,
-            code_dir,
-            doc_dir,
-            entrypoint,
-            language,
-        )?
+        process_inputs_forward(&input_patterns, &config, code_dir, doc_dir, entrypoint)?
     };
 
     if let Some(code_dir) = code_dir {
@@ -252,7 +230,6 @@ fn process_inputs_reverse(
     code_dir: Option<&Path>,
     doc_dir: Option<&Path>,
     entrypoint: Option<&str>,
-    language: Option<&str>,
 ) -> Fallible<(HashSet<PathBuf>, HashSet<PathBuf>)> {
     let code_dir = code_dir.ok_or({
         r#"Missing code output location. Reverse mode not possible.
@@ -309,7 +286,6 @@ fn process_inputs_reverse(
                     code_dir,
                     &file_name,
                     entrypoint,
-                    language,
                     &config.language,
                     &mut source_files,
                     &mut code_files,
@@ -368,7 +344,6 @@ fn process_inputs_forward(
     code_dir: Option<&Path>,
     doc_dir: Option<&Path>,
     entrypoint: Option<&str>,
-    language: Option<&str>,
 ) -> Fallible<(HashSet<PathBuf>, HashSet<PathBuf>)> {
     let mut any_input = false;
     let mut track_source_files = HashSet::new();
@@ -401,7 +376,6 @@ fn process_inputs_forward(
                     code_dir,
                     &file_name,
                     entrypoint,
-                    language,
                     &config.language,
                     &mut track_source_files,
                     &mut track_code_files,
