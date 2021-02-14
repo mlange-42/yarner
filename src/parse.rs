@@ -189,9 +189,7 @@ fn parse_transclusion(
     settings: &ParserSettings,
 ) -> Fallible<Option<Node>> {
     if let Some(rest) = line.trim().strip_prefix(&settings.transclusion_start) {
-        if let Some(index) = rest.find(&settings.transclusion_end) {
-            let trans = &rest[..index];
-
+        if let Some(trans) = rest.strip_suffix(&settings.transclusion_end) {
             let target = LINK_REGEX
                 .captures_iter(trans)
                 .map(|match_| match_.get(2).unwrap().as_str())

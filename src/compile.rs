@@ -177,15 +177,12 @@ fn transclude(
         if !trans_so_far.contains(trans.file()) {
             let (doc, sub_links) = transclude(parser, root_file, trans.file())?;
 
-            // TODO: handle unwrap as error
-            let ext = trans.file().extension().unwrap().to_str().unwrap();
-            let full_path = trans.file().to_str().unwrap();
             let path = format!(
                 "{}{}",
                 parser.file_prefix,
-                &full_path[..full_path.len() - ext.len() - 1]
+                trans.file().with_extension("").to_str().unwrap(),
             );
-            document.transclude(&trans, doc, &full_path, &path[..]);
+            document.transclude(&trans, doc, &path);
 
             links.extend(sub_links.into_iter());
             trans_so_far.insert(trans.file().clone());
