@@ -6,55 +6,28 @@ use std::fs::{self, File};
 use std::io::Write;
 use std::path::{Path, PathBuf};
 
-use crate::{
-    config::{LanguageSettings, ParserSettings},
-    document::Document,
-    files, parse, print,
-    util::Fallible,
-};
+use crate::config::Config;
+use crate::{config::ParserSettings, document::Document, files, parse, print, util::Fallible};
 
-#[allow(clippy::too_many_arguments)]
 pub fn compile_all(
-    parser: &ParserSettings,
-    doc_dir: Option<&Path>,
-    code_dir: Option<&Path>,
+    config: &Config,
     file_name: &Path,
-    entrypoint: Option<&str>,
-    settings: &HashMap<String, LanguageSettings>,
     track_input_files: &mut HashSet<PathBuf>,
     track_code_files: &mut HashMap<PathBuf, Option<PathBuf>>,
 ) -> Fallible {
     if !track_input_files.contains(file_name) {
-        let (mut document, links) = transclude(parser, file_name, file_name)?;
+        let (mut document, links) = transclude(&config.parser, file_name, file_name)?;
 
         let file_str = file_name.to_str().unwrap();
         document.set_source(file_str);
 
-        compile(
-            parser,
-            &document,
-            doc_dir,
-            code_dir,
-            file_name,
-            entrypoint,
-            settings,
-            track_code_files,
-        )?;
+        compile(config, &document, file_name, track_code_files)?;
         track_input_files.insert(file_name.to_owned());
 
         for file in links {
             if file.is_file() {
                 if !track_input_files.contains(&file) {
-                    compile_all(
-                        parser,
-                        doc_dir,
-                        code_dir,
-                        &file,
-                        entrypoint,
-                        settings,
-                        track_input_files,
-                        track_code_files,
-                    )?;
+                    compile_all(config, &file, track_input_files, track_code_files)?;
                 }
             } else {
                 eprintln!("WARNING: link target not found for {}", file.display());
@@ -65,30 +38,25 @@ pub fn compile_all(
     Ok(())
 }
 
-#[allow(clippy::too_many_arguments)]
 fn compile(
-    parser: &ParserSettings,
+    config: &Config,
     document: &Document,
-    doc_dir: Option<&Path>,
-    code_dir: Option<&Path>,
     file_name: &Path,
-    entrypoint: Option<&str>,
-    settings: &HashMap<String, LanguageSettings>,
     track_code_files: &mut HashMap<PathBuf, Option<PathBuf>>,
 ) -> Fallible {
     println!("Compiling file {}", file_name.display());
 
-    let mut entries = document.entry_points(parser);
+    let mut entries = document.entry_points(&config.parser);
 
     let file_name_without_ext = file_name.with_extension("");
     entries.insert(
-        entrypoint,
+        config.paths.entrypoint.as_deref(),
         (&file_name_without_ext, Some(file_name.to_owned())),
     );
 
-    match doc_dir {
+    match &config.paths.docs {
         Some(doc_dir) => {
-            let documentation = print::print_docs(document, parser);
+            let documentation = print::print_docs(document, &config.parser);
             let mut file_path = doc_dir.to_owned();
             file_path.push(file_name);
             fs::create_dir_all(file_path.parent().unwrap()).unwrap();
@@ -99,7 +67,7 @@ fn compile(
     }
 
     for (entrypoint, (sub_file_name, sub_source_file)) in entries {
-        match code_dir {
+        match &config.paths.code {
             Some(code_dir) => {
                 let code_blocks = document.code_blocks_by_name();
                 if let Some(entry_blocks) = code_blocks.get(&entrypoint) {
@@ -111,7 +79,7 @@ fn compile(
                         .and_then(|ext| ext.to_str())
                         .unwrap_or("")
                         .to_string();
-                    let settings = settings.get(&extension);
+                    let settings = config.language.get(&extension);
 
                     // TODO: only track files that are really created!
                     match track_code_files.entry(file_path.clone()) {

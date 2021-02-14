@@ -140,19 +140,15 @@ The normal workflow is:
             .map_err(|err| format!("Unable to set root to \"{}\": {}", path, err))?;
     }
 
-    let doc_dir = matches
-        .value_of("doc_dir")
-        .or_else(|| config.paths.docs.as_deref())
-        .map(Path::new);
-
-    let code_dir = matches
-        .value_of("code_dir")
-        .or_else(|| config.paths.code.as_deref())
-        .map(Path::new);
-
-    let entrypoint = matches
-        .value_of("entrypoint")
-        .or_else(|| config.paths.entrypoint.as_deref());
+    if let Some(dir) = matches.value_of("doc_dir") {
+        config.paths.docs = Some(PathBuf::from(dir));
+    }
+    if let Some(dir) = matches.value_of("code_dir") {
+        config.paths.code = Some(PathBuf::from(dir));
+    }
+    if let Some(entry) = matches.value_of("entrypoint") {
+        config.paths.entrypoint = Some(entry.to_owned());
+    }
 
     let input_patterns = matches
         .values_of("input")
@@ -168,7 +164,12 @@ The normal workflow is:
     let (mut source_files, mut code_files) = if reverse {
         if has_reverse_config
             && !force
-            && code_dir.map(|d| d.is_dir()).unwrap_or(false)
+            && config
+                .paths
+                .code
+                .as_ref()
+                .map(|d| d.is_dir())
+                .unwrap_or(false)
             && lock::files_changed(&lock_path, false)?
         {
             return Err(
@@ -177,26 +178,31 @@ The normal workflow is:
                     .into(),
             );
         }
-        process_inputs_reverse(&input_patterns, &config, code_dir, doc_dir, entrypoint)?
+        process_inputs_reverse(&input_patterns, &config)?
     } else {
         if has_reverse_config
             && !force
-            && code_dir.map(|d| d.is_dir()).unwrap_or(false)
+            && config
+                .paths
+                .code
+                .as_ref()
+                .map(|d| d.is_dir())
+                .unwrap_or(false)
             && lock::files_changed(&lock_path, true)?
         {
             return Err(r#"Code output has changed. Stopping to prevent overwrite.
   To run anyway, use `yarner --force`"#
                 .into());
         }
-        process_inputs_forward(&input_patterns, &config, code_dir, doc_dir, entrypoint)?
+        process_inputs_forward(&input_patterns, &config)?
     };
 
-    if let Some(code_dir) = code_dir {
+    if let Some(code_dir) = config.paths.code {
         if let Some(code_file_patterns) = &config.paths.code_files {
             let (copy_in, copy_out) = files::copy_files(
                 code_file_patterns,
                 config.paths.code_paths.as_deref(),
-                code_dir,
+                Path::new(&code_dir),
                 reverse,
             )?;
             source_files.extend(copy_in);
@@ -205,12 +211,12 @@ The normal workflow is:
     }
 
     if !reverse {
-        if let Some(doc_dir) = doc_dir {
+        if let Some(doc_dir) = config.paths.docs {
             if let Some(doc_file_patterns) = &config.paths.doc_files {
                 files::copy_files(
                     doc_file_patterns,
                     config.paths.doc_paths.as_deref(),
-                    doc_dir,
+                    Path::new(&doc_dir),
                     false,
                 )?;
             }
@@ -227,11 +233,8 @@ The normal workflow is:
 fn process_inputs_reverse(
     input_patterns: &[String],
     config: &Config,
-    code_dir: Option<&Path>,
-    doc_dir: Option<&Path>,
-    entrypoint: Option<&str>,
 ) -> Fallible<(HashSet<PathBuf>, HashSet<PathBuf>)> {
-    let code_dir = code_dir.ok_or({
+    let code_dir = config.paths.code.as_ref().ok_or({
         r#"Missing code output location. Reverse mode not possible.
   Add 'code = "code"' to section 'path' in file Yarner.toml"#
     })?;
@@ -281,12 +284,8 @@ fn process_inputs_reverse(
                 let file_name = PathBuf::from(&input);
 
                 if let Err(error) = compile_reverse::compile_all(
-                    &config.parser,
-                    doc_dir,
-                    code_dir,
+                    &config,
                     &file_name,
-                    entrypoint,
-                    &config.language,
                     &mut source_files,
                     &mut code_files,
                     &mut documents,
@@ -341,9 +340,6 @@ fn process_inputs_reverse(
 fn process_inputs_forward(
     input_patterns: &[String],
     config: &Config,
-    code_dir: Option<&Path>,
-    doc_dir: Option<&Path>,
-    entrypoint: Option<&str>,
 ) -> Fallible<(HashSet<PathBuf>, HashSet<PathBuf>)> {
     let mut any_input = false;
     let mut track_source_files = HashSet::new();
@@ -371,12 +367,8 @@ fn process_inputs_forward(
                 let file_name = PathBuf::from(&input);
 
                 if let Err(error) = compile::compile_all(
-                    &config.parser,
-                    doc_dir,
-                    code_dir,
+                    &config,
                     &file_name,
-                    entrypoint,
-                    &config.language,
                     &mut track_source_files,
                     &mut track_code_files,
                 ) {

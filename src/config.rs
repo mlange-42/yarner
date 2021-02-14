@@ -1,6 +1,6 @@
 //! Config objects, to be read from Yarner.toml
 use std::collections::HashMap;
-use std::path::Path;
+use std::path::{Path, PathBuf};
 
 use once_cell::sync::Lazy;
 use regex::Regex;
@@ -111,9 +111,9 @@ pub struct Paths {
     /// Code output path.
     pub root: Option<String>,
     /// Code output path.
-    pub code: Option<String>,
+    pub code: Option<PathBuf>,
     /// Docs output path.
-    pub docs: Option<String>,
+    pub docs: Option<PathBuf>,
     /// The input source file(s) as glob pattern(s).
     pub files: Option<Vec<String>>,
     /// File(s) to include in code output (unprocessed), as glob pattern(s).

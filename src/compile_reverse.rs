@@ -5,51 +5,26 @@ use std::collections::{
 use std::path::{Path, PathBuf};
 
 use crate::{
-    code,
-    code::RevCodeBlock,
-    config::Config,
-    config::{LanguageSettings, ParserSettings},
-    document::Document,
-    files, parse,
-    util::Fallible,
+    code, code::RevCodeBlock, config::Config, document::Document, files, parse, util::Fallible,
 };
 
 type BlockKey = (PathBuf, Option<String>, usize);
 
-#[allow(clippy::too_many_arguments)]
 pub fn compile_all(
-    parser: &ParserSettings,
-    doc_dir: Option<&Path>,
-    code_dir: &Path,
+    config: &Config,
     file_name: &Path,
-    entrypoint: Option<&str>,
-    settings: &HashMap<String, LanguageSettings>,
     track_input_files: &mut HashSet<PathBuf>,
     track_code_files: &mut HashSet<PathBuf>,
     documents: &mut HashMap<PathBuf, Document>,
 ) -> Fallible {
     if !track_input_files.contains(file_name) {
-        let (mut document, links) = transclude_dry_run(
-            parser,
-            file_name,
-            file_name,
-            code_dir,
-            entrypoint,
-            documents,
-            track_code_files,
-        )?;
+        let (mut document, links) =
+            transclude_dry_run(config, file_name, file_name, documents, track_code_files)?;
 
         let file_str = file_name.to_str().unwrap();
         document.set_source(file_str);
 
-        compile(
-            parser,
-            &document,
-            code_dir,
-            file_name,
-            entrypoint,
-            track_code_files,
-        );
+        compile(config, &document, file_name, track_code_files);
 
         documents.insert(file_name.to_owned(), document);
 
@@ -59,12 +34,8 @@ pub fn compile_all(
             if file.is_file() {
                 if !track_input_files.contains(&file) {
                     compile_all(
-                        parser,
-                        doc_dir,
-                        code_dir,
+                        config,
                         &file,
-                        entrypoint,
-                        settings,
                         track_input_files,
                         track_code_files,
                         documents,
@@ -121,28 +92,25 @@ pub fn collect_code_blocks(
     Ok(code_blocks)
 }
 
-#[allow(clippy::too_many_arguments)]
 fn compile(
-    parser: &ParserSettings,
+    config: &Config,
     document: &Document,
-    code_dir: &Path,
     file_name: &Path,
-    entrypoint: Option<&str>,
     track_code_files: &mut HashSet<PathBuf>,
 ) {
     println!("Compiling file {}", file_name.display());
 
-    let mut entries = document.entry_points(parser);
+    let mut entries = document.entry_points(&config.parser);
 
     let file_name_without_ext = file_name.with_extension("");
     entries.insert(
-        entrypoint,
+        config.paths.entrypoint.as_deref(),
         (&file_name_without_ext, Some(PathBuf::from(file_name))),
     );
 
     for (entrypoint, (sub_file_name, _sub_source_file)) in entries {
         if document.code_blocks_by_name().contains_key(&entrypoint) {
-            let mut file_path = code_dir.to_owned();
+            let mut file_path = config.paths.code.clone().unwrap_or_default();
             file_path.push(sub_file_name);
 
             track_code_files.insert(file_path);
@@ -150,42 +118,26 @@ fn compile(
     }
 }
 
-#[allow(clippy::too_many_arguments)]
 fn transclude_dry_run(
-    parser: &ParserSettings,
+    config: &Config,
     root_file: &Path,
     file_name: &Path,
-    code_dir: &Path,
-    entrypoint: Option<&str>,
     documents: &mut HashMap<PathBuf, Document>,
     track_code_files: &mut HashSet<PathBuf>,
 ) -> Fallible<(Document, Vec<PathBuf>)> {
     let source_main = files::read_file_string(&file_name)?;
-    let (document, mut links) = parse::parse(&source_main, &root_file, &file_name, true, parser)?;
+    let (document, mut links) =
+        parse::parse(&source_main, &root_file, &file_name, true, &config.parser)?;
 
     let transclusions = document.transclusions();
 
     let mut trans_so_far = HashSet::new();
     for trans in transclusions {
         if !trans_so_far.contains(trans.file()) {
-            let (doc, sub_links) = transclude_dry_run(
-                parser,
-                root_file,
-                trans.file(),
-                code_dir,
-                entrypoint,
-                documents,
-                track_code_files,
-            )?;
+            let (doc, sub_links) =
+                transclude_dry_run(config, root_file, trans.file(), documents, track_code_files)?;
 
-            compile(
-                parser,
-                &doc,
-                code_dir,
-                trans.file(),
-                entrypoint,
-                track_code_files,
-            );
+            compile(config, &doc, trans.file(), track_code_files);
 
             links.extend(sub_links.into_iter());
             documents.insert(trans.file().clone(), doc);
