@@ -301,22 +301,10 @@ fn process_inputs_reverse(
             };
             if input.is_file() {
                 any_input = true;
-                let (file_name, code_type) = {
-                    let file_name = PathBuf::from(&input);
-
-                    let code_type = input.file_stem().and_then(|stem| {
-                        PathBuf::from(stem)
-                            .extension()
-                            .and_then(|osstr| osstr.to_str())
-                            .map(|s| s.to_owned())
-                    });
-                    (file_name, code_type)
-                };
-
-                let parser = config.parser.default_language(code_type);
+                let file_name = PathBuf::from(&input);
 
                 if let Err(error) = compile_reverse::compile_all(
-                    &parser,
+                    &config.parser,
                     doc_dir,
                     code_dir,
                     &file_name,
@@ -405,22 +393,10 @@ fn process_inputs_forward(
             };
             if input.is_file() {
                 any_input = true;
-                let (file_name, code_type) = {
-                    let file_name = PathBuf::from(&input);
-
-                    let code_type = input.file_stem().and_then(|stem| {
-                        PathBuf::from(stem)
-                            .extension()
-                            .and_then(|osstr| osstr.to_str())
-                            .map(|s| s.to_owned())
-                    });
-                    (file_name, code_type)
-                };
-
-                let parser = config.parser.default_language(code_type);
+                let file_name = PathBuf::from(&input);
 
                 if let Err(error) = compile::compile_all(
-                    &parser,
+                    &config.parser,
                     doc_dir,
                     code_dir,
                     &file_name,

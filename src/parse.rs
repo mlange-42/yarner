@@ -50,12 +50,7 @@ pub fn parse(
                     nodes.push(Node::Text(TextBlock::new()));
                 }
                 _previous => {
-                    let code_block = start_code(
-                        line,
-                        fence_sequence,
-                        &settings.default_language,
-                        starts_fenced_alt,
-                    );
+                    let code_block = start_code(line, fence_sequence, starts_fenced_alt);
                     nodes.push(Node::Code(code_block));
                 }
             }
@@ -113,12 +108,7 @@ pub fn parse(
     Ok((Document::new(nodes), links))
 }
 
-fn start_code(
-    line: &str,
-    fence_sequence: &str,
-    default_language: &Option<String>,
-    is_alt_fenced: bool,
-) -> CodeBlock {
+fn start_code(line: &str, fence_sequence: &str, is_alt_fenced: bool) -> CodeBlock {
     let indent_len = line.find(fence_sequence).unwrap();
     let (indent, rest) = line.split_at(indent_len);
     let rest = &rest[fence_sequence.len()..];
@@ -127,10 +117,7 @@ fn start_code(
 
     let language = rest.trim();
     let language = if language.is_empty() {
-        match default_language {
-            Some(language) => Some(language.to_owned()),
-            None => None,
-        }
+        None
     } else {
         Some(language.to_owned())
     };
@@ -661,7 +648,6 @@ text
         ParserSettings {
             fence_sequence: "```".to_string(),
             fence_sequence_alt: "~~~".to_string(),
-            default_language: None,
             comments_as_aside: false,
             block_name_prefix: "//-".to_string(),
             macro_start: "// ==>".to_string(),

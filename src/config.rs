@@ -51,8 +51,6 @@ pub struct ParserSettings {
     /// Alternative sequence that identifies the start and end of a fenced code block.
     /// Allows for normal Markdown fences in code blocks
     pub fence_sequence_alt: String,
-    /// The language to set if there was no automatically detected language. Optional
-    pub default_language: Option<String>,
     /// Temporary switch to disable comment extraction
     #[serde(default)]
     pub comments_as_aside: bool,
@@ -86,17 +84,6 @@ Please comment out option `comments_as_aside` until the next version, and rename
         } else {
             Ok(())
         }
-    }
-
-    /// Sets the default language of the returned parser (or does nothing if `None` is passed)
-    pub fn default_language(&self, language: Option<String>) -> Self {
-        let mut cloned = self.clone();
-
-        if language.is_some() {
-            cloned.default_language = language;
-        }
-
-        cloned
     }
 }
 

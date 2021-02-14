@@ -15,8 +15,6 @@ link_prefix = "@"
 file_prefix = "file:"
 hidden_prefix = "hidden:"
 
-# default_language = "rust"
-
 [paths]
 root = "."
 code = "code/"
