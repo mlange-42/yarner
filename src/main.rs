@@ -262,41 +262,32 @@ fn process_inputs_reverse(
     let mut source_files: HashSet<PathBuf> = HashSet::new();
 
     for pattern in input_patterns {
-        let paths = match glob::glob(&pattern) {
-            Ok(p) => p,
-            Err(err) => {
-                return Err(
-                    format!("Unable to process glob pattern \"{}\": {}", pattern, err).into(),
-                )
-            }
-        };
+        let paths = glob::glob(&pattern)
+            .map_err(|err| format!("Unable to process glob pattern \"{}\": {}", pattern, err))?;
+
         for path in paths {
-            let input = match path {
-                Ok(p) => p,
-                Err(err) => {
-                    return Err(
-                        format!("Unable to process glob pattern \"{}\": {}", pattern, err).into(),
-                    )
-                }
-            };
+            let input = path.map_err(|err| {
+                format!("Unable to process glob pattern \"{}\": {}", pattern, err)
+            })?;
+
             if input.is_file() {
                 any_input = true;
                 let file_name = PathBuf::from(&input);
 
-                if let Err(error) = compile_reverse::compile_all(
+                compile_reverse::compile_all(
                     &config,
                     &file_name,
                     &mut source_files,
                     &mut code_files,
                     &mut documents,
-                ) {
-                    return Err(format!(
+                )
+                .map_err(|err| {
+                    format!(
                         "Failed to compile source file \"{}\": {}",
                         file_name.display(),
-                        error
+                        err
                     )
-                    .into());
-                }
+                })?
             }
         }
     }
@@ -345,40 +336,31 @@ fn process_inputs_forward(
     let mut track_source_files = HashSet::new();
     let mut track_code_files = HashMap::new();
     for pattern in input_patterns {
-        let paths = match glob::glob(&pattern) {
-            Ok(p) => p,
-            Err(err) => {
-                return Err(
-                    format!("Unable to process glob pattern \"{}\": {}", pattern, err).into(),
-                )
-            }
-        };
+        let paths = glob::glob(&pattern)
+            .map_err(|err| format!("Unable to process glob pattern \"{}\": {}", pattern, err))?;
+
         for path in paths {
-            let input = match path {
-                Ok(p) => p,
-                Err(err) => {
-                    return Err(
-                        format!("Unable to process glob pattern \"{}\": {}", pattern, err).into(),
-                    )
-                }
-            };
+            let input = path.map_err(|err| {
+                format!("Unable to process glob pattern \"{}\": {}", pattern, err)
+            })?;
+
             if input.is_file() {
                 any_input = true;
                 let file_name = PathBuf::from(&input);
 
-                if let Err(error) = compile::compile_all(
+                compile::compile_all(
                     &config,
                     &file_name,
                     &mut track_source_files,
                     &mut track_code_files,
-                ) {
-                    return Err(format!(
+                )
+                .map_err(|err| {
+                    format!(
                         "Failed to compile source file \"{}\": {}",
                         file_name.display(),
-                        error
+                        err
                     )
-                    .into());
-                }
+                })?
             }
         }
     }

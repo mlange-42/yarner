@@ -36,27 +36,23 @@ pub fn copy_files(
     let mut track_copy_dest: HashMap<PathBuf, PathBuf> = HashMap::new();
     for (idx, file_pattern) in patterns.iter().enumerate() {
         let path = path_mod.as_ref().map(|paths| &paths[idx]);
-        let paths = match glob::glob(&file_pattern) {
-            Ok(p) => p,
-            Err(err) => {
-                return Err(format!(
-                    "Unable to parse glob pattern \"{}\" (at index {}): {}",
-                    file_pattern, err.pos, err
-                ))
-            }
-        };
+        let paths = glob::glob(&file_pattern).map_err(|err| {
+            format!(
+                "Unable to parse glob pattern \"{}\" (at index {}): {}",
+                file_pattern, err.pos, err
+            )
+        })?;
+
         for p in paths {
-            let file = match p {
-                Ok(p) => p,
-                Err(err) => {
-                    return Err(format!(
-                        "Unable to access result found by glob pattern \"{}\" (at {}): {}",
-                        file_pattern,
-                        err.path().display(),
-                        err
-                    ))
-                }
-            };
+            let file = p.map_err(|err| {
+                format!(
+                    "Unable to access result found by glob pattern \"{}\" (at {}): {}",
+                    file_pattern,
+                    err.path().display(),
+                    err
+                )
+            })?;
+
             if file.is_file() {
                 let out_path = path.map_or(file.clone(), |path| modify_path(&file, &path));
                 let mut file_path = target_dir.to_owned();
