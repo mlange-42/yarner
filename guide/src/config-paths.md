@@ -14,7 +14,7 @@ root = "."
 code = "code/"
 docs = "docs/"
 
-files = ["<file>"]
+files = ["README.md"]
 
 # entrypoint = "Main"
 

@@ -35,13 +35,13 @@ We check if the input is a prime number and inform the user with the following c
 ```python
 #- Check if the input is a prime number
 if num > 1:
-   for i in range(2,num):
+    for i in range(2,num):
        if (num % i) == 0:
            print("%d is not a prime number" % (num,))
            print("%d times %d is %d" % (i, num//i, num))
            break
-   else:
+    else:
        print("%d is a prime number" % (num,))
 else:
-   print("%d is not a prime number" % (num,))
+    print("%d is not a prime number" % (num,))
 ```

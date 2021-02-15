@@ -9,7 +9,14 @@ The most basic, producing multiple code files from a single Markdown document, i
 
 It is possible to generate multiple code files from a single documentation source file through code blocks named with file paths, prefixed with `file:` (the default, configurable).
 
-Besides `main.rs`, a file `main.rs.md` with the following content also creates a file `src/lib.rs`:
+````markdown
+```rust
+//- file:path/to/file.ext
+...
+```
+````
+
+As an example, a file `main.rs.md` with the following content creates file `src/lib.rs`, besides the main file `main.rs`:
 
 ````markdown
 # Multiple files example
@@ -64,4 +71,4 @@ fn main() {
 ```
 ````
 
-Thus, file naming in documentation and code can be completely independent from each other.
+Thus, file naming in documentation and code can be completely independent of each other.

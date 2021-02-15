@@ -26,9 +26,6 @@ link_prefix = "@"
 
 file_prefix = "file:"
 hidden_prefix = "hidden:"
-
-# default_language = "rust"
-
 ```
 
 ## Options
@@ -43,4 +40,3 @@ hidden_prefix = "hidden:"
 | `link_prefix`                             | Prefix for links to make Yarner include the linked file in the build process. E.g. `@[Linked file](linked.md)`                                                         |
 | `file_prefix`                             | Prefix to treat block names as target file specifiers. E.g. `//- file:main.rs`                                                                                         |
 | `hidden_prefix`                           | Prefix to hide a code block in documentation output. E.g. `//- hidden:Secret code block`                                                                               |
-| `default_language`                        | The default language in case no language is given after the opening fence sequence. Optional                                                                           |

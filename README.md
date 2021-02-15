@@ -5,7 +5,7 @@
 A language-independent [Literate Programming](https://en.wikipedia.org/wiki/Literate_programming) tool for Markdown. From Markdown documents written and structured for humans, Yarner extracts code blocks into compilable source code. It offers sufficient features and flexibility to be usable also for larger projects with numerous files and multiple languages.
 
 Yarner works with familiar syntax, which can be further customized to suit your needs exactly.
-See the [examples](examples) directory for full working examples using different programming languages.
+See the [examples](examples) directory for full working examples using different programming languages.
 See the [**User Guide**](https://mlange-42.github.io/yarner/) for documentation.
 
 ## Features
