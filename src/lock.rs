@@ -8,25 +8,13 @@ use std::collections::{BTreeMap, HashSet};
 
 pub fn files_changed<P: AsRef<Path>>(lock_file: P, check_sources: bool) -> Fallible<bool> {
     if lock_file.as_ref().is_file() {
-        let lock = Lock::read(&lock_file).map_err(|err| {
-            format!(
-                "Invalid lock file {}: {}\n  Delete the file of run with option `--force`.",
-                lock_file.as_ref().display(),
-                err.to_string()
-            )
-        })?;
+        let lock = Lock::read(&lock_file)?;
         let hashes = if check_sources {
             lock.source_hashes
         } else {
             lock.code_hashes
         };
-        let current_hashes = hash_files(hashes.keys()).map_err(|err| {
-            format!(
-                "Unable to hash {} file: {}\n  Run forced to re-create code files: `yarner --force`.",
-                if check_sources {"source"} else {"code"},
-                err.to_string()
-            )
-        })?;
+        let current_hashes = hash_files(hashes.keys())?;
         Ok(current_hashes != hashes)
     } else {
         Ok(false)
@@ -59,7 +47,11 @@ where
                 .into()),
                 Some(p) => Ok((p.replace('\\', "/"), hash)),
             },
-            Err(err) => Err(err),
+            Err(err) => Err(format!(
+                "Unable to hash file: {}\n  Run forced to re-create code files: `yarner --force`.",
+                err.to_string()
+            )
+            .into()),
         })
         .collect::<Result<BTreeMap<_, _>, _>>()
 }
@@ -79,7 +71,13 @@ struct Lock {
 impl Lock {
     fn read<P: AsRef<Path>>(path: P) -> Fallible<Self> {
         let buf = files::read_file_string(path.as_ref())?;
-        let val = toml::from_str::<Self>(&buf)?;
+        let val = toml::from_str::<Self>(&buf).map_err(|err| {
+            format!(
+                "Invalid lock file {}: {}\n  Delete the file or run with option `--force`.",
+                path.as_ref().display(),
+                err.to_string()
+            )
+        })?;
 
         Ok(val)
     }
