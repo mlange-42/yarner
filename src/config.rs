@@ -197,6 +197,14 @@ impl BlockLabels {
         }
         Ok(())
     }
+
+    pub fn label_prefixes(&self) -> (String, String, String) {
+        let start = format!("{} {}", self.comment_start, self.block_start);
+        let next = format!("{} {}", self.comment_start, self.block_next);
+        let end = format!("{} {}", self.comment_start, self.block_end);
+
+        (start, next, end)
+    }
 }
 
 #[cfg(test)]
@@ -209,5 +217,37 @@ mod tests {
     fn config_template() {
         let config = toml::from_str::<Config>(CONFIG).unwrap();
         config.check().unwrap();
+    }
+
+    #[test]
+    fn label_prefixes() {
+        let labels = default_block_labels();
+        let (start, next, end) = labels.label_prefixes();
+        assert_eq!(start, "// <@");
+        assert_eq!(next, "// <@>");
+        assert_eq!(end, "// @>");
+    }
+
+    #[test]
+    #[should_panic]
+    fn block_labels_check() {
+        let labels = BlockLabels {
+            comment_start: "//".to_string(),
+            comment_end: None,
+            block_start: "<@|".to_string(),
+            block_next: "<@".to_string(),
+            block_end: "@>".to_string(),
+        };
+        labels.check().unwrap();
+    }
+
+    fn default_block_labels() -> BlockLabels {
+        BlockLabels {
+            comment_start: "//".to_string(),
+            comment_end: None,
+            block_start: "<@".to_string(),
+            block_next: "<@>".to_string(),
+            block_end: "@>".to_string(),
+        }
     }
 }

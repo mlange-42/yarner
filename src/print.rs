@@ -265,3 +265,51 @@ pub fn print_line(
     }
     writeln!(write).unwrap();
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::config::Config;
+
+    #[test]
+    fn print_code_block() {
+        let config = toml::from_str::<Config>(include_str!("create/Yarner.toml")).unwrap();
+
+        let code = CodeBlock {
+            indent: "".to_string(),
+            name: Some("Code block".to_string()),
+            is_unnamed: false,
+            language: Some("rust".to_string()),
+            hidden: false,
+            alternative: false,
+            source_file: None,
+            source: vec![
+                Line {
+                    line_number: 0,
+                    indent: "    ".to_string(),
+                    source: Source::Source("fn main() {}".to_string()),
+                    comment: None,
+                },
+                Line {
+                    line_number: 1,
+                    indent: "    ".to_string(),
+                    source: Source::Macro("Another block".to_string()),
+                    comment: None,
+                },
+            ],
+        };
+
+        let mut out = String::new();
+        super::print_code_block(&code, &config.parser, "", &mut out);
+
+        assert_eq!(
+            out,
+            r#"```rust
+//- Code block
+    fn main() {}
+    // ==> Another block.
+```
+"#
+        )
+    }
+}
