@@ -37,7 +37,7 @@ fn main() {
 fn get_matches<'a>() -> ArgMatches<'a> {
     App::new("Yarner")
         .version(crate_version!())
-        .about(r#"Literate programming compiler
+        .about(r#"Literate Programming tool for Markdown
   https://github.com/mlange-42/yarner
 
 The normal workflow is:
@@ -48,37 +48,37 @@ The normal workflow is:
         .arg(Arg::with_name("config")
             .short("c")
             .long("config")
-            .value_name("config")
-            .help("Sets the config file name")
+            .value_name("path")
+            .help("Sets the config file path")
             .takes_value(true)
             .default_value("Yarner.toml"))
         .arg(Arg::with_name("root")
             .long("root")
             .short("r")
-            .value_name("root")
-            .help("Root directory. If none is specified, uses 'path' -> 'root' from config file. Default: current directory.")
+            .value_name("path")
+            .help("Root directory. Optional. Defaults to 'path -> root' from config file, or to the current directory.")
             .takes_value(true))
-        .arg(Arg::with_name("doc_dir")
+        .arg(Arg::with_name("docs")
             .short("d")
             .long("docs")
-            .value_name("doc_dir")
-            .help("Directory to output weaved documentation files to. If none is specified, uses 'path' -> 'docs' from config file.")
+            .value_name("path")
+            .help("Directory to output documentation files to. Optional. Defaults to 'path -> docs' from config file.")
             .takes_value(true))
-        .arg(Arg::with_name("code_dir")
+        .arg(Arg::with_name("code")
             .short("o")
-            .long("output")
-            .value_name("code_dir")
-            .help("Output tangled code files to this directory. If none is specified, uses 'path' -> 'code' from config file.")
+            .long("code")
+            .value_name("path")
+            .help("Directory to output code files to. Optional. Defaults to 'path -> code' from config file.")
             .takes_value(true))
         .arg(Arg::with_name("entrypoint")
             .short("e")
             .long("entrypoint")
-            .value_name("entrypoint")
-            .help("The named entrypoint to use when tangling code. Defaults to the unnamed code block.")
+            .value_name("name")
+            .help("The named entrypoint to use when tangling code. Optional. Defaults to 'path -> entrypoint', or to the unnamed code block(s).")
             .takes_value(true))
         .arg(Arg::with_name("input")
-            .help("The input source file(s) as glob pattern(s). If none are specified, uses 'path' -> 'files' from config file.")
-            .value_name("input")
+            .help("The input source file(s) as glob pattern(s). Optional. Defaults to 'path -> files' from config file.")
+            .value_name("FILES")
             .multiple(true)
             .index(1))
         .arg(Arg::with_name("clean")
@@ -136,10 +136,10 @@ fn run() -> Fallible {
             .map_err(|err| format!("Unable to set root to \"{}\": {}", path, err))?;
     }
 
-    if let Some(dir) = matches.value_of("doc_dir") {
+    if let Some(dir) = matches.value_of("docs") {
         config.paths.docs = Some(PathBuf::from(dir));
     }
-    if let Some(dir) = matches.value_of("code_dir") {
+    if let Some(dir) = matches.value_of("code") {
         config.paths.code = Some(PathBuf::from(dir));
     }
     if let Some(entry) = matches.value_of("entrypoint") {
