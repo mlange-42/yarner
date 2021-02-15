@@ -14,9 +14,9 @@ use std::collections::{HashMap, HashSet};
 use std::env::set_current_dir;
 use std::fs::File;
 use std::io::Write;
-use std::path::{Path, PathBuf};
+use std::path::PathBuf;
 
-use clap::{crate_version, App, Arg, SubCommand};
+use clap::{crate_version, App, Arg, ArgMatches, SubCommand};
 
 use crate::{
     config::Config,
@@ -34,8 +34,8 @@ fn main() {
     });
 }
 
-fn run() -> Fallible {
-    let app = App::new("Yarner")
+fn get_matches<'a>() -> ArgMatches<'a> {
+    App::new("Yarner")
         .version(crate_version!())
         .about(r#"Literate programming compiler
   https://github.com/mlange-42/yarner
@@ -76,12 +76,6 @@ The normal workflow is:
             .value_name("entrypoint")
             .help("The named entrypoint to use when tangling code. Defaults to the unnamed code block.")
             .takes_value(true))
-        .arg(Arg::with_name("language")
-            .short("l")
-            .long("language")
-            .value_name("language")
-            .help("The language to output the tangled code in. Only code blocks in this language will be used.")
-            .takes_value(true))
         .arg(Arg::with_name("input")
             .help("The input source file(s) as glob pattern(s). If none are specified, uses 'path' -> 'files' from config file.")
             .value_name("input")
@@ -104,15 +98,16 @@ The normal workflow is:
         )
         .subcommand(SubCommand::with_name("reverse")
             .about("Reverse mode: play back code changes into source files")
-        );
+        )
+        .get_matches()
+}
 
-    let matches = app.get_matches();
+fn run() -> Fallible {
+    let matches = get_matches();
 
     if matches.subcommand_matches("init").is_some() {
         create::create_new_project().map_err(|err| format!("Could not create project: {}", err))?;
-
         println!("Successfully created project.\nTo compile the project, run 'yarner' from here.",);
-
         return Ok(());
     }
 
@@ -123,11 +118,6 @@ The normal workflow is:
     config
         .check()
         .map_err(|err| format!("Invalid config file \"{}\": {}", config_path, err))?;
-
-    let has_reverse_config = config
-        .language
-        .values()
-        .any(|lang| lang.block_labels.is_some());
 
     let lock_path = PathBuf::from(config_path).with_extension("lock");
 
@@ -146,19 +136,15 @@ The normal workflow is:
             .map_err(|err| format!("Unable to set root to \"{}\": {}", path, err))?;
     }
 
-    let doc_dir = matches
-        .value_of("doc_dir")
-        .or_else(|| config.paths.docs.as_deref())
-        .map(Path::new);
-
-    let code_dir = matches
-        .value_of("code_dir")
-        .or_else(|| config.paths.code.as_deref())
-        .map(Path::new);
-
-    let entrypoint = matches
-        .value_of("entrypoint")
-        .or_else(|| config.paths.entrypoint.as_deref());
+    if let Some(dir) = matches.value_of("doc_dir") {
+        config.paths.docs = Some(PathBuf::from(dir));
+    }
+    if let Some(dir) = matches.value_of("code_dir") {
+        config.paths.code = Some(PathBuf::from(dir));
+    }
+    if let Some(entry) = matches.value_of("entrypoint") {
+        config.paths.entrypoint = Some(entry.to_owned());
+    }
 
     let input_patterns = matches
         .values_of("input")
@@ -171,90 +157,69 @@ The normal workflow is:
 
     let reverse = matches.subcommand_matches("reverse").is_some();
 
-    let language = matches.value_of("language");
+    if !force
+        && config.has_reverse_config()
+        && config.paths.has_valid_code_path()
+        && lock::files_changed(&lock_path, reverse)?
+    {
+        return Err(locked_error_message(reverse).into());
+    }
 
     let (mut source_files, mut code_files) = if reverse {
-        if has_reverse_config
-            && !force
-            && code_dir.map(|d| d.is_dir()).unwrap_or(false)
-            && lock::files_changed(&lock_path, false)?
-        {
-            return Err(
-                r#"Markdown sources have changed. Stopping to prevent overwrite.
-  To run anyway, use `yarner --force reverse`"#
-                    .into(),
-            );
-        }
-        process_inputs_reverse(
-            &input_patterns,
-            &config,
-            code_dir,
-            doc_dir,
-            entrypoint,
-            language,
-        )?
+        process_inputs_reverse(&input_patterns, &config)?
     } else {
-        if has_reverse_config
-            && !force
-            && code_dir.map(|d| d.is_dir()).unwrap_or(false)
-            && lock::files_changed(&lock_path, true)?
-        {
-            return Err(r#"Code output has changed. Stopping to prevent overwrite.
-  To run anyway, use `yarner --force`"#
-                .into());
-        }
-        process_inputs_forward(
-            &input_patterns,
-            &config,
-            code_dir,
-            doc_dir,
-            entrypoint,
-            language,
-        )?
+        process_inputs_forward(&input_patterns, &config)?
     };
 
-    if let Some(code_dir) = code_dir {
-        if let Some(code_file_patterns) = &config.paths.code_files {
-            let (copy_in, copy_out) = files::copy_files(
-                code_file_patterns,
-                config.paths.code_paths.as_deref(),
-                code_dir,
-                reverse,
-            )?;
-            source_files.extend(copy_in);
-            code_files.extend(copy_out);
-        }
+    if let (Some(code_dir), Some(code_file_patterns)) =
+        (&config.paths.code, &config.paths.code_files)
+    {
+        let (copy_in, copy_out) = files::copy_files(
+            code_file_patterns,
+            config.paths.code_paths.as_deref(),
+            &code_dir,
+            reverse,
+        )?;
+        source_files.extend(copy_in);
+        code_files.extend(copy_out);
     }
 
     if !reverse {
-        if let Some(doc_dir) = doc_dir {
-            if let Some(doc_file_patterns) = &config.paths.doc_files {
-                files::copy_files(
-                    doc_file_patterns,
-                    config.paths.doc_paths.as_deref(),
-                    doc_dir,
-                    false,
-                )?;
-            }
+        if let (Some(doc_dir), Some(doc_file_patterns)) =
+            (&config.paths.docs, &config.paths.doc_files)
+        {
+            files::copy_files(
+                doc_file_patterns,
+                config.paths.doc_paths.as_deref(),
+                &doc_dir,
+                false,
+            )?;
         }
     }
 
-    if has_reverse_config {
+    if config.has_reverse_config() {
         lock::write_lock(lock_path, &source_files, &code_files)?;
     }
 
     Ok(())
 }
 
+fn locked_error_message(is_reverse: bool) -> String {
+    if is_reverse {
+        r#"Markdown sources have changed. Stopping to prevent overwrite.
+  To run anyway, use `yarner --force reverse`"#
+    } else {
+        r#"Code output has changed. Stopping to prevent overwrite.
+  To run anyway, use `yarner --force`"#
+    }
+    .to_string()
+}
+
 fn process_inputs_reverse(
     input_patterns: &[String],
     config: &Config,
-    code_dir: Option<&Path>,
-    doc_dir: Option<&Path>,
-    entrypoint: Option<&str>,
-    language: Option<&str>,
 ) -> Fallible<(HashSet<PathBuf>, HashSet<PathBuf>)> {
-    let code_dir = code_dir.ok_or({
+    let code_dir = config.paths.code.as_ref().ok_or({
         r#"Missing code output location. Reverse mode not possible.
   Add 'code = "code"' to section 'path' in file Yarner.toml"#
     })?;
@@ -282,46 +247,32 @@ fn process_inputs_reverse(
     let mut source_files: HashSet<PathBuf> = HashSet::new();
 
     for pattern in input_patterns {
-        let paths = match glob::glob(&pattern) {
-            Ok(p) => p,
-            Err(err) => {
-                return Err(
-                    format!("Unable to process glob pattern \"{}\": {}", pattern, err).into(),
-                )
-            }
-        };
+        let paths = glob::glob(&pattern)
+            .map_err(|err| format!("Unable to process glob pattern \"{}\": {}", pattern, err))?;
+
         for path in paths {
-            let input = match path {
-                Ok(p) => p,
-                Err(err) => {
-                    return Err(
-                        format!("Unable to process glob pattern \"{}\": {}", pattern, err).into(),
-                    )
-                }
-            };
+            let input = path.map_err(|err| {
+                format!("Unable to process glob pattern \"{}\": {}", pattern, err)
+            })?;
+
             if input.is_file() {
                 any_input = true;
                 let file_name = PathBuf::from(&input);
 
-                if let Err(error) = compile_reverse::compile_all(
-                    &config.parser,
-                    doc_dir,
-                    code_dir,
+                compile_reverse::compile_all(
+                    &config,
                     &file_name,
-                    entrypoint,
-                    language,
-                    &config.language,
                     &mut source_files,
                     &mut code_files,
                     &mut documents,
-                ) {
-                    return Err(format!(
+                )
+                .map_err(|err| {
+                    format!(
                         "Failed to compile source file \"{}\": {}",
                         file_name.display(),
-                        error
+                        err
                     )
-                    .into());
-                }
+                })?
             }
         }
     }
@@ -365,54 +316,36 @@ fn process_inputs_reverse(
 fn process_inputs_forward(
     input_patterns: &[String],
     config: &Config,
-    code_dir: Option<&Path>,
-    doc_dir: Option<&Path>,
-    entrypoint: Option<&str>,
-    language: Option<&str>,
 ) -> Fallible<(HashSet<PathBuf>, HashSet<PathBuf>)> {
     let mut any_input = false;
     let mut track_source_files = HashSet::new();
     let mut track_code_files = HashMap::new();
     for pattern in input_patterns {
-        let paths = match glob::glob(&pattern) {
-            Ok(p) => p,
-            Err(err) => {
-                return Err(
-                    format!("Unable to process glob pattern \"{}\": {}", pattern, err).into(),
-                )
-            }
-        };
+        let paths = glob::glob(&pattern)
+            .map_err(|err| format!("Unable to process glob pattern \"{}\": {}", pattern, err))?;
+
         for path in paths {
-            let input = match path {
-                Ok(p) => p,
-                Err(err) => {
-                    return Err(
-                        format!("Unable to process glob pattern \"{}\": {}", pattern, err).into(),
-                    )
-                }
-            };
+            let input = path.map_err(|err| {
+                format!("Unable to process glob pattern \"{}\": {}", pattern, err)
+            })?;
+
             if input.is_file() {
                 any_input = true;
                 let file_name = PathBuf::from(&input);
 
-                if let Err(error) = compile::compile_all(
-                    &config.parser,
-                    doc_dir,
-                    code_dir,
+                compile::compile_all(
+                    &config,
                     &file_name,
-                    entrypoint,
-                    language,
-                    &config.language,
                     &mut track_source_files,
                     &mut track_code_files,
-                ) {
-                    return Err(format!(
+                )
+                .map_err(|err| {
+                    format!(
                         "Failed to compile source file \"{}\": {}",
                         file_name.display(),
-                        error
+                        err
                     )
-                    .into());
-                }
+                })?
             }
         }
     }

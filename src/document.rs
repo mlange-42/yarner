@@ -40,31 +40,17 @@ impl Document {
     }
 
     /// Gets all the code blocks of this document
-    pub fn code_blocks<'a>(
-        &'a self,
-        language: Option<&'a str>,
-    ) -> impl Iterator<Item = &'a CodeBlock> {
-        self.nodes.iter().filter_map(move |node| match node {
-            Node::Code(block) => {
-                if let (Some(lhs), Some(rhs)) = (language, &block.language) {
-                    if lhs != rhs {
-                        return None;
-                    }
-                }
-
-                Some(block)
-            }
+    pub fn code_blocks(&self) -> impl Iterator<Item = &CodeBlock> {
+        self.nodes.iter().filter_map(|node| match node {
+            Node::Code(block) => Some(block),
             _ => None,
         })
     }
 
-    pub fn code_blocks_by_name<'a>(
-        &'a self,
-        language: Option<&'a str>,
-    ) -> HashMap<Option<&'a str>, Vec<&'a CodeBlock>> {
+    pub fn code_blocks_by_name(&self) -> HashMap<Option<&str>, Vec<&CodeBlock>> {
         let mut code_blocks = HashMap::<_, Vec<&CodeBlock>>::new();
 
-        for block in self.code_blocks(language) {
+        for block in self.code_blocks() {
             code_blocks
                 .entry(block.name.as_deref())
                 .or_default()
@@ -82,13 +68,7 @@ impl Document {
         })
     }
 
-    pub fn transclude(
-        &mut self,
-        replace: &Transclusion,
-        with: Document,
-        from_source: &str,
-        from: &str,
-    ) {
+    pub fn transclude(&mut self, replace: &Transclusion, with: Document, from: &str) {
         let mut index = 0;
         while index < self.nodes.len() {
             if let Node::Transclusion(trans) = &self.nodes[index] {
@@ -96,14 +76,12 @@ impl Document {
                     self.nodes.remove(index);
                     for (i, mut node) in with.nodes.into_iter().enumerate() {
                         if let Node::Code(code) = &mut node {
-                            // TODO use entrypoint option here, too? Currently, only in main file.
                             if code.name.is_none() {
                                 code.name = Some(from.to_string());
                                 code.is_unnamed = true;
                             }
-                            // TODO: move to parser?
                             if code.source_file.is_none() {
-                                code.source_file = Some(from_source.to_string());
+                                code.source_file = Some(replace.file.to_str().unwrap().to_owned());
                             }
                         };
                         self.nodes.insert(index + i, node);
@@ -118,14 +96,13 @@ impl Document {
     }
 
     /// Finds all file-specific entry points
-    pub fn entry_points<'a>(
-        &'a self,
+    pub fn entry_points(
+        &self,
         settings: &ParserSettings,
-        language: Option<&'a str>,
-    ) -> HashMap<Option<&'a str>, (&'a Path, Option<PathBuf>)> {
+    ) -> HashMap<Option<&str>, (&Path, Option<PathBuf>)> {
         let mut entries = HashMap::new();
         let pref = &settings.file_prefix;
-        for block in self.code_blocks(language) {
+        for block in self.code_blocks() {
             if let Some(name) = block.name.as_deref() {
                 if let Some(rest) = name.strip_prefix(pref) {
                     entries.insert(
@@ -156,8 +133,8 @@ impl TextBlock {
     }
 
     /// Adds a line to this `TextBlock`
-    pub fn add_line(&mut self, line: &str) {
-        self.text.push(line.to_owned());
+    pub fn add_line(&mut self, line: String) {
+        self.text.push(line);
     }
 
     pub fn lines(&self) -> &[String] {

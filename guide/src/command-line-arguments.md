@@ -34,8 +34,6 @@ OPTIONS:
     -d, --docs <doc_dir>             Directory to output weaved documentation files to. If none is specified, uses
                                      'path' -> 'docs' from config file.
     -e, --entrypoint <entrypoint>    The named entrypoint to use when tangling code. Defaults to the unnamed code block.
-    -l, --language <language>        The language to output the tangled code in. Only code blocks in this language will
-                                     be used.
     -r, --root <root>                Root directory. If none is specified, uses 'path' -> 'root' from config file.
                                      Default: current directory.
 

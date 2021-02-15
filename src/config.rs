@@ -1,6 +1,6 @@
 //! Config objects, to be read from Yarner.toml
 use std::collections::HashMap;
-use std::path::Path;
+use std::path::{Path, PathBuf};
 
 use once_cell::sync::Lazy;
 use regex::Regex;
@@ -40,6 +40,12 @@ impl Config {
         }
 
         Ok(())
+    }
+
+    pub fn has_reverse_config(&self) -> bool {
+        self.language
+            .values()
+            .any(|lang| lang.block_labels.is_some())
     }
 }
 
@@ -111,9 +117,9 @@ pub struct Paths {
     /// Code output path.
     pub root: Option<String>,
     /// Code output path.
-    pub code: Option<String>,
+    pub code: Option<PathBuf>,
     /// Docs output path.
-    pub docs: Option<String>,
+    pub docs: Option<PathBuf>,
     /// The input source file(s) as glob pattern(s).
     pub files: Option<Vec<String>>,
     /// File(s) to include in code output (unprocessed), as glob pattern(s).
@@ -126,6 +132,12 @@ pub struct Paths {
     pub doc_paths: Option<Vec<String>>,
     /// Entrypoint block name. Optional. If not supplied, unnamed code blocks are used.
     pub entrypoint: Option<String>,
+}
+
+impl Paths {
+    pub fn has_valid_code_path(&self) -> bool {
+        self.code.as_ref().map(|d| d.is_dir()).unwrap_or(false)
+    }
 }
 
 /// Config for a programming language
