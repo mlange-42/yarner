@@ -9,7 +9,7 @@ Some configurations can be overwritten using command line arguments.
 To get help on command line options, use `yarner -h`.
 
 ```plaintext
-Literate programming compiler
+Literate Programming tool for Markdown
   https://github.com/mlange-42/yarner
 
 The normal workflow is:
@@ -19,7 +19,7 @@ The normal workflow is:
     > yarner
 
 USAGE:
-    yarner [FLAGS] [OPTIONS] [input]... [SUBCOMMAND]
+    yarner [FLAGS] [OPTIONS] [FILES]... [SUBCOMMAND]
 
 FLAGS:
     -C, --clean      Produces clean code output, without block label comments.
@@ -28,18 +28,18 @@ FLAGS:
     -V, --version    Prints version information
 
 OPTIONS:
-    -o, --output <code_dir>          Output tangled code files to this directory. If none is specified, uses 'path' ->
-                                     'code' from config file.
-    -c, --config <config>            Sets the config file name [default: Yarner.toml]
-    -d, --docs <doc_dir>             Directory to output weaved documentation files to. If none is specified, uses
-                                     'path' -> 'docs' from config file.
-    -e, --entrypoint <entrypoint>    The named entrypoint to use when tangling code. Defaults to the unnamed code block.
-    -r, --root <root>                Root directory. If none is specified, uses 'path' -> 'root' from config file.
-                                     Default: current directory.
+    -o, --code <path>          Directory to output code files to. Optional. Defaults to 'path -> code' from config file.
+    -c, --config <path>        Sets the config file path [default: Yarner.toml]
+    -d, --docs <path>          Directory to output documentation files to. Optional. Defaults to 'path -> docs' from
+                               config file.
+    -e, --entrypoint <name>    The named entrypoint to use when tangling code. Optional. Defaults to 'path ->
+                               entrypoint', or to the unnamed code block(s).
+    -r, --root <path>          Root directory. Optional. Defaults to 'path -> root' from config file, or to the current
+                               directory.
 
 ARGS:
-    <input>...    The input source file(s) as glob pattern(s). If none are specified, uses 'path' -> 'files' from
-                  config file.
+    <FILES>...    The input source file(s) as glob pattern(s). Optional. Defaults to 'path -> files' from config
+                  file.
 
 SUBCOMMANDS:
     help       Prints this message or the help of the given subcommand(s)
