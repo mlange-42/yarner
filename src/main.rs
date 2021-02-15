@@ -16,7 +16,7 @@ use std::fs::File;
 use std::io::Write;
 use std::path::PathBuf;
 
-use clap::{crate_version, App, Arg, SubCommand};
+use clap::{crate_version, App, Arg, ArgMatches, SubCommand};
 
 use crate::{
     config::Config,
@@ -34,8 +34,8 @@ fn main() {
     });
 }
 
-fn run() -> Fallible {
-    let app = App::new("Yarner")
+fn get_matches<'a>() -> ArgMatches<'a> {
+    App::new("Yarner")
         .version(crate_version!())
         .about(r#"Literate programming compiler
   https://github.com/mlange-42/yarner
@@ -98,15 +98,16 @@ The normal workflow is:
         )
         .subcommand(SubCommand::with_name("reverse")
             .about("Reverse mode: play back code changes into source files")
-        );
+        )
+        .get_matches()
+}
 
-    let matches = app.get_matches();
+fn run() -> Fallible {
+    let matches = get_matches();
 
     if matches.subcommand_matches("init").is_some() {
         create::create_new_project().map_err(|err| format!("Could not create project: {}", err))?;
-
         println!("Successfully created project.\nTo compile the project, run 'yarner' from here.",);
-
         return Ok(());
     }
 
@@ -117,11 +118,6 @@ The normal workflow is:
     config
         .check()
         .map_err(|err| format!("Invalid config file \"{}\": {}", config_path, err))?;
-
-    let has_reverse_config = config
-        .language
-        .values()
-        .any(|lang| lang.block_labels.is_some());
 
     let lock_path = PathBuf::from(config_path).with_extension("lock");
 
@@ -161,73 +157,62 @@ The normal workflow is:
 
     let reverse = matches.subcommand_matches("reverse").is_some();
 
+    if !force
+        && config.has_reverse_config()
+        && config.paths.has_valid_code_path()
+        && lock::files_changed(&lock_path, reverse)?
+    {
+        return Err(locked_error_message(reverse).into());
+    }
+
     let (mut source_files, mut code_files) = if reverse {
-        if has_reverse_config
-            && !force
-            && config
-                .paths
-                .code
-                .as_ref()
-                .map(|d| d.is_dir())
-                .unwrap_or(false)
-            && lock::files_changed(&lock_path, false)?
-        {
-            return Err(
-                r#"Markdown sources have changed. Stopping to prevent overwrite.
-  To run anyway, use `yarner --force reverse`"#
-                    .into(),
-            );
-        }
         process_inputs_reverse(&input_patterns, &config)?
     } else {
-        if has_reverse_config
-            && !force
-            && config
-                .paths
-                .code
-                .as_ref()
-                .map(|d| d.is_dir())
-                .unwrap_or(false)
-            && lock::files_changed(&lock_path, true)?
-        {
-            return Err(r#"Code output has changed. Stopping to prevent overwrite.
-  To run anyway, use `yarner --force`"#
-                .into());
-        }
         process_inputs_forward(&input_patterns, &config)?
     };
 
-    if let Some(code_dir) = config.paths.code {
-        if let Some(code_file_patterns) = &config.paths.code_files {
-            let (copy_in, copy_out) = files::copy_files(
-                code_file_patterns,
-                config.paths.code_paths.as_deref(),
-                &code_dir,
-                reverse,
-            )?;
-            source_files.extend(copy_in);
-            code_files.extend(copy_out);
-        }
+    if let (Some(code_dir), Some(code_file_patterns)) =
+        (&config.paths.code, &config.paths.code_files)
+    {
+        let (copy_in, copy_out) = files::copy_files(
+            code_file_patterns,
+            config.paths.code_paths.as_deref(),
+            &code_dir,
+            reverse,
+        )?;
+        source_files.extend(copy_in);
+        code_files.extend(copy_out);
     }
 
     if !reverse {
-        if let Some(doc_dir) = config.paths.docs {
-            if let Some(doc_file_patterns) = &config.paths.doc_files {
-                files::copy_files(
-                    doc_file_patterns,
-                    config.paths.doc_paths.as_deref(),
-                    &doc_dir,
-                    false,
-                )?;
-            }
+        if let (Some(doc_dir), Some(doc_file_patterns)) =
+            (&config.paths.docs, &config.paths.doc_files)
+        {
+            files::copy_files(
+                doc_file_patterns,
+                config.paths.doc_paths.as_deref(),
+                &doc_dir,
+                false,
+            )?;
         }
     }
 
-    if has_reverse_config {
+    if config.has_reverse_config() {
         lock::write_lock(lock_path, &source_files, &code_files)?;
     }
 
     Ok(())
+}
+
+fn locked_error_message(is_reverse: bool) -> String {
+    if is_reverse {
+        r#"Markdown sources have changed. Stopping to prevent overwrite.
+  To run anyway, use `yarner --force reverse`"#
+    } else {
+        r#"Code output has changed. Stopping to prevent overwrite.
+  To run anyway, use `yarner --force`"#
+    }
+    .to_string()
 }
 
 fn process_inputs_reverse(

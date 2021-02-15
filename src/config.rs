@@ -41,6 +41,12 @@ impl Config {
 
         Ok(())
     }
+
+    pub fn has_reverse_config(&self) -> bool {
+        self.language
+            .values()
+            .any(|lang| lang.block_labels.is_some())
+    }
 }
 
 /// The config for parsing a Markdown document
@@ -126,6 +132,12 @@ pub struct Paths {
     pub doc_paths: Option<Vec<String>>,
     /// Entrypoint block name. Optional. If not supplied, unnamed code blocks are used.
     pub entrypoint: Option<String>,
+}
+
+impl Paths {
+    pub fn has_valid_code_path(&self) -> bool {
+        self.code.as_ref().map(|d| d.is_dir()).unwrap_or(false)
+    }
 }
 
 /// Config for a programming language

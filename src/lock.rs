@@ -6,7 +6,7 @@ use serde::{Deserialize, Serialize};
 use crate::{files, util::Fallible};
 use std::collections::{BTreeMap, HashSet};
 
-pub fn files_changed<P: AsRef<Path>>(lock_file: P, code: bool) -> Fallible<bool> {
+pub fn files_changed<P: AsRef<Path>>(lock_file: P, check_sources: bool) -> Fallible<bool> {
     if lock_file.as_ref().is_file() {
         let lock = Lock::read(&lock_file).map_err(|err| {
             format!(
@@ -15,19 +15,19 @@ pub fn files_changed<P: AsRef<Path>>(lock_file: P, code: bool) -> Fallible<bool>
                 err.to_string()
             )
         })?;
-        let hashes = if code {
-            lock.code_hashes
-        } else {
+        let hashes = if check_sources {
             lock.source_hashes
+        } else {
+            lock.code_hashes
         };
-        let source_hashes = hash_files(hashes.keys()).map_err(|err| {
+        let current_hashes = hash_files(hashes.keys()).map_err(|err| {
             format!(
                 "Unable to hash {} file: {}\n  Run forced to re-create code files: `yarner --force`.",
-                if code {"code"} else {"source"},
+                if check_sources {"source"} else {"code"},
                 err.to_string()
             )
         })?;
-        Ok(source_hashes != hashes)
+        Ok(current_hashes != hashes)
     } else {
         Ok(false)
     }
