@@ -392,6 +392,19 @@ mod tests {
     }
 
     #[test]
+    fn parse_non_link() {
+        let settings = default_settings();
+        let from = Path::new("README.md");
+        let root = Path::new("README.md");
+
+        let line = "A single @[non-line] and a path in parentheses: (../link-1.md).";
+        let mut links = vec![];
+        let new_line = super::parse_links(line, &root, &from, &settings, false, &mut links);
+        assert_eq!(new_line, None);
+        assert_eq!(links.len(), 0);
+    }
+
+    #[test]
     fn parse_single_link() {
         let settings = default_settings();
         let from = Path::new("README.md");
@@ -421,6 +434,22 @@ mod tests {
         assert_eq!(links.len(), 2);
         assert_eq!(links[0], PathBuf::from("link-1.md"));
         assert_eq!(links[1], PathBuf::from("link-2.md"));
+    }
+
+    #[test]
+    fn parse_image_link() {
+        let settings = default_settings();
+        let from = Path::new("docs/file.md");
+        let root = Path::new("README.md");
+
+        let line = "An image link ![image](image.png).";
+        let mut links = vec![];
+        let new_line = super::parse_links(line, &root, &from, &settings, false, &mut links);
+        assert_eq!(
+            new_line,
+            Some("An image link ![image](docs/image.png).".to_owned())
+        );
+        assert_eq!(links.len(), 0);
     }
 
     #[test]
@@ -530,6 +559,38 @@ mod tests {
         assert_eq!(new_line, None);
         assert_eq!(links.len(), 1);
         assert_eq!(links[0], PathBuf::from("docs/link-1.md"));
+    }
+
+    #[test]
+    fn parse_no_follow_link() {
+        let settings = default_settings();
+        let from = Path::new("docs/file.md");
+        let root = Path::new("README.md");
+
+        let line = "A single [link](link-1.md).";
+        let mut links = vec![];
+        let new_line = super::parse_links(line, &root, &from, &settings, false, &mut links);
+        assert_eq!(
+            new_line,
+            Some("A single [link](docs/link-1.md).".to_owned())
+        );
+        assert_eq!(links.len(), 0);
+    }
+
+    #[test]
+    fn parse_link_label() {
+        let settings = default_settings();
+        let from = Path::new("docs/file.md");
+        let root = Path::new("README.md");
+
+        let line = "A single [link-1.md](link-1.md).";
+        let mut links = vec![];
+        let new_line = super::parse_links(line, &root, &from, &settings, false, &mut links);
+        assert_eq!(
+            new_line,
+            Some("A single [docs/link-1.md](docs/link-1.md).".to_owned())
+        );
+        assert_eq!(links.len(), 0);
     }
 
     #[test]
