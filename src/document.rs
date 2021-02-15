@@ -96,10 +96,10 @@ impl Document {
     }
 
     /// Finds all file-specific entry points
-    pub fn entry_points<'a>(
-        &'a self,
+    pub fn entry_points(
+        &self,
         settings: &ParserSettings,
-    ) -> HashMap<Option<&'a str>, (&'a Path, Option<PathBuf>)> {
+    ) -> HashMap<Option<&str>, (&Path, Option<PathBuf>)> {
         let mut entries = HashMap::new();
         let pref = &settings.file_prefix;
         for block in self.code_blocks() {
@@ -133,8 +133,8 @@ impl TextBlock {
     }
 
     /// Adds a line to this `TextBlock`
-    pub fn add_line(&mut self, line: &str) {
-        self.text.push(line.to_owned());
+    pub fn add_line(&mut self, line: String) {
+        self.text.push(line);
     }
 
     pub fn lines(&self) -> &[String] {

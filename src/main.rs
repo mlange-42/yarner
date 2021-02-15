@@ -14,7 +14,7 @@ use std::collections::{HashMap, HashSet};
 use std::env::set_current_dir;
 use std::fs::File;
 use std::io::Write;
-use std::path::{Path, PathBuf};
+use std::path::PathBuf;
 
 use clap::{crate_version, App, Arg, SubCommand};
 
@@ -202,7 +202,7 @@ The normal workflow is:
             let (copy_in, copy_out) = files::copy_files(
                 code_file_patterns,
                 config.paths.code_paths.as_deref(),
-                Path::new(&code_dir),
+                &code_dir,
                 reverse,
             )?;
             source_files.extend(copy_in);
@@ -216,7 +216,7 @@ The normal workflow is:
                 files::copy_files(
                     doc_file_patterns,
                     config.paths.doc_paths.as_deref(),
-                    Path::new(&doc_dir),
+                    &doc_dir,
                     false,
                 )?;
             }

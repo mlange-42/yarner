@@ -170,10 +170,10 @@ fn start_or_extend_text(
             }
             None => {
                 if let Some(block) = block {
-                    block.add_line(line);
+                    block.add_line(line.to_owned());
                 } else {
                     let mut new_block = TextBlock::new();
-                    new_block.add_line(line);
+                    new_block.add_line(line.to_owned());
                     node = Some(Node::Text(new_block));
                 };
             }
