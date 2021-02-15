@@ -35,7 +35,7 @@ pub fn parse(
     parser: &ParserSettings,
     block_labels: &BlockLabels,
 ) -> Fallible<Vec<RevCodeBlock>> {
-    let (start, next, end) = label_prefixes(block_labels);
+    let (start, next, end) = block_labels.label_prefixes();
     let block_name_sep = "#";
 
     let mut blocks = vec![];
@@ -119,21 +119,23 @@ pub fn parse(
     Ok(blocks)
 }
 
-fn label_prefixes(block_labels: &BlockLabels) -> (String, String, String) {
-    let start = format!(
-        "{} {}",
-        block_labels.comment_start, block_labels.block_start
-    );
-    let next = format!("{} {}", block_labels.comment_start, block_labels.block_next);
-    let end = format!("{} {}", block_labels.comment_start, block_labels.block_end);
-
-    (start, next, end)
-}
-
 #[cfg(test)]
 mod tests {
     use super::*;
     use crate::config::Config;
+
+    #[test]
+    fn no_block() {
+        let config = toml::from_str::<Config>(include_str!("create/Yarner.toml")).unwrap();
+        let labels = default_block_labels();
+
+        let code = r#"
+fn main() {}
+"#;
+        let blocks = parse(code, &config.parser, &labels).unwrap();
+
+        assert_eq!(blocks.len(), 0);
+    }
 
     #[test]
     fn simple_unnamed_block() {
@@ -144,7 +146,6 @@ mod tests {
 // <@README.md##0
 fn main() {}
 // @>README.md##0
-
 "#;
         let blocks = parse(code, &config.parser, &labels).unwrap();
 
@@ -164,7 +165,6 @@ fn main() {}
 // <@README.md#Block name#0
 fn main() {}
 // @>README.md#Block name#0
-
 "#;
         let blocks = parse(code, &config.parser, &labels).unwrap();
 
@@ -187,7 +187,6 @@ fn main() {}
 fn print() {}
 // @>README.md#Inner#0
 // @>README.md##0
-
 "#;
         let blocks = parse(code, &config.parser, &labels).unwrap();
 
@@ -218,7 +217,6 @@ fn print() {}
 fn beep() {}
 // @>README.md#Inner#1
 // @>README.md##0
-
 "#;
         let blocks = parse(code, &config.parser, &labels).unwrap();
 

@@ -412,3 +412,43 @@ impl std::fmt::Display for CompileError {
 }
 
 impl std::error::Error for CompileError {}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::config::Config;
+    use crate::document::Node::{Code, Text};
+
+    #[test]
+    fn document_elements() {
+        let mut config = toml::from_str::<Config>(include_str!("create/Yarner.toml")).unwrap();
+        config.paths.entrypoint = Some("Main".to_owned());
+
+        let mut code = CodeBlock::new();
+        code.name = Some("file:README.md#Main".to_owned());
+        let doc = Document {
+            nodes: vec![
+                Text(TextBlock { text: vec![] }),
+                Code(code),
+                Text(TextBlock { text: vec![] }),
+                Node::Transclusion(Transclusion::new(
+                    PathBuf::from("trans.md"),
+                    "@{{trans.md}}".to_string(),
+                )),
+            ],
+        };
+
+        let code_blocks: Vec<_> = doc.code_blocks().collect();
+        assert_eq!(code_blocks.len(), 1);
+
+        let transclusions: Vec<_> = doc.transclusions().collect();
+        assert_eq!(transclusions.len(), 1);
+
+        let entrypoints = doc.entry_points(&config.parser);
+        assert_eq!(entrypoints.len(), 1);
+
+        let entry = &entrypoints[&Some("file:README.md#Main")];
+        assert_eq!(entry.0.to_str(), Some("README.md#Main"));
+        assert_eq!(entry.1, None);
+    }
+}
