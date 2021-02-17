@@ -303,7 +303,8 @@ mod tests {
 
     #[test]
     fn print_code_block() {
-        let config = toml::from_str::<Config>(include_str!("create/Yarner.toml")).unwrap();
+        let mut config = toml::from_str::<Config>(include_str!("create/Yarner.toml")).unwrap();
+        config.parser.crlf_newline = Some(false);
 
         let code = CodeBlock {
             indent: "".to_string(),

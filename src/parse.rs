@@ -719,7 +719,7 @@ text
             ),
             file_prefix: "file:".to_string(),
             hidden_prefix: "hidden:".to_string(),
-            crlf_newline: false,
+            crlf_newline: Some(false),
         }
     }
 }
