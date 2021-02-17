@@ -80,6 +80,9 @@ pub struct ParserSettings {
     pub file_prefix: String,
     /// Name prefix for code blocks not shown in the docs.
     pub hidden_prefix: String,
+    /// Use CRLF / Windows line endings for all output.
+    #[serde(default)]
+    pub crlf_newline: bool,
 }
 
 impl ParserSettings {
@@ -89,6 +92,14 @@ impl ParserSettings {
 Please comment out option `comments_as_aside` until the next version, and rename `comment_start` to `block_name_prefix`"#.to_string())
         } else {
             Ok(())
+        }
+    }
+
+    pub fn newline(&self) -> &str {
+        if self.crlf_newline {
+            "\r\n"
+        } else {
+            "\n"
         }
     }
 }
