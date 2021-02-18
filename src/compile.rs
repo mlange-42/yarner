@@ -103,7 +103,12 @@ fn compile(
                         }
                     }
 
-                    let code = print::print_code(&code_blocks, entry_blocks, settings)?;
+                    let code = print::print_code(
+                        &code_blocks,
+                        entry_blocks,
+                        settings,
+                        document.newline(),
+                    )?;
                     println!("  Writing file {}", file_path.display());
                     fs::create_dir_all(file_path.parent().unwrap())?;
                     let mut code_file = File::create(file_path)?;

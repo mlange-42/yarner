@@ -1,4 +1,4 @@
-use crate::config::{ParserSettings, CRLF_NEWLINE, LF_NEWLINE, LINK_REGEX, NEWLINE_REGEX};
+use crate::config::{ParserSettings, CRLF_NEWLINE, LF_NEWLINE, LINK_REGEX};
 use crate::document::{CodeBlock, Document, Line, Node, Source, TextBlock, Transclusion};
 use crate::util::Fallible;
 use regex::Captures;
@@ -111,16 +111,15 @@ pub fn parse(
 }
 
 fn detect_newline(text: &str) -> &'static str {
-    NEWLINE_REGEX.captures_iter(text).next().map_or_else(
-        || LF_NEWLINE,
-        |cap| {
-            if &cap[0] == LF_NEWLINE {
-                LF_NEWLINE
-            } else {
-                CRLF_NEWLINE
-            }
-        },
-    )
+    if let Some(index) = text.find('\n') {
+        if text[..index].ends_with('\r') {
+            CRLF_NEWLINE
+        } else {
+            LF_NEWLINE
+        }
+    } else {
+        LF_NEWLINE
+    }
 }
 
 fn start_code(line: &str, fence_sequence: &str, is_alt_fenced: bool) -> CodeBlock {

@@ -3,7 +3,7 @@ use crate::config::{LanguageSettings, ParserSettings};
 use crate::util::TryCollectExt;
 
 use std::collections::HashMap;
-use std::fmt::{Display, Formatter, Write};
+use std::fmt::Write;
 use std::path::{Path, PathBuf};
 
 /// A representation of a `Document` of literate code
@@ -29,7 +29,6 @@ impl Document {
         Document { nodes, newline }
     }
 
-    #[allow(dead_code)]
     pub fn newline(&self) -> &str {
         self.newline
     }
@@ -148,12 +147,6 @@ impl TextBlock {
     }
 }
 
-impl Display for TextBlock {
-    fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
-        write!(f, "{}", self.text.join("\n"))
-    }
-}
-
 /// A `Transclusion` is a reference to another file that should be pulled into the source
 #[derive(Debug, PartialEq, Clone)]
 pub struct Transclusion {
@@ -246,12 +239,13 @@ impl CodeBlock {
         &self,
         code_blocks: &HashMap<Option<&str>, Vec<&CodeBlock>>,
         settings: Option<&LanguageSettings>,
+        newline: &str,
     ) -> Result<String, CompileError> {
         self.source
             .iter()
-            .map(|line| line.compile_with(code_blocks, settings))
+            .map(|line| line.compile_with(code_blocks, settings, newline))
             .try_collect()
-            .map(|lines| lines.join("\n"))
+            .map(|lines| lines.join(newline))
             .map_err(CompileError::Multi)
     }
 }
@@ -284,6 +278,7 @@ impl Line {
         &self,
         code_blocks: &HashMap<Option<&str>, Vec<&CodeBlock>>,
         settings: Option<&LanguageSettings>,
+        newline: &str,
     ) -> Result<String, CompileError> {
         let block_labels = settings.and_then(|s| s.block_labels.as_ref());
         let comment_start = block_labels
@@ -332,9 +327,9 @@ impl Line {
                     };
 
                     if !clean {
-                        writeln!(
+                        write!(
                             result,
-                            "{}{} {}{}{}{}{}{}{}",
+                            "{}{} {}{}{}{}{}{}{}{}",
                             &self.indent,
                             comment_start,
                             if idx == 0 { &block_start } else { &block_next },
@@ -344,24 +339,24 @@ impl Line {
                             block_name_sep,
                             idx,
                             comment_end,
+                            newline,
                         )
                         .unwrap();
                     }
 
-                    let code = block.compile_with(code_blocks, settings)?;
+                    let code = block.compile_with(code_blocks, settings, newline)?;
                     for line in code.lines() {
                         if blank_lines && line.trim().is_empty() {
-                            writeln!(result).unwrap();
+                            write!(result, "{}", newline).unwrap();
                         } else {
-                            write!(result, "{}", self.indent).unwrap();
-                            writeln!(result, "{}", line).unwrap();
+                            write!(result, "{}{}{}", self.indent, line, newline).unwrap();
                         }
                     }
 
                     if !clean && idx == blocks.len() - 1 {
-                        writeln!(
+                        write!(
                             result,
-                            "{}{} {}{}{}{}{}{}{}",
+                            "{}{} {}{}{}{}{}{}{}{}",
                             &self.indent,
                             comment_start,
                             &block_end,
@@ -371,11 +366,14 @@ impl Line {
                             block_name_sep,
                             idx,
                             comment_end,
+                            newline,
                         )
                         .unwrap();
                     }
                 }
-                result.pop();
+                for _ in 0..newline.len() {
+                    result.pop();
+                }
                 Ok(result)
             }
         }
