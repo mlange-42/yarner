@@ -16,7 +16,7 @@ When working with Git and a Git forge like GitHub or GitLab, Markdown offers the
 
 [**Notepad++**](https://notepad-plus-plus.org) is a versatile Open Source text editor. Syntax highlighting for Markdown is available as [plugin](https://github.com/Edditoria/markdown-plus-plus)
 
-[**Atom**](https://atom.io/) is a powerful and extensible Open Source text editor. Markdown syntax highlighting is built-in. For a rendered Markdown preview, multiple plugins are available, e.g. [Markdown Preview Plus](https://atom.io/packages/markdown-preview-plus).
+[**Atom**](https://atom.io/) is a powerful and extensible Open Source text editor. Markdown syntax highlighting is built-in. For a rendered Markdown preview, multiple plugins are available, e.g. [Markdown Preview Enhanced](https://atom.io/packages/markdown-preview-enhanced).
 
 Most **IDEs** support Markdown syntax highlighting, and some even a rendered preview (potentially via a plugin).
 
