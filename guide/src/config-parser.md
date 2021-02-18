@@ -26,6 +26,8 @@ link_prefix = "@"
 
 file_prefix = "file:"
 hidden_prefix = "hidden:"
+
+# crlf_newline = false
 ```
 
 ## Options
@@ -40,3 +42,4 @@ hidden_prefix = "hidden:"
 | `link_prefix`                             | Prefix for links to make Yarner include the linked file in the build process. E.g. `@[Linked file](linked.md)`                                                         |
 | `file_prefix`                             | Prefix to treat block names as target file specifiers. E.g. `//- file:main.rs`                                                                                         |
 | `hidden_prefix`                           | Prefix to hide a code block in documentation output. E.g. `//- hidden:Secret code block`                                                                               |
+| `crlf_newline`                            | Whether to use Windows line endings (`CRLF`) or not. Optional. Uses system line endings if not provided                                                                |
