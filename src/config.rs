@@ -233,6 +233,33 @@ mod tests {
     const CONFIG: &str = include_str!("create/Yarner.toml");
 
     #[test]
+    fn newline_windows() {
+        let mut config = toml::from_str::<Config>(CONFIG).unwrap();
+        config.parser.crlf_newline = Some(true);
+        assert_eq!(config.parser.newline(), "\r\n");
+    }
+
+    #[test]
+    fn newline_unix() {
+        let mut config = toml::from_str::<Config>(CONFIG).unwrap();
+        config.parser.crlf_newline = Some(false);
+        assert_eq!(config.parser.newline(), "\n");
+    }
+
+    #[test]
+    fn newline_system() {
+        let config = toml::from_str::<Config>(CONFIG).unwrap();
+
+        let expected = if cfg!(target_os = "windows") {
+            "\r\n"
+        } else {
+            "\n"
+        };
+
+        assert_eq!(config.parser.newline(), expected);
+    }
+
+    #[test]
     fn config_template() {
         let config = toml::from_str::<Config>(CONFIG).unwrap();
         config.check().unwrap();
