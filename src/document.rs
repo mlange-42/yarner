@@ -10,6 +10,7 @@ use std::path::{Path, PathBuf};
 #[derive(Debug)]
 pub struct Document {
     pub nodes: Vec<Node>,
+    newline: &'static str,
 }
 
 #[derive(Debug)]
@@ -24,8 +25,13 @@ pub enum Node {
 
 impl Document {
     /// Creates a new document with the given nodes
-    pub fn new(nodes: Vec<Node>) -> Self {
-        Document { nodes }
+    pub fn new(nodes: Vec<Node>, newline: &'static str) -> Self {
+        Document { nodes, newline }
+    }
+
+    #[allow(dead_code)]
+    pub fn newline(&self) -> &str {
+        self.newline
     }
 
     /// Sets the source file for all code blocks that have none
@@ -416,7 +422,7 @@ impl std::error::Error for CompileError {}
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::config::Config;
+    use crate::config::{Config, LF_NEWLINE};
     use crate::document::Node::{Code, Text};
 
     #[test]
@@ -436,6 +442,7 @@ mod tests {
                     "@{{trans.md}}".to_string(),
                 )),
             ],
+            newline: LF_NEWLINE,
         };
 
         let code_blocks: Vec<_> = doc.code_blocks().collect();

@@ -11,6 +11,12 @@ use crate::{files, util::Fallible};
 pub(crate) const LINK_PATTERN: &str = r"\[([^\[\]]*)\]\((.*?)\)";
 pub(crate) static LINK_REGEX: Lazy<Regex> = Lazy::new(|| Regex::new(LINK_PATTERN).unwrap());
 
+pub(crate) const CRLF_NEWLINE: &str = "\r\n";
+pub(crate) const LF_NEWLINE: &str = "\n";
+
+const NEWLINE_PATTERN: &str = r"(\r?\n)";
+pub(crate) static NEWLINE_REGEX: Lazy<Regex> = Lazy::new(|| Regex::new(NEWLINE_PATTERN).unwrap());
+
 /// Top-level config
 #[derive(Deserialize, Debug)]
 pub struct Config {
