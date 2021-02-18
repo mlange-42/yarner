@@ -1,11 +1,17 @@
 use crate::config::{ParserSettings, LINK_REGEX};
-use crate::document::{CodeBlock, Document, Line, Node, Source, TextBlock, Transclusion};
+use crate::document::{
+    CodeBlock, Document, Line, Node, Source, TextBlock, Transclusion, CRLF_NEWLINE, LF_NEWLINE,
+};
 use crate::util::Fallible;
-use regex::Captures;
+use once_cell::sync::Lazy;
+use regex::{Captures, Regex};
 use std::error::Error;
 use std::fmt::Write;
 use std::ops::Deref;
 use std::path::{Path, PathBuf};
+
+const NEWLINE_PATTERN: &str = r"(\r?\n)";
+pub(crate) static NEWLINE_REGEX: Lazy<Regex> = Lazy::new(|| Regex::new(NEWLINE_PATTERN).unwrap());
 
 #[allow(clippy::nonminimal_bool)]
 pub fn parse(
@@ -15,6 +21,8 @@ pub fn parse(
     is_reverse: bool,
     settings: &ParserSettings,
 ) -> Fallible<(Document, Vec<PathBuf>)> {
+    let newline = detect_newline(input);
+
     let mut nodes: Vec<Node> = vec![];
     let mut errors: Vec<Box<dyn Error>> = vec![];
     let mut links: Vec<PathBuf> = vec![];
@@ -105,7 +113,20 @@ pub fn parse(
         return Err(msg.into());
     }
 
-    Ok((Document::new(nodes), links))
+    Ok((Document::new(nodes, newline), links))
+}
+
+fn detect_newline(text: &str) -> &'static str {
+    NEWLINE_REGEX.captures_iter(text).next().map_or_else(
+        || LF_NEWLINE,
+        |cap| {
+            if &cap[0] == LF_NEWLINE {
+                LF_NEWLINE
+            } else {
+                CRLF_NEWLINE
+            }
+        },
+    )
 }
 
 fn start_code(line: &str, fence_sequence: &str, is_alt_fenced: bool) -> CodeBlock {
@@ -351,6 +372,15 @@ mod tests {
     use crate::config::LINK_PATTERN;
     use crate::document::Source::Macro;
     use regex::Regex;
+
+    #[test]
+    fn detect_newline() {
+        assert_eq!(super::detect_newline("test\nabc\ndef"), LF_NEWLINE);
+        assert_eq!(super::detect_newline("test\r\nabc\r\ndef"), CRLF_NEWLINE);
+
+        assert_eq!(super::detect_newline("test\nabc\r\ndef"), LF_NEWLINE);
+        assert_eq!(super::detect_newline("test\r\nabc\ndef"), CRLF_NEWLINE);
+    }
 
     #[test]
     fn absolute_link() {
@@ -719,7 +749,6 @@ text
             ),
             file_prefix: "file:".to_string(),
             hidden_prefix: "hidden:".to_string(),
-            crlf_newline: Some(false),
         }
     }
 }

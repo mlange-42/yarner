@@ -11,11 +11,6 @@ use crate::{files, util::Fallible};
 pub(crate) const LINK_PATTERN: &str = r"\[([^\[\]]*)\]\((.*?)\)";
 pub(crate) static LINK_REGEX: Lazy<Regex> = Lazy::new(|| Regex::new(LINK_PATTERN).unwrap());
 
-#[cfg(target_os = "windows")]
-const SYSTEM_NEWLINE: &str = "\r\n";
-#[cfg(not(target_os = "windows"))]
-const SYSTEM_NEWLINE: &str = "\n";
-
 /// Top-level config
 #[derive(Deserialize, Debug)]
 pub struct Config {
@@ -85,8 +80,6 @@ pub struct ParserSettings {
     pub file_prefix: String,
     /// Name prefix for code blocks not shown in the docs.
     pub hidden_prefix: String,
-    /// Use CRLF / Windows line endings for all output. Defaults to host system line endings.
-    pub crlf_newline: Option<bool>,
 }
 
 impl ParserSettings {
@@ -96,18 +89,6 @@ impl ParserSettings {
 Please comment out option `comments_as_aside` until the next version, and rename `comment_start` to `block_name_prefix`"#.to_string())
         } else {
             Ok(())
-        }
-    }
-
-    pub fn newline(&self) -> &str {
-        if let Some(crlf) = self.crlf_newline {
-            if crlf {
-                "\r\n"
-            } else {
-                "\n"
-            }
-        } else {
-            SYSTEM_NEWLINE
         }
     }
 }
@@ -231,33 +212,6 @@ mod tests {
     use super::*;
 
     const CONFIG: &str = include_str!("create/Yarner.toml");
-
-    #[test]
-    fn newline_windows() {
-        let mut config = toml::from_str::<Config>(CONFIG).unwrap();
-        config.parser.crlf_newline = Some(true);
-        assert_eq!(config.parser.newline(), "\r\n");
-    }
-
-    #[test]
-    fn newline_unix() {
-        let mut config = toml::from_str::<Config>(CONFIG).unwrap();
-        config.parser.crlf_newline = Some(false);
-        assert_eq!(config.parser.newline(), "\n");
-    }
-
-    #[test]
-    fn newline_system() {
-        let config = toml::from_str::<Config>(CONFIG).unwrap();
-
-        let expected = if cfg!(target_os = "windows") {
-            "\r\n"
-        } else {
-            "\n"
-        };
-
-        assert_eq!(config.parser.newline(), expected);
-    }
 
     #[test]
     fn config_template() {

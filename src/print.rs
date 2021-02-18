@@ -10,20 +10,26 @@ pub fn print_docs(document: &Document, settings: &ParserSettings) -> String {
     for node in &document.nodes {
         match node {
             Node::Transclusion(transclusion) => {
-                print_transclusion(settings, transclusion, &mut output)
+                print_transclusion(transclusion, document.newline(), &mut output)
             }
             Node::Text(text_block) => {
                 write!(
                     output,
                     "{}{}",
-                    text_block.lines().join(&settings.newline()),
-                    settings.newline()
+                    text_block.lines().join(&document.newline()),
+                    document.newline()
                 )
                 .unwrap();
             }
             Node::Code(code_block) => {
                 if !code_block.hidden {
-                    print_code_block(code_block, settings, &code_block.indent, &mut output);
+                    print_code_block(
+                        code_block,
+                        settings,
+                        &code_block.indent,
+                        document.newline(),
+                        &mut output,
+                    );
                 }
             }
         }
@@ -35,8 +41,8 @@ pub fn print_docs(document: &Document, settings: &ParserSettings) -> String {
 pub fn print_code(
     code_blocks: &HashMap<Option<&str>, Vec<&CodeBlock>>,
     entry_blocks: &[&CodeBlock],
-    settings: &ParserSettings,
     language: Option<&LanguageSettings>,
+    newline: &str,
 ) -> Result<String, CompileError> {
     let block_labels = language.and_then(|s| s.block_labels.as_ref());
     let comment_start = block_labels
@@ -54,7 +60,6 @@ pub fn print_code(
     let block_next = block_labels
         .map(|l| l.block_next.as_str())
         .unwrap_or_default();
-    let newline = settings.newline();
     let block_name_sep = '#';
 
     let clean = language.map_or(true, |set| set.clean_code || set.block_labels.is_none());
@@ -139,14 +144,14 @@ pub fn print_reverse(
     for node in &document.nodes {
         match node {
             Node::Transclusion(transclusion) => {
-                print_transclusion_reverse(settings, transclusion, &mut output)
+                print_transclusion_reverse(transclusion, document.newline(), &mut output)
             }
             Node::Text(text_block) => {
                 write!(
                     output,
                     "{}{}",
-                    text_block.lines().join(&settings.newline()),
-                    settings.newline()
+                    text_block.lines().join(&document.newline()),
+                    document.newline()
                 )
                 .unwrap();
             }
@@ -164,6 +169,7 @@ pub fn print_reverse(
                     alt_block.copied(),
                     settings,
                     &code_block.indent,
+                    document.newline(),
                     &mut output,
                 );
             }
@@ -172,35 +178,31 @@ pub fn print_reverse(
     output
 }
 
-pub fn print_transclusion(
-    settings: &ParserSettings,
-    transclusion: &Transclusion,
-    write: &mut impl Write,
-) {
+pub fn print_transclusion(transclusion: &Transclusion, newline: &str, write: &mut impl Write) {
     write!(
         write,
         "**WARNING!** Missed/skipped transclusion: {}{}",
         transclusion.file().to_str().unwrap(),
-        settings.newline()
+        newline
     )
     .unwrap();
 }
 
 pub fn print_transclusion_reverse(
-    settings: &ParserSettings,
     transclusion: &Transclusion,
+    newline: &str,
     write: &mut impl Write,
 ) {
-    write!(write, "{}{}", transclusion.original(), settings.newline()).unwrap();
+    write!(write, "{}{}", transclusion.original(), newline).unwrap();
 }
 
 pub fn print_code_block(
     block: &CodeBlock,
     settings: &ParserSettings,
     indent: &str,
+    newline: &str,
     write: &mut impl Write,
 ) {
-    let newline = settings.newline();
     let fence_sequence = if block.alternative {
         &settings.fence_sequence_alt
     } else {
@@ -224,7 +226,14 @@ pub fn print_code_block(
     let mut comments = vec![];
     let line_offset = block.line_number().unwrap_or(0);
     for line in &block.source {
-        print_line(&line, settings, !settings.comments_as_aside, indent, write);
+        print_line(
+            &line,
+            settings,
+            !settings.comments_as_aside,
+            indent,
+            newline,
+            write,
+        );
         if settings.comments_as_aside {
             if let Some(comment) = &line.comment {
                 comments.push((line.line_number - line_offset, comment));
@@ -251,9 +260,9 @@ pub fn print_code_block_reverse(
     alternative: Option<&RevCodeBlock>,
     settings: &ParserSettings,
     indent: &str,
+    newline: &str,
     write: &mut impl Write,
 ) {
-    let newline = settings.newline();
     let fence_sequence = if block.alternative {
         &settings.fence_sequence_alt
     } else {
@@ -284,7 +293,7 @@ pub fn print_code_block_reverse(
     } else {
         for line in &block.source {
             // TODO: check if it is necessary to clear empty lines
-            print_line(&line, settings, true, indent, write);
+            print_line(&line, settings, true, indent, newline, write);
         }
     }
     write!(write, "{}{}", fence_sequence, newline).unwrap();
@@ -296,6 +305,7 @@ pub fn print_line(
     settings: &ParserSettings,
     print_comments: bool,
     indent: &str,
+    newline: &str,
     write: &mut impl Write,
 ) {
     write!(write, "{}{}", indent, line.indent).unwrap();
@@ -316,7 +326,7 @@ pub fn print_line(
             write!(write, "{}{}", settings.block_name_prefix, comment).unwrap();
         }
     }
-    write!(write, "{}", settings.newline()).unwrap();
+    write!(write, "{}", newline).unwrap();
 }
 
 #[cfg(test)]
@@ -326,8 +336,7 @@ mod tests {
 
     #[test]
     fn print_code_block() {
-        let mut config = toml::from_str::<Config>(include_str!("create/Yarner.toml")).unwrap();
-        config.parser.crlf_newline = Some(false);
+        let config = toml::from_str::<Config>(include_str!("create/Yarner.toml")).unwrap();
 
         let code = CodeBlock {
             indent: "".to_string(),
@@ -354,7 +363,7 @@ mod tests {
         };
 
         let mut out = String::new();
-        super::print_code_block(&code, &config.parser, "", &mut out);
+        super::print_code_block(&code, &config.parser, "", "\n", &mut out);
 
         assert_eq!(
             out,

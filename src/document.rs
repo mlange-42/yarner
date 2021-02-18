@@ -6,10 +6,14 @@ use std::collections::HashMap;
 use std::fmt::Write;
 use std::path::{Path, PathBuf};
 
+pub(crate) const CRLF_NEWLINE: &str = "\r\n";
+pub(crate) const LF_NEWLINE: &str = "\n";
+
 /// A representation of a `Document` of literate code
 #[derive(Debug)]
 pub struct Document {
     pub nodes: Vec<Node>,
+    newline: &'static str,
 }
 
 #[derive(Debug)]
@@ -24,8 +28,12 @@ pub enum Node {
 
 impl Document {
     /// Creates a new document with the given nodes
-    pub fn new(nodes: Vec<Node>) -> Self {
-        Document { nodes }
+    pub fn new(nodes: Vec<Node>, newline: &'static str) -> Self {
+        Document { nodes, newline }
+    }
+
+    pub fn newline(&self) -> &str {
+        self.newline
     }
 
     /// Sets the source file for all code blocks that have none
@@ -435,6 +443,7 @@ mod tests {
                     "@{{trans.md}}".to_string(),
                 )),
             ],
+            newline: LF_NEWLINE,
         };
 
         let code_blocks: Vec<_> = doc.code_blocks().collect();
