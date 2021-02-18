@@ -143,6 +143,15 @@ fn transclude(
         if !trans_so_far.contains(trans.file()) {
             let (doc, sub_links) = transclude(parser, root_file, trans.file())?;
 
+            if doc.newline() != document.newline() {
+                return Err(format!(
+                    "Different EndOfLine sequences used in files {} and {}.\n  Change line endings of one of the files and try again.",
+                    file_name.display(),
+                    trans.file().display(),
+                )
+                .into());
+            }
+
             let path = format!(
                 "{}{}",
                 parser.file_prefix,

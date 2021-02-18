@@ -111,15 +111,13 @@ pub fn parse(
 }
 
 fn detect_newline(text: &str) -> &'static str {
-    if let Some(index) = text.find('\n') {
-        if text[..index].ends_with('\r') {
-            CRLF_NEWLINE
-        } else {
-            LF_NEWLINE
+    if let Some(pos) = text.find('\n') {
+        if text[..pos].ends_with('\r') {
+            return CRLF_NEWLINE;
         }
-    } else {
-        LF_NEWLINE
     }
+
+    LF_NEWLINE
 }
 
 fn start_code(line: &str, fence_sequence: &str, is_alt_fenced: bool) -> CodeBlock {
