@@ -324,7 +324,7 @@ impl Line {
                     if !clean {
                         write!(
                             result,
-                            "{}{} {}{}{}{}{}{}{}",
+                            "{}{} {}{}{}{}{}{}{}{}",
                             &self.indent,
                             comment_start,
                             if idx == 0 { &block_start } else { &block_next },
@@ -334,9 +334,9 @@ impl Line {
                             block_name_sep,
                             idx,
                             comment_end,
+                            newline,
                         )
                         .unwrap();
-                        write!(result, "{}", newline).unwrap();
                     }
 
                     let code = block.compile_with(code_blocks, settings, newline)?;
@@ -344,16 +344,14 @@ impl Line {
                         if blank_lines && line.trim().is_empty() {
                             write!(result, "{}", newline).unwrap();
                         } else {
-                            write!(result, "{}", self.indent).unwrap();
-                            write!(result, "{}", line).unwrap();
-                            write!(result, "{}", newline).unwrap();
+                            write!(result, "{}{}{}", self.indent, line, newline).unwrap();
                         }
                     }
 
                     if !clean && idx == blocks.len() - 1 {
                         write!(
                             result,
-                            "{}{} {}{}{}{}{}{}{}",
+                            "{}{} {}{}{}{}{}{}{}{}",
                             &self.indent,
                             comment_start,
                             &block_end,
@@ -363,9 +361,9 @@ impl Line {
                             block_name_sep,
                             idx,
                             comment_end,
+                            newline,
                         )
                         .unwrap();
-                        write!(result, "{}", newline).unwrap();
                     }
                 }
                 for _ in 0..newline.len() {
