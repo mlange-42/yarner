@@ -137,6 +137,15 @@ fn transclude_dry_run(
             let (doc, sub_links) =
                 transclude_dry_run(config, root_file, trans.file(), documents, track_code_files)?;
 
+            if doc.newline() != document.newline() {
+                return Err(format!(
+                    "Different EndOfLine sequences used in files {} and {}.\n  Change line endings of one of the files and try again.",
+                    file_name.display(),
+                    trans.file().display(),
+                )
+                    .into());
+            }
+
             compile(config, &doc, trans.file(), track_code_files);
 
             links.extend(sub_links.into_iter());

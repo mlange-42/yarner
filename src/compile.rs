@@ -103,7 +103,12 @@ fn compile(
                         }
                     }
 
-                    let code = print::print_code(&code_blocks, entry_blocks, settings)?;
+                    let code = print::print_code(
+                        &code_blocks,
+                        entry_blocks,
+                        settings,
+                        document.newline(),
+                    )?;
                     println!("  Writing file {}", file_path.display());
                     fs::create_dir_all(file_path.parent().unwrap())?;
                     let mut code_file = File::create(file_path)?;
@@ -137,6 +142,15 @@ fn transclude(
     for trans in transclusions {
         if !trans_so_far.contains(trans.file()) {
             let (doc, sub_links) = transclude(parser, root_file, trans.file())?;
+
+            if doc.newline() != document.newline() {
+                return Err(format!(
+                    "Different EndOfLine sequences used in files {} and {}.\n  Change line endings of one of the files and try again.",
+                    file_name.display(),
+                    trans.file().display(),
+                )
+                .into());
+            }
 
             let path = format!(
                 "{}{}",

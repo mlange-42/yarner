@@ -1,4 +1,4 @@
-use crate::config::{ParserSettings, LINK_REGEX};
+use crate::config::{ParserSettings, CRLF_NEWLINE, LF_NEWLINE, LINK_REGEX};
 use crate::document::{CodeBlock, Document, Line, Node, Source, TextBlock, Transclusion};
 use crate::util::Fallible;
 use regex::Captures;
@@ -15,6 +15,8 @@ pub fn parse(
     is_reverse: bool,
     settings: &ParserSettings,
 ) -> Fallible<(Document, Vec<PathBuf>)> {
+    let newline = detect_newline(input);
+
     let mut nodes: Vec<Node> = vec![];
     let mut errors: Vec<Box<dyn Error>> = vec![];
     let mut links: Vec<PathBuf> = vec![];
@@ -105,7 +107,17 @@ pub fn parse(
         return Err(msg.into());
     }
 
-    Ok((Document::new(nodes), links))
+    Ok((Document::new(nodes, newline), links))
+}
+
+fn detect_newline(text: &str) -> &'static str {
+    if let Some(pos) = text.find('\n') {
+        if text[..pos].ends_with('\r') {
+            return CRLF_NEWLINE;
+        }
+    }
+
+    LF_NEWLINE
 }
 
 fn start_code(line: &str, fence_sequence: &str, is_alt_fenced: bool) -> CodeBlock {
@@ -351,6 +363,15 @@ mod tests {
     use crate::config::LINK_PATTERN;
     use crate::document::Source::Macro;
     use regex::Regex;
+
+    #[test]
+    fn detect_newline() {
+        assert_eq!(super::detect_newline("test\nabc\ndef"), LF_NEWLINE);
+        assert_eq!(super::detect_newline("test\r\nabc\r\ndef"), CRLF_NEWLINE);
+
+        assert_eq!(super::detect_newline("test\nabc\r\ndef"), LF_NEWLINE);
+        assert_eq!(super::detect_newline("test\r\nabc\ndef"), CRLF_NEWLINE);
+    }
 
     #[test]
     fn absolute_link() {
