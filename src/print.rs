@@ -9,13 +9,27 @@ pub fn print_docs(document: &Document, settings: &ParserSettings) -> String {
     let mut output = String::new();
     for node in &document.nodes {
         match node {
-            Node::Transclusion(transclusion) => print_transclusion(transclusion, &mut output),
+            Node::Transclusion(transclusion) => {
+                print_transclusion(transclusion, document.newline(), &mut output)
+            }
             Node::Text(text_block) => {
-                writeln!(output, "{}", text_block).unwrap();
+                write!(
+                    output,
+                    "{}{}",
+                    text_block.lines().join(&document.newline()),
+                    document.newline()
+                )
+                .unwrap();
             }
             Node::Code(code_block) => {
                 if !code_block.hidden {
-                    print_code_block(code_block, settings, &code_block.indent, &mut output);
+                    print_code_block(
+                        code_block,
+                        settings,
+                        &code_block.indent,
+                        document.newline(),
+                        &mut output,
+                    );
                 }
             }
         }
@@ -28,6 +42,7 @@ pub fn print_code(
     code_blocks: &HashMap<Option<&str>, Vec<&CodeBlock>>,
     entry_blocks: &[&CodeBlock],
     settings: Option<&LanguageSettings>,
+    newline: &str,
 ) -> Result<String, CompileError> {
     let block_labels = settings.and_then(|s| s.block_labels.as_ref());
     let comment_start = block_labels
@@ -71,14 +86,28 @@ pub fn print_code(
             } else {
                 &block_next
             };
-            writeln!(
+            write!(
                 result,
-                "{} {}{}{}{}{}{}{}",
-                comment_start, sep, path, block_name_sep, name, block_name_sep, index, comment_end,
+                "{} {}{}{}{}{}{}{}{}",
+                comment_start,
+                sep,
+                path,
+                block_name_sep,
+                name,
+                block_name_sep,
+                index,
+                comment_end,
+                newline,
             )
             .unwrap();
         }
-        writeln!(result, "{}", block.compile_with(&code_blocks, settings)?).unwrap();
+        write!(
+            result,
+            "{}{}",
+            block.compile_with(&code_blocks, settings, newline)?,
+            newline,
+        )
+        .unwrap();
 
         if !clean && (idx == entry_blocks.len() - 1 || block.name != entry_blocks[idx + 1].name) {
             write!(
@@ -97,8 +126,8 @@ pub fn print_code(
         }
     }
 
-    if settings.map(|s| s.eof_newline).unwrap_or(true) && !result.ends_with('\n') {
-        writeln!(result).unwrap();
+    if settings.map(|s| s.eof_newline).unwrap_or(true) && !result.ends_with(newline) {
+        write!(result, "{}", newline).unwrap();
     }
     Ok(result)
 }
@@ -115,10 +144,16 @@ pub fn print_reverse(
     for node in &document.nodes {
         match node {
             Node::Transclusion(transclusion) => {
-                print_transclusion_reverse(transclusion, &mut output)
+                print_transclusion_reverse(transclusion, document.newline(), &mut output)
             }
             Node::Text(text_block) => {
-                writeln!(output, "{}", text_block).unwrap();
+                write!(
+                    output,
+                    "{}{}",
+                    text_block.lines().join(&document.newline()),
+                    document.newline()
+                )
+                .unwrap();
             }
             Node::Code(code_block) => {
                 let index = {
@@ -134,6 +169,7 @@ pub fn print_reverse(
                     alt_block.copied(),
                     settings,
                     &code_block.indent,
+                    document.newline(),
                     &mut output,
                 );
             }
@@ -142,19 +178,29 @@ pub fn print_reverse(
     output
 }
 
-pub fn print_transclusion(transclusion: &Transclusion, write: &mut impl Write) {
-    write!(write, "**WARNING!** Missed/skipped transclusion: ").unwrap();
-    writeln!(write, "{}", transclusion.file().to_str().unwrap()).unwrap();
+pub fn print_transclusion(transclusion: &Transclusion, newline: &str, write: &mut impl Write) {
+    write!(
+        write,
+        "**WARNING!** Missed/skipped transclusion: {}{}",
+        transclusion.file().to_str().unwrap(),
+        newline
+    )
+    .unwrap();
 }
 
-pub fn print_transclusion_reverse(transclusion: &Transclusion, write: &mut impl Write) {
-    writeln!(write, "{}", transclusion.original()).unwrap();
+pub fn print_transclusion_reverse(
+    transclusion: &Transclusion,
+    newline: &str,
+    write: &mut impl Write,
+) {
+    write!(write, "{}{}", transclusion.original(), newline).unwrap();
 }
 
 pub fn print_code_block(
     block: &CodeBlock,
     settings: &ParserSettings,
     indent: &str,
+    newline: &str,
     write: &mut impl Write,
 ) {
     let fence_sequence = if block.alternative {
@@ -166,15 +212,28 @@ pub fn print_code_block(
     if let Some(language) = &block.language {
         write!(write, "{}", language).unwrap();
     }
-    writeln!(write).unwrap();
+    write!(write, "{}", newline).unwrap();
+
     if let Some(name) = &block.name {
-        writeln!(write, "{}{} {}", indent, settings.block_name_prefix, name).unwrap();
+        write!(
+            write,
+            "{}{} {}{}",
+            indent, settings.block_name_prefix, name, newline,
+        )
+        .unwrap();
     }
 
     let mut comments = vec![];
     let line_offset = block.line_number().unwrap_or(0);
     for line in &block.source {
-        print_line(&line, settings, !settings.comments_as_aside, indent, write);
+        print_line(
+            &line,
+            settings,
+            !settings.comments_as_aside,
+            indent,
+            newline,
+            write,
+        );
         if settings.comments_as_aside {
             if let Some(comment) = &line.comment {
                 comments.push((line.line_number - line_offset, comment));
@@ -182,14 +241,15 @@ pub fn print_code_block(
         }
     }
 
-    writeln!(write, "{}{}", indent, fence_sequence).unwrap();
+    write!(write, "{}{}{}", indent, fence_sequence, newline).unwrap();
 
     for (line, comment) in comments {
-        writeln!(
+        write!(
             write,
-            "<aside class=\"comment\" data-line=\"{}\">{}</aside>",
+            "<aside class=\"comment\" data-line=\"{}\">{}</aside>{}",
             line,
-            comment.trim()
+            comment.trim(),
+            newline
         )
         .unwrap();
     }
@@ -200,6 +260,7 @@ pub fn print_code_block_reverse(
     alternative: Option<&RevCodeBlock>,
     settings: &ParserSettings,
     indent: &str,
+    newline: &str,
     write: &mut impl Write,
 ) {
     let fence_sequence = if block.alternative {
@@ -211,30 +272,30 @@ pub fn print_code_block_reverse(
     if let Some(language) = &block.language {
         write!(write, "{}", language).unwrap();
     }
-    writeln!(write).unwrap();
+    write!(write, "{}", newline).unwrap();
+
     if let Some(name) = &block.name {
         write!(write, "{}{} ", indent, settings.block_name_prefix).unwrap();
         if block.hidden {
             write!(write, "{}", settings.hidden_prefix).unwrap();
         }
-        writeln!(write, "{}", name).unwrap();
+        write!(write, "{}{}", name, newline).unwrap();
     }
 
     if let Some(alt) = alternative {
         for line in &alt.lines {
             if line.is_empty() {
-                writeln!(write).unwrap();
+                write!(write, "{}", newline).unwrap();
             } else {
-                writeln!(write, "{}{}", indent, line).unwrap();
+                write!(write, "{}{}{}", indent, line, newline).unwrap();
             }
         }
     } else {
         for line in &block.source {
-            // TODO: check if it is necessary to clear empty lines
-            print_line(&line, settings, true, indent, write);
+            print_line(&line, settings, true, indent, newline, write);
         }
     }
-    writeln!(write, "{}", fence_sequence).unwrap();
+    write!(write, "{}{}", fence_sequence, newline).unwrap();
 }
 
 /// Prints a line of a code block
@@ -243,6 +304,7 @@ pub fn print_line(
     settings: &ParserSettings,
     print_comments: bool,
     indent: &str,
+    newline: &str,
     write: &mut impl Write,
 ) {
     write!(write, "{}{}", indent, line.indent).unwrap();
@@ -263,7 +325,7 @@ pub fn print_line(
             write!(write, "{}{}", settings.block_name_prefix, comment).unwrap();
         }
     }
-    writeln!(write).unwrap();
+    write!(write, "{}", newline).unwrap();
 }
 
 #[cfg(test)]
@@ -300,7 +362,7 @@ mod tests {
         };
 
         let mut out = String::new();
-        super::print_code_block(&code, &config.parser, "", &mut out);
+        super::print_code_block(&code, &config.parser, "", "\n", &mut out);
 
         assert_eq!(
             out,

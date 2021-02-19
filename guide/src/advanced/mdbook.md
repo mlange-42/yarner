@@ -38,22 +38,22 @@ The recommended structure as resulting from the above initialization and setting
 
 ```plaintext
 project
-  |
-  |-- book/        <-------.       <rendered book>
-  |                        |
-  |-- code/                |       <code output>
-  |     '-- ...         <--|--.
-  |                        |  |
-  |-- src/                 |  |
-  |     |-- SUMMARY.md  ---'  |    <doc output/book sources>
-  |     '-- capter-1.md <-----|
-  |                           |
-  |-- lp/                     |
-  |     |-- SUMMARY.md  ------'    <yarner sources>
-  |     '-- capter-1.md
-  |
-  |-- book.toml
-  '-- Yarner.toml
+  │
+  ├── book/        <───────┐       <rendered book>
+  │                        │
+  ├── code/                │       <code output>
+  │     └── ...         <──┼──┐
+  │                        │  │
+  ├── src/                 │  │
+  │     ├── SUMMARY.md  ───┘  │    <doc output/book sources>
+  │     └── capter-1.md <─────┤
+  │                           │
+  ├── lp/                     │
+  │     ├── SUMMARY.md   ─────┘    <yarner sources>
+  │     └── capter-1.md
+  │
+  ├── book.toml
+  └── Yarner.toml
 ```
 
 Directory `lp` contains the Markdown source files. Write these files as you would normally write mdBook files in directory `src`. The only difference is that entries in `SUMMARY.md` that contain Literate Programming code are prefixed with `@` (for link-following). As an example, `lp/SUMMARY.md` could look like this:
