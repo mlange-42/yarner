@@ -318,7 +318,7 @@ fn process_inputs_forward(
     config: &Config,
 ) -> Fallible<(HashSet<PathBuf>, HashSet<PathBuf>)> {
     let mut any_input = false;
-    let mut track_source_files = HashSet::new();
+    let mut documents = HashMap::new();
     let mut track_code_files = HashMap::new();
     for pattern in input_patterns {
         let paths = glob::glob(&pattern)
@@ -333,19 +333,13 @@ fn process_inputs_forward(
                 any_input = true;
                 let file_name = PathBuf::from(&input);
 
-                compile::compile_all(
-                    &config,
-                    &file_name,
-                    &mut track_source_files,
-                    &mut track_code_files,
-                )
-                .map_err(|err| {
+                compile::collect_documents(&config, &file_name, &mut documents).map_err(|err| {
                     format!(
                         "Failed to compile source file \"{}\": {}",
                         file_name.display(),
                         err
                     )
-                })?
+                })?;
             }
         }
     }
@@ -360,8 +354,12 @@ fn process_inputs_forward(
         .into());
     }
 
+    for (path, doc) in documents.iter() {
+        compile::compile(config, &doc, &path, &mut track_code_files)?;
+    }
+
     Ok((
-        track_source_files,
+        documents.keys().cloned().collect(),
         track_code_files.keys().cloned().collect(),
     ))
 }

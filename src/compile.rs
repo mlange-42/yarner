@@ -9,25 +9,22 @@ use std::path::{Path, PathBuf};
 use crate::config::Config;
 use crate::{config::ParserSettings, document::Document, files, parse, print, util::Fallible};
 
-pub fn compile_all(
+pub fn collect_documents(
     config: &Config,
     file_name: &Path,
-    track_input_files: &mut HashSet<PathBuf>,
-    track_code_files: &mut HashMap<PathBuf, Option<PathBuf>>,
+    documents: &mut HashMap<PathBuf, Document>,
 ) -> Fallible {
-    if !track_input_files.contains(file_name) {
+    if !documents.contains_key(file_name) {
         let (mut document, links) = transclude(&config.parser, file_name, file_name)?;
 
         let file_str = file_name.to_str().unwrap();
         document.set_source(file_str);
 
-        compile(config, &document, file_name, track_code_files)?;
-        track_input_files.insert(file_name.to_owned());
-
+        documents.insert(file_name.to_owned(), document);
         for file in links {
             if file.is_file() {
-                if !track_input_files.contains(&file) {
-                    compile_all(config, &file, track_input_files, track_code_files)?;
+                if !documents.contains_key(&file) {
+                    collect_documents(config, &file, documents)?;
                 }
             } else {
                 eprintln!("WARNING: link target not found for {}", file.display());
@@ -38,7 +35,7 @@ pub fn compile_all(
     Ok(())
 }
 
-fn compile(
+pub fn compile(
     config: &Config,
     document: &Document,
     file_name: &Path,
