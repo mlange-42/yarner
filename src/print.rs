@@ -1,9 +1,9 @@
 pub mod docs {
     use crate::code::RevCodeBlock;
-    use crate::config::ParserSettings;
-    use crate::document::{CodeBlock, Document, Line, Node, Source, Transclusion};
     use std::collections::HashMap;
     use std::fmt::Write;
+    use yarner_lib::config::ParserSettings;
+    use yarner_lib::document::{CodeBlock, Document, Line, Node, Source, Transclusion};
 
     /// Formats this `Document` as a string containing the documentation file contents
     pub fn print_docs(document: &Document, settings: &ParserSettings) -> String {
@@ -236,12 +236,12 @@ pub mod docs {
 
     #[cfg(test)]
     mod tests {
-        use crate::config::Config;
-        use crate::document::{CodeBlock, Line, Source};
+        use yarner_lib::config::default_config;
+        use yarner_lib::document::{CodeBlock, Line, Source};
 
         #[test]
         fn print_code_block() {
-            let config = toml::from_str::<Config>(include_str!("create/Yarner.toml")).unwrap();
+            let config = default_config();
 
             let code = CodeBlock {
                 indent: "".to_string(),
@@ -284,11 +284,11 @@ pub mod docs {
 }
 
 pub mod code {
-    use crate::config::LanguageSettings;
-    use crate::document::{CodeBlock, Line, Source};
     use crate::util::TryCollectExt;
     use std::collections::HashMap;
     use std::fmt::Write;
+    use yarner_lib::config::LanguageSettings;
+    use yarner_lib::document::{CodeBlock, Line, Source};
 
     /// Formats this `Document` as a string containing the compiled code
     pub fn print_code(

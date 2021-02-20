@@ -1,11 +1,11 @@
-use crate::config::{ParserSettings, CRLF_NEWLINE, LF_NEWLINE, LINK_REGEX};
-use crate::document::{CodeBlock, Document, Line, Node, Source, TextBlock, Transclusion};
 use crate::util::Fallible;
 use regex::Captures;
 use std::error::Error;
 use std::fmt::Write;
 use std::ops::Deref;
 use std::path::{Path, PathBuf};
+use yarner_lib::config::{ParserSettings, CRLF_NEWLINE, LF_NEWLINE, LINK_REGEX};
+use yarner_lib::document::{CodeBlock, Document, Line, Node, Source, TextBlock, Transclusion};
 
 #[allow(clippy::nonminimal_bool)]
 pub fn parse(
@@ -360,9 +360,9 @@ fn is_relative_link(link: &str) -> bool {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::config::LINK_PATTERN;
-    use crate::document::Source::Macro;
     use regex::Regex;
+    use yarner_lib::config::LINK_PATTERN;
+    use yarner_lib::document::Source::Macro;
 
     #[test]
     fn detect_newline() {

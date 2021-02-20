@@ -1,4 +1,3 @@
-use crate::config::{BlockLabels, Config, ParserSettings};
 use crate::files;
 use crate::util::Fallible;
 use std::collections::{
@@ -6,6 +5,7 @@ use std::collections::{
     HashMap, HashSet,
 };
 use std::path::PathBuf;
+use yarner_lib::config::{BlockLabels, Config, ParserSettings};
 
 type BlockKey = (PathBuf, Option<String>, usize);
 
@@ -172,11 +172,11 @@ fn parse(
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::config::Config;
+    use yarner_lib::config::default_config;
 
     #[test]
     fn no_block() {
-        let config = toml::from_str::<Config>(include_str!("create/Yarner.toml")).unwrap();
+        let config = default_config();
         let labels = default_block_labels();
 
         let code = r#"
@@ -189,7 +189,7 @@ fn main() {}
 
     #[test]
     fn simple_unnamed_block() {
-        let config = toml::from_str::<Config>(include_str!("create/Yarner.toml")).unwrap();
+        let config = default_config();
         let labels = default_block_labels();
 
         let code = r#"
@@ -208,7 +208,7 @@ fn main() {}
 
     #[test]
     fn simple_named_block() {
-        let config = toml::from_str::<Config>(include_str!("create/Yarner.toml")).unwrap();
+        let config = default_config();
         let labels = default_block_labels();
 
         let code = r#"
@@ -227,7 +227,7 @@ fn main() {}
 
     #[test]
     fn nested_block() {
-        let config = toml::from_str::<Config>(include_str!("create/Yarner.toml")).unwrap();
+        let config = default_config();
         let labels = default_block_labels();
 
         let code = r#"
@@ -255,7 +255,7 @@ fn print() {}
 
     #[test]
     fn multiple_block_same_name() {
-        let config = toml::from_str::<Config>(include_str!("create/Yarner.toml")).unwrap();
+        let config = default_config();
         let labels = default_block_labels();
 
         let code = r#"

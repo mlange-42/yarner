@@ -357,9 +357,17 @@ dependencies = [
  "blake3",
  "clap",
  "glob",
- "once_cell",
  "path-clean",
  "pathdiff",
+ "regex",
+ "yarner-lib",
+]
+
+[[package]]
+name = "yarner-lib"
+version = "0.1.0"
+dependencies = [
+ "once_cell",
  "regex",
  "serde",
  "serde_json",

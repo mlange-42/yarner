@@ -1,12 +1,11 @@
 //! Config objects, to be read from Yarner.toml
-use std::collections::HashMap;
+use std::collections::{BTreeMap, HashMap};
 use std::path::{Path, PathBuf};
 
 use once_cell::sync::Lazy;
 use regex::Regex;
 use serde::{de::Error as _, Deserialize, Deserializer, Serialize, Serializer};
-
-use crate::{files, util::Fallible};
+use std::error::Error;
 
 pub const LINK_PATTERN: &str = r"\[([^\[\]]*)\]\((.*?)\)";
 pub static LINK_REGEX: Lazy<Regex> = Lazy::new(|| Regex::new(LINK_PATTERN).unwrap());
@@ -28,15 +27,16 @@ pub struct Config {
 }
 
 impl Config {
-    pub fn read<P: AsRef<Path>>(path: P) -> Fallible<Self> {
-        let buf = files::read_file_string(path.as_ref())?;
+    pub fn read<P: AsRef<Path>>(path: P) -> Result<Self, Box<dyn Error>> {
+        let buf = std::fs::read_to_string(&path)
+            .map_err(|err| format!("{}: {}", err, path.as_ref().display()))?;
         let val = toml::from_str::<Self>(&buf)?;
 
         Ok(val)
     }
 
     /// Check the validity of the configuration
-    pub fn check(&self) -> Fallible {
+    pub fn check(&self) -> Result<(), Box<dyn Error>> {
         self.parser.check()?;
         for language in self.language.values() {
             language.check()?;
@@ -167,7 +167,7 @@ pub struct LanguageSettings {
 
 impl LanguageSettings {
     /// Check the validity of language settings
-    fn check(&self) -> Fallible {
+    fn check(&self) -> Result<(), Box<dyn Error>> {
         if let Some(labels) = &self.block_labels {
             labels.check()
         } else {
@@ -193,7 +193,7 @@ pub struct BlockLabels {
 
 impl BlockLabels {
     /// Check the validity of block label settings
-    fn check(&self) -> Fallible {
+    fn check(&self) -> Result<(), Box<dyn Error>> {
         if self.block_start.starts_with(&self.block_next) {
             return Err(
                 "Language parameter 'block_start' must not start with the same sequence as 'block_next'"
@@ -218,17 +218,72 @@ impl BlockLabels {
     }
 }
 
+/// Content for Yarner.lock files
+#[derive(Serialize, Deserialize)]
+pub struct Lock {
+    pub source_hashes: BTreeMap<String, String>,
+    pub code_hashes: BTreeMap<String, String>,
+}
+
+impl Lock {
+    pub fn read<P: AsRef<Path>>(path: P) -> Result<Self, Box<dyn Error>> {
+        let buf = std::fs::read_to_string(&path)
+            .map_err(|err| format!("{}: {}", err, path.as_ref().display()))?;
+        let val = toml::from_str::<Self>(&buf).map_err(|err| {
+            format!(
+                "Invalid lock file {}: {}\n  Delete the file or run with option `--force`.",
+                path.as_ref().display(),
+                err.to_string()
+            )
+        })?;
+
+        Ok(val)
+    }
+
+    pub fn write<P: AsRef<Path>>(&self, path: P) -> Result<(), Box<dyn Error>> {
+        let str = toml::to_string(self)?;
+        std::fs::write(path, str)?;
+
+        Ok(())
+    }
+}
+
+pub fn default_config() -> Config {
+    Config {
+        parser: ParserSettings {
+            fence_sequence: "```".to_string(),
+            fence_sequence_alt: "~~~".to_string(),
+            comments_as_aside: false,
+            block_name_prefix: "//-".to_string(),
+            macro_start: "// ==>".to_string(),
+            macro_end: ".".to_string(),
+            transclusion_start: "@{{".to_string(),
+            transclusion_end: "}}".to_string(),
+            link_following_pattern: (
+                "@".to_string(),
+                Regex::new(&format!("(@)?{}", LINK_PATTERN)).unwrap(),
+            ),
+            file_prefix: "file:".to_string(),
+            hidden_prefix: "hidden:".to_string(),
+        },
+        paths: Paths {
+            root: Some(String::from(".")),
+            code: Some(PathBuf::from("code")),
+            docs: Some(PathBuf::from("docs")),
+            files: Some(vec![String::from("README.md")]),
+            code_files: None,
+            code_paths: None,
+            doc_files: None,
+            doc_paths: None,
+            entrypoint: None,
+        },
+        language: HashMap::new(),
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
-
-    const CONFIG: &str = include_str!("create/Yarner.toml");
-
-    #[test]
-    fn config_template() {
-        let config = toml::from_str::<Config>(CONFIG).unwrap();
-        config.check().unwrap();
-    }
 
     #[test]
     fn label_prefixes() {

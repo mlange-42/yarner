@@ -1,15 +1,14 @@
 mod code;
 mod compile;
 mod compile_reverse;
-mod config;
 mod create;
-mod document;
 mod files;
 mod lock;
 mod parse;
-mod preprocessor;
 mod print;
 mod util;
+
+extern crate yarner_lib;
 
 use std::collections::{HashMap, HashSet};
 use std::env::set_current_dir;
@@ -19,11 +18,8 @@ use std::path::PathBuf;
 
 use clap::{crate_version, App, Arg, ArgMatches, SubCommand};
 
-use crate::{
-    config::Config,
-    document::Document,
-    util::{Fallible, JoinExt},
-};
+use crate::util::{Fallible, JoinExt};
+use yarner_lib::{config::Config, document::Document};
 
 fn main() {
     std::process::exit(match run() {

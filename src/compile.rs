@@ -6,8 +6,8 @@ use std::fs::{self, File};
 use std::io::Write;
 use std::path::{Path, PathBuf};
 
-use crate::config::Config;
-use crate::{config::ParserSettings, document::Document, files, parse, print, util::Fallible};
+use crate::{files, parse, print, util::Fallible};
+use yarner_lib::{config::Config, config::ParserSettings, document::Document};
 
 pub fn collect_documents(
     config: &Config,
