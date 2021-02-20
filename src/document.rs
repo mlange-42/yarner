@@ -1,17 +1,18 @@
 //! The internal representation of a literate document
 use crate::config::ParserSettings;
 
+use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
 use std::path::{Path, PathBuf};
 
 /// A representation of a `Document` of literate code
-#[derive(Debug)]
+#[derive(Debug, Serialize, Deserialize)]
 pub struct Document {
     pub nodes: Vec<Node>,
-    newline: &'static str,
+    newline: String,
 }
 
-#[derive(Debug)]
+#[derive(Debug, Serialize, Deserialize)]
 pub enum Node {
     /// A text block
     Text(TextBlock),
@@ -23,12 +24,12 @@ pub enum Node {
 
 impl Document {
     /// Creates a new document with the given nodes
-    pub fn new(nodes: Vec<Node>, newline: &'static str) -> Self {
+    pub fn new(nodes: Vec<Node>, newline: String) -> Self {
         Document { nodes, newline }
     }
 
     pub fn newline(&self) -> &str {
-        self.newline
+        &self.newline
     }
 
     /// Sets the source file for all code blocks that have none
@@ -123,7 +124,7 @@ impl Document {
 }
 
 /// A `TextBlock` is just text that will be copied verbatim into the output documentation file
-#[derive(Debug, Default)]
+#[derive(Debug, Default, Serialize, Deserialize)]
 pub struct TextBlock {
     /// The source text
     text: Vec<String>,
@@ -146,7 +147,7 @@ impl TextBlock {
 }
 
 /// A `Transclusion` is a reference to another file that should be pulled into the source
-#[derive(Debug, PartialEq, Clone)]
+#[derive(Debug, PartialEq, Clone, Serialize, Deserialize)]
 pub struct Transclusion {
     /// The target file path
     file: PathBuf,
@@ -172,7 +173,7 @@ impl Transclusion {
 }
 
 /// A `CodeBlock` is a block of code as defined by the input format.
-#[derive(Clone, Default, Debug)]
+#[derive(Clone, Default, Debug, Serialize, Deserialize)]
 pub struct CodeBlock {
     /// The indent of this code block is in the documentation file
     pub indent: String,
@@ -234,7 +235,7 @@ impl CodeBlock {
 }
 
 /// A `Source` represents the source code on a line.
-#[derive(Clone, Debug)]
+#[derive(Clone, Debug, Serialize, Deserialize)]
 pub enum Source {
     /// A macro invocation, resolved by the literate compiler
     Macro(String),
@@ -243,7 +244,7 @@ pub enum Source {
 }
 
 /// A `Line` defines a line of code.
-#[derive(Clone, Debug)]
+#[derive(Clone, Debug, Serialize, Deserialize)]
 pub struct Line {
     /// The line number of this line (original source)
     pub line_number: usize,

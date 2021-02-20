@@ -4,7 +4,7 @@ use std::path::{Path, PathBuf};
 
 use once_cell::sync::Lazy;
 use regex::Regex;
-use serde::{de::Error as _, Deserialize, Deserializer, Serialize};
+use serde::{de::Error as _, Deserialize, Deserializer, Serialize, Serializer};
 
 use crate::{files, util::Fallible};
 
@@ -15,7 +15,7 @@ pub const CRLF_NEWLINE: &str = "\r\n";
 pub const LF_NEWLINE: &str = "\n";
 
 /// Top-level config
-#[derive(Deserialize, Debug)]
+#[derive(Serialize, Deserialize, Debug)]
 pub struct Config {
     /// Config for Markdown parser
     pub parser: ParserSettings,
@@ -53,7 +53,7 @@ impl Config {
 }
 
 /// The config for parsing a Markdown document
-#[derive(Clone, Deserialize, Debug)]
+#[derive(Clone, Serialize, Deserialize, Debug)]
 pub struct ParserSettings {
     /// The sequence that identifies the start and end of a fenced code block
     pub fence_sequence: String,
@@ -76,8 +76,9 @@ pub struct ParserSettings {
     pub transclusion_end: String,
     /// Prefix for links that should be followed during processing.
     /// Should be RegEx-compatible.
-    #[serde(rename(deserialize = "link_prefix"))]
+    #[serde(rename = "link_prefix")]
     #[serde(deserialize_with = "from_link_prefix")]
+    #[serde(serialize_with = "to_link_prefix")]
     pub link_following_pattern: (String, Regex),
     /// Prefix for file-specific entry points.
     pub file_prefix: String,
@@ -100,9 +101,9 @@ fn from_link_prefix<'de, D>(deserializer: D) -> Result<(String, Regex), D::Error
 where
     D: Deserializer<'de>,
 {
-    let prefix: &str = Deserialize::deserialize(deserializer)?;
+    let prefix: String = Deserialize::deserialize(deserializer)?;
     Ok((
-        prefix.to_string(),
+        prefix.clone(),
         Regex::new(&format!("({})?{}", prefix, LINK_PATTERN)).map_err(|err| {
             D::Error::custom(format!(
                 "Error compiling Regex pattern {}{}\n{}",
@@ -112,6 +113,13 @@ where
             ))
         })?,
     ))
+}
+
+fn to_link_prefix<S>(value: &(String, Regex), serializer: S) -> Result<S::Ok, S::Error>
+where
+    S: Serializer,
+{
+    serializer.serialize_str(&value.0)
 }
 
 /// Config for paths

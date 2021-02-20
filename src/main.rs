@@ -7,6 +7,7 @@ mod document;
 mod files;
 mod lock;
 mod parse;
+mod preprocessor;
 mod print;
 mod util;
 

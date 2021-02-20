@@ -107,7 +107,7 @@ pub fn parse(
         return Err(msg.into());
     }
 
-    Ok((Document::new(nodes, newline), links))
+    Ok((Document::new(nodes, newline.to_owned()), links))
 }
 
 fn detect_newline(text: &str) -> &'static str {
