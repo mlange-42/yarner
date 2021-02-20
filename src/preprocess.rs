@@ -14,40 +14,42 @@ pub fn pre_process(
     let mut docs = documents;
     for (name, proc) in &config.preprocessor {
         let json = yarner_lib::to_json(proc, &docs)?;
-        let mut child = Command::new(format!("yarner-{}", name))
+
+        let command = proc
+            .get("command")
+            .and_then(|cmd| cmd.as_str().map(|s| s.to_owned()))
+            .unwrap_or_else(|| format!("yarner-{}", name));
+
+        let mut child = Command::new(&command)
             .stdin(Stdio::piped())
             .stdout(Stdio::piped())
             .spawn()
-            .map_err(|err| format_error(err.into(), name))?;
+            .map_err(|err| format_error(err.into(), &command))?;
 
         {
             let stdin = child
                 .stdin
                 .as_mut()
                 .ok_or("Unable to access child process stdin.")
-                .map_err(|err| format_error(err.into(), name))?;
+                .map_err(|err| format_error(err.into(), &command))?;
             stdin
                 .write_all(json.as_bytes())
-                .map_err(|err| format_error(err.into(), name))?;
+                .map_err(|err| format_error(err.into(), &command))?;
         }
 
         let output = child
             .wait_with_output()
-            .map_err(|err| format_error(err.into(), name))?;
+            .map_err(|err| format_error(err.into(), &command))?;
         let out_json =
-            String::from_utf8(output.stdout).map_err(|err| format_error(err.into(), name))?;
+            String::from_utf8(output.stdout).map_err(|err| format_error(err.into(), &command))?;
 
         let (_, new_docs) =
-            yarner_lib::from_json(&out_json).map_err(|err| format_error(err.into(), name))?;
+            yarner_lib::from_json(&out_json).map_err(|err| format_error(err.into(), &command))?;
         docs = new_docs;
     }
     Ok(docs)
 }
 
 fn format_error(err: Box<dyn Error>, name: &str) -> String {
-    format!(
-        "Failed to run command 'yarner-{}': {}",
-        name,
-        err.to_string()
-    )
+    format!("Failed to run command '{}': {}", name, err.to_string())
 }
