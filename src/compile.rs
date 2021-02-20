@@ -56,7 +56,7 @@ fn compile(
 
     match &config.paths.docs {
         Some(doc_dir) => {
-            let documentation = print::print_docs(document, &config.parser);
+            let documentation = print::docs::print_docs(document, &config.parser);
             let mut file_path = doc_dir.to_owned();
             file_path.push(file_name);
             fs::create_dir_all(file_path.parent().unwrap()).unwrap();
@@ -103,7 +103,7 @@ fn compile(
                         }
                     }
 
-                    let code = print::print_code(
+                    let code = print::code::print_code(
                         &code_blocks,
                         entry_blocks,
                         settings,

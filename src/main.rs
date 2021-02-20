@@ -301,7 +301,7 @@ fn process_inputs_reverse(
             .collect();
 
         if !blocks.is_empty() {
-            let print = print::print_reverse(&doc, &config.parser, &blocks);
+            let print = print::docs::print_reverse(&doc, &config.parser, &blocks);
             println!("  Writing back to file {}", path.display());
             let mut file = File::create(path).unwrap();
             write!(file, "{}", print).unwrap()
