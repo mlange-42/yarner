@@ -287,7 +287,7 @@ fn process_inputs_reverse(
         .into());
     }
 
-    let code_blocks = compile_reverse::collect_code_blocks(&code_files, &config)?;
+    let code_blocks = code::collect_code_blocks(&code_files, &config)?;
     for (path, doc) in documents {
         let blocks: HashMap<_, _> = code_blocks
             .iter()

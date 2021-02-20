@@ -84,7 +84,7 @@ pub mod docs {
         output
     }
 
-    pub fn print_transclusion(transclusion: &Transclusion, newline: &str, write: &mut impl Write) {
+    fn print_transclusion(transclusion: &Transclusion, newline: &str, write: &mut impl Write) {
         write!(
             write,
             "**WARNING!** Missed/skipped transclusion: {}{}",
@@ -94,7 +94,7 @@ pub mod docs {
         .unwrap();
     }
 
-    pub fn print_transclusion_reverse(
+    fn print_transclusion_reverse(
         transclusion: &Transclusion,
         newline: &str,
         write: &mut impl Write,
@@ -102,7 +102,7 @@ pub mod docs {
         write!(write, "{}{}", transclusion.original(), newline).unwrap();
     }
 
-    pub fn print_code_block(
+    fn print_code_block(
         block: &CodeBlock,
         settings: &ParserSettings,
         indent: &str,
@@ -161,7 +161,7 @@ pub mod docs {
         }
     }
 
-    pub fn print_code_block_reverse(
+    fn print_code_block_reverse(
         block: &CodeBlock,
         alternative: Option<&RevCodeBlock>,
         settings: &ParserSettings,
@@ -205,7 +205,7 @@ pub mod docs {
     }
 
     /// Prints a line of a code block
-    pub fn print_line(
+    fn print_line(
         line: &Line,
         settings: &ParserSettings,
         print_comments: bool,
@@ -232,6 +232,54 @@ pub mod docs {
             }
         }
         write!(write, "{}", newline).unwrap();
+    }
+
+    #[cfg(test)]
+    mod tests {
+        use crate::config::Config;
+        use crate::document::{CodeBlock, Line, Source};
+
+        #[test]
+        fn print_code_block() {
+            let config = toml::from_str::<Config>(include_str!("create/Yarner.toml")).unwrap();
+
+            let code = CodeBlock {
+                indent: "".to_string(),
+                name: Some("Code block".to_string()),
+                is_unnamed: false,
+                language: Some("rust".to_string()),
+                hidden: false,
+                alternative: false,
+                source_file: None,
+                source: vec![
+                    Line {
+                        line_number: 0,
+                        indent: "    ".to_string(),
+                        source: Source::Source("fn main() {}".to_string()),
+                        comment: None,
+                    },
+                    Line {
+                        line_number: 1,
+                        indent: "    ".to_string(),
+                        source: Source::Macro("Another block".to_string()),
+                        comment: None,
+                    },
+                ],
+            };
+
+            let mut out = String::new();
+            super::print_code_block(&code, &config.parser, "", "\n", &mut out);
+
+            assert_eq!(
+                out,
+                r#"```rust
+//- Code block
+    fn main() {}
+    // ==> Another block.
+```
+"#
+            )
+        }
     }
 }
 
@@ -494,52 +542,4 @@ pub mod code {
     }
 
     impl std::error::Error for CompileError {}
-}
-
-#[cfg(test)]
-mod tests {
-    use crate::config::Config;
-    use crate::document::{CodeBlock, Line, Source};
-
-    #[test]
-    fn print_code_block() {
-        let config = toml::from_str::<Config>(include_str!("create/Yarner.toml")).unwrap();
-
-        let code = CodeBlock {
-            indent: "".to_string(),
-            name: Some("Code block".to_string()),
-            is_unnamed: false,
-            language: Some("rust".to_string()),
-            hidden: false,
-            alternative: false,
-            source_file: None,
-            source: vec![
-                Line {
-                    line_number: 0,
-                    indent: "    ".to_string(),
-                    source: Source::Source("fn main() {}".to_string()),
-                    comment: None,
-                },
-                Line {
-                    line_number: 1,
-                    indent: "    ".to_string(),
-                    source: Source::Macro("Another block".to_string()),
-                    comment: None,
-                },
-            ],
-        };
-
-        let mut out = String::new();
-        super::docs::print_code_block(&code, &config.parser, "", "\n", &mut out);
-
-        assert_eq!(
-            out,
-            r#"```rust
-//- Code block
-    fn main() {}
-    // ==> Another block.
-```
-"#
-        )
-    }
 }
