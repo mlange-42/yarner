@@ -9,7 +9,7 @@ use std::path::{Path, PathBuf};
 #[derive(Debug, Serialize, Deserialize)]
 pub struct Document {
     pub nodes: Vec<Node>,
-    newline: String,
+    pub newline: String,
 }
 
 #[derive(Debug, Serialize, Deserialize)]
@@ -127,7 +127,7 @@ impl Document {
 #[derive(Debug, Default, Serialize, Deserialize)]
 pub struct TextBlock {
     /// The source text
-    text: Vec<String>,
+    pub text: Vec<String>,
 }
 
 impl TextBlock {
@@ -260,9 +260,8 @@ pub struct Line {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::config::{Config, Paths, LF_NEWLINE, LINK_PATTERN};
+    use crate::config::{default_config, LF_NEWLINE};
     use crate::document::Node::{Code, Text};
-    use regex::Regex;
 
     #[test]
     fn document_elements() {
@@ -296,38 +295,5 @@ mod tests {
         let entry = &entrypoints[&Some("file:README.md#Main")];
         assert_eq!(entry.0.to_str(), Some("README.md#Main"));
         assert_eq!(entry.1, None);
-    }
-
-    fn default_config() -> Config {
-        Config {
-            parser: ParserSettings {
-                fence_sequence: "```".to_string(),
-                fence_sequence_alt: "~~~".to_string(),
-                comments_as_aside: false,
-                block_name_prefix: "//-".to_string(),
-                macro_start: "// ==>".to_string(),
-                macro_end: ".".to_string(),
-                transclusion_start: "@{{".to_string(),
-                transclusion_end: "}}".to_string(),
-                link_following_pattern: (
-                    "@".to_string(),
-                    Regex::new(&format!("(@)?{}", LINK_PATTERN)).unwrap(),
-                ),
-                file_prefix: "file:".to_string(),
-                hidden_prefix: "hidden:".to_string(),
-            },
-            paths: Paths {
-                root: Some(String::from(".")),
-                code: Some(PathBuf::from("code")),
-                docs: Some(PathBuf::from("docs")),
-                files: Some(vec![String::from("README.md")]),
-                code_files: None,
-                code_paths: None,
-                doc_files: None,
-                doc_paths: None,
-                entrypoint: None,
-            },
-            language: HashMap::new(),
-        }
     }
 }

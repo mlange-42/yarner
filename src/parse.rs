@@ -1,11 +1,14 @@
 use crate::util::Fallible;
-use regex::Captures;
+use once_cell::sync::Lazy;
+use regex::{Captures, Regex};
 use std::error::Error;
 use std::fmt::Write;
 use std::ops::Deref;
 use std::path::{Path, PathBuf};
-use yarner_lib::config::{ParserSettings, CRLF_NEWLINE, LF_NEWLINE, LINK_REGEX};
+use yarner_lib::config::{ParserSettings, CRLF_NEWLINE, LF_NEWLINE, LINK_PATTERN};
 use yarner_lib::document::{CodeBlock, Document, Line, Node, Source, TextBlock, Transclusion};
+
+pub static LINK_REGEX: Lazy<Regex> = Lazy::new(|| Regex::new(LINK_PATTERN).unwrap());
 
 #[allow(clippy::nonminimal_bool)]
 pub fn parse(

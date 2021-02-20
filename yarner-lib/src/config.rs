@@ -2,13 +2,12 @@
 use std::collections::{BTreeMap, HashMap};
 use std::path::{Path, PathBuf};
 
-use once_cell::sync::Lazy;
 use regex::Regex;
 use serde::{de::Error as _, Deserialize, Deserializer, Serialize, Serializer};
 use std::error::Error;
+use toml::value::Table;
 
 pub const LINK_PATTERN: &str = r"\[([^\[\]]*)\]\((.*?)\)";
-pub static LINK_REGEX: Lazy<Regex> = Lazy::new(|| Regex::new(LINK_PATTERN).unwrap());
 
 pub const CRLF_NEWLINE: &str = "\r\n";
 pub const LF_NEWLINE: &str = "\n";
@@ -24,6 +23,8 @@ pub struct Config {
     /// Programming language specific settings
     #[serde(default)]
     pub language: HashMap<String, LanguageSettings>,
+    #[serde(default)]
+    pub preprocessor: Table,
 }
 
 impl Config {
@@ -278,6 +279,7 @@ pub fn default_config() -> Config {
             entrypoint: None,
         },
         language: HashMap::new(),
+        preprocessor: Table::new(),
     }
 }
 

@@ -5,6 +5,7 @@ mod create;
 mod files;
 mod lock;
 mod parse;
+mod preprocess;
 mod print;
 mod util;
 
@@ -350,6 +351,8 @@ fn process_inputs_forward(
         )
         .into());
     }
+
+    let documents = preprocess::pre_process(config, documents)?;
 
     for (path, doc) in documents.iter() {
         compile::compile(config, &doc, &path, &mut track_code_files)?;
