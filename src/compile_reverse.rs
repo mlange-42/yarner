@@ -1,14 +1,7 @@
-use std::collections::{
-    hash_map::Entry::{Occupied, Vacant},
-    HashMap, HashSet,
-};
+use std::collections::{HashMap, HashSet};
 use std::path::{Path, PathBuf};
 
-use crate::{
-    code, code::RevCodeBlock, config::Config, document::Document, files, parse, util::Fallible,
-};
-
-type BlockKey = (PathBuf, Option<String>, usize);
+use crate::{config::Config, document::Document, files, parse, util::Fallible};
 
 pub fn compile_all(
     config: &Config,
@@ -48,48 +41,6 @@ pub fn compile_all(
     }
 
     Ok(())
-}
-
-/// Collects all code blocks from the given code files
-pub fn collect_code_blocks(
-    code_files: &HashSet<PathBuf>,
-    config: &Config,
-) -> Fallible<HashMap<BlockKey, RevCodeBlock>> {
-    let mut code_blocks: HashMap<BlockKey, RevCodeBlock> = HashMap::new();
-
-    if !config.language.is_empty() {
-        for file in code_files {
-            let language = file.extension().and_then(|s| s.to_str());
-            if let Some(language) = language {
-                if let Some(labels) = config
-                    .language
-                    .get(language)
-                    .and_then(|lang| lang.block_labels.as_ref())
-                {
-                    let source = files::read_file_string(&file)?;
-                    let blocks = code::parse(&source, &config.parser, labels)?;
-
-                    for block in blocks.into_iter() {
-                        let path = PathBuf::from(&block.file);
-                        match code_blocks.entry((path, block.name.clone(), block.index)) {
-                            Occupied(entry) => {
-                                if entry.get().lines != block.lines {
-                                    return Err(format!("Reverse mode impossible due to multiple, differing occurrences of a code block: {} # {} # {}", &block.file, &block.name.unwrap_or_else(|| "".to_string()), block.index).into());
-                                } else {
-                                    eprintln!("  WARNING: multiple occurrences of a code block: {} # {} # {}", &block.file, &block.name.unwrap_or_else(|| "".to_string()), block.index)
-                                }
-                            }
-                            Vacant(entry) => {
-                                entry.insert(block);
-                            }
-                        }
-                    }
-                }
-            }
-        }
-    }
-
-    Ok(code_blocks)
 }
 
 fn compile(

@@ -1,9 +1,7 @@
 //! The internal representation of a literate document
-use crate::config::{LanguageSettings, ParserSettings};
-use crate::util::TryCollectExt;
+use crate::config::ParserSettings;
 
 use std::collections::HashMap;
-use std::fmt::Write;
 use std::path::{Path, PathBuf};
 
 /// A representation of a `Document` of literate code
@@ -233,21 +231,6 @@ impl CodeBlock {
     pub fn line_number(&self) -> Option<usize> {
         self.source.first().map(|line| line.line_number)
     }
-
-    /// "Compiles" this code block into its output code
-    pub fn compile_with(
-        &self,
-        code_blocks: &HashMap<Option<&str>, Vec<&CodeBlock>>,
-        settings: Option<&LanguageSettings>,
-        newline: &str,
-    ) -> Result<String, CompileError> {
-        self.source
-            .iter()
-            .map(|line| line.compile_with(code_blocks, settings, newline))
-            .try_collect()
-            .map(|lines| lines.join(newline))
-            .map_err(CompileError::Multi)
-    }
 }
 
 /// A `Source` represents the source code on a line.
@@ -272,150 +255,6 @@ pub struct Line {
     /// in an appropriate format in the documentation, rather than as a comment in the source file
     pub comment: Option<String>,
 }
-
-impl Line {
-    fn compile_with(
-        &self,
-        code_blocks: &HashMap<Option<&str>, Vec<&CodeBlock>>,
-        settings: Option<&LanguageSettings>,
-        newline: &str,
-    ) -> Result<String, CompileError> {
-        let block_labels = settings.and_then(|s| s.block_labels.as_ref());
-        let comment_start = block_labels
-            .map(|l| l.comment_start.as_str())
-            .unwrap_or_default();
-        let comment_end = block_labels
-            .and_then(|l| l.comment_end.as_deref())
-            .unwrap_or_default();
-        let block_start = block_labels
-            .map(|l| l.block_start.as_str())
-            .unwrap_or_default();
-        let block_end = block_labels
-            .map(|l| l.block_end.as_str())
-            .unwrap_or_default();
-        let block_next = block_labels.map(|l| l.block_next.as_str()).unwrap_or("");
-        let block_name_sep = '#';
-
-        let clean = if let Some(s) = settings {
-            s.clean_code || s.block_labels.is_none()
-        } else {
-            true
-        };
-
-        let blank_lines = settings.map(|s| s.clear_blank_lines).unwrap_or(true);
-        match &self.source {
-            Source::Source(string) => {
-                if blank_lines && string.trim().is_empty() {
-                    Ok("".to_string())
-                } else {
-                    Ok(format!("{}{}", self.indent, string))
-                }
-            }
-            Source::Macro(name) => {
-                let blocks = code_blocks.get(&Some(name)).ok_or(CompileError::Single {
-                    line_number: self.line_number,
-                    kind: CompileErrorKind::UnknownMacro(name.to_string()),
-                })?;
-
-                let mut result = String::new();
-                for (idx, block) in blocks.iter().enumerate() {
-                    let path = block.source_file.to_owned().unwrap_or_default();
-                    let name = if block.is_unnamed {
-                        ""
-                    } else {
-                        block.name.as_ref().map(|n| &n[..]).unwrap_or("")
-                    };
-
-                    if !clean {
-                        write!(
-                            result,
-                            "{}{} {}{}{}{}{}{}{}{}",
-                            &self.indent,
-                            comment_start,
-                            if idx == 0 { &block_start } else { &block_next },
-                            path,
-                            block_name_sep,
-                            name,
-                            block_name_sep,
-                            idx,
-                            comment_end,
-                            newline,
-                        )
-                        .unwrap();
-                    }
-
-                    let code = block.compile_with(code_blocks, settings, newline)?;
-                    for line in code.lines() {
-                        if blank_lines && line.trim().is_empty() {
-                            write!(result, "{}", newline).unwrap();
-                        } else {
-                            write!(result, "{}{}{}", self.indent, line, newline).unwrap();
-                        }
-                    }
-
-                    if !clean && idx == blocks.len() - 1 {
-                        write!(
-                            result,
-                            "{}{} {}{}{}{}{}{}{}{}",
-                            &self.indent,
-                            comment_start,
-                            &block_end,
-                            path,
-                            block_name_sep,
-                            name,
-                            block_name_sep,
-                            idx,
-                            comment_end,
-                            newline,
-                        )
-                        .unwrap();
-                    }
-                }
-                for _ in 0..newline.len() {
-                    result.pop();
-                }
-                Ok(result)
-            }
-        }
-    }
-}
-
-/// Problems encountered while compiling the document
-#[derive(Debug)]
-pub enum CompileErrorKind {
-    /// An unknown macro name was encountered
-    UnknownMacro(String),
-}
-
-/// Errors that were encountered while compiling the document
-#[derive(Debug)]
-pub enum CompileError {
-    #[doc(hidden)]
-    Multi(Vec<CompileError>),
-    #[doc(hidden)]
-    Single {
-        line_number: usize,
-        kind: CompileErrorKind,
-    },
-}
-
-impl std::fmt::Display for CompileError {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        match self {
-            CompileError::Multi(errors) => {
-                for error in errors {
-                    writeln!(f, "{}", error)?;
-                }
-                Ok(())
-            }
-            CompileError::Single { line_number, kind } => {
-                writeln!(f, "{:?} (line {})", kind, line_number)
-            }
-        }
-    }
-}
-
-impl std::error::Error for CompileError {}
 
 #[cfg(test)]
 mod tests {

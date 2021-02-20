@@ -287,7 +287,7 @@ fn process_inputs_reverse(
         .into());
     }
 
-    let code_blocks = compile_reverse::collect_code_blocks(&code_files, &config)?;
+    let code_blocks = code::collect_code_blocks(&code_files, &config)?;
     for (path, doc) in documents {
         let blocks: HashMap<_, _> = code_blocks
             .iter()
@@ -301,7 +301,7 @@ fn process_inputs_reverse(
             .collect();
 
         if !blocks.is_empty() {
-            let print = print::print_reverse(&doc, &config.parser, &blocks);
+            let print = print::docs::print_reverse(&doc, &config.parser, &blocks);
             println!("  Writing back to file {}", path.display());
             let mut file = File::create(path).unwrap();
             write!(file, "{}", print).unwrap()
