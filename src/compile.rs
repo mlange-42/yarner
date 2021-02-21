@@ -6,7 +6,7 @@ use std::fs::{self, File};
 use std::io::Write;
 use std::path::{Path, PathBuf};
 
-use yarner_lib::Document;
+use yarner_lib::{Document, Node, Transclusion};
 
 use crate::{
     config::{Config, ParserSettings},
@@ -172,7 +172,7 @@ fn transclude(
                 parser.file_prefix,
                 trans.file().with_extension("").to_str().unwrap(),
             );
-            document.transclude(&trans, doc, &path);
+            transclude_into(&mut document, &trans, doc, &path);
 
             links.extend(sub_links.into_iter());
             trans_so_far.insert(trans.file().clone());
@@ -181,4 +181,31 @@ fn transclude(
         }
     }
     Ok((document, links))
+}
+
+fn transclude_into(into: &mut Document, replace: &Transclusion, with: Document, from: &str) {
+    let mut index = 0;
+    while index < into.nodes.len() {
+        if let Node::Transclusion(trans) = &into.nodes[index] {
+            if trans == replace {
+                into.nodes.remove(index);
+                for (i, mut node) in with.nodes.into_iter().enumerate() {
+                    if let Node::Code(code) = &mut node {
+                        if code.name.is_none() {
+                            code.name = Some(from.to_string());
+                            code.is_unnamed = true;
+                        }
+                        if code.source_file.is_none() {
+                            code.source_file = Some(replace.file().to_str().unwrap().to_owned());
+                        }
+                    };
+                    into.nodes.insert(index + i, node);
+                }
+                // TODO: currently, only a single transclusion of a particular document is possible.
+                // May be sufficient (or even desired), but should be checked.
+                break;
+            }
+        }
+        index += 1;
+    }
 }
