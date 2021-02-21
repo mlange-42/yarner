@@ -57,7 +57,7 @@ pub fn parse(
                         errors
                             .push(format!("Incorrect indentation in line {}", line_number).into());
                     }
-                    nodes.push(Node::Text(TextBlock::new()));
+                    nodes.push(Node::Text(TextBlock::default()));
                 }
                 _previous => {
                     let code_block =
@@ -103,7 +103,7 @@ pub fn parse(
     }
 
     if let Some(Node::Text(text)) = nodes.last() {
-        if text.lines().is_empty() {
+        if text.text.is_empty() {
             nodes.pop();
         }
     }
@@ -139,19 +139,13 @@ fn start_code(
     let (indent, rest) = line.split_at(indent_len);
     let rest = &rest[fence_sequence.len()..];
 
-    let mut code_block = CodeBlock::new().indented(indent);
-
     let language = rest.trim();
     let language = if language.is_empty() {
         None
     } else {
         Some(language.to_owned())
     };
-    if let Some(language) = language {
-        code_block = code_block.in_language(language);
-    }
-    code_block.line_number = line_number + 1;
-    code_block.alternative(is_alt_fenced)
+    CodeBlock::new(line_number + 1, indent.to_owned(), language, is_alt_fenced)
 }
 
 fn extend_code(line: &str, settings: &ParserSettings, block: &mut CodeBlock) {
@@ -166,7 +160,7 @@ fn extend_code(line: &str, settings: &ParserSettings, block: &mut CodeBlock) {
         };
     } else {
         let line = parse_line(&line[block.indent.len()..], settings);
-        block.add_line(line);
+        block.source.push(line);
     }
 }
 
@@ -197,10 +191,10 @@ fn start_or_extend_text(
             }
             None => {
                 if let Some(block) = block {
-                    block.add_line(line.to_owned());
+                    block.text.push(line.to_owned());
                 } else {
-                    let mut new_block = TextBlock::new();
-                    new_block.add_line(line.to_owned());
+                    let mut new_block = TextBlock::default();
+                    new_block.text.push(line.to_owned());
                     node = Some(Node::Text(new_block));
                 };
             }
@@ -225,12 +219,12 @@ fn parse_transclusion(
 
             let path = into.parent().unwrap_or_else(|| Path::new(".")).join(target);
 
-            Ok(Some(Node::Transclusion(Transclusion::new(
-                PathBuf::from(path_clean::clean(
+            Ok(Some(Node::Transclusion(Transclusion {
+                file: PathBuf::from(path_clean::clean(
                     &path.to_str().unwrap().replace("\\", "/"),
                 )),
-                line.to_owned(),
-            ))))
+                original: line.to_owned(),
+            })))
         } else {
             Err(format!("Unclosed transclusion in: {}", line).into())
         }
@@ -710,7 +704,7 @@ text
         assert_eq!(doc.nodes.len(), 3);
         assert_eq!(links.len(), 0);
         assert!(if let Node::Transclusion(trans) = &doc.nodes[1] {
-            trans.file() == &PathBuf::from("test.md")
+            trans.file == PathBuf::from("test.md")
         } else {
             false
         });

@@ -17,7 +17,7 @@ pub mod docs {
                     write!(
                         output,
                         "{}{}",
-                        text_block.lines().join(&document.newline()),
+                        text_block.text.join(&document.newline()),
                         document.newline()
                     )
                     .unwrap();
@@ -56,7 +56,7 @@ pub mod docs {
                     write!(
                         output,
                         "{}{}",
-                        text_block.lines().join(&document.newline()),
+                        text_block.text.join(&document.newline()),
                         document.newline()
                     )
                     .unwrap();
@@ -88,7 +88,7 @@ pub mod docs {
         write!(
             write,
             "**WARNING!** Missed/skipped transclusion: {}{}",
-            transclusion.file().to_str().unwrap(),
+            transclusion.file.to_str().unwrap(),
             newline
         )
         .unwrap();
@@ -99,7 +99,7 @@ pub mod docs {
         newline: &str,
         write: &mut impl Write,
     ) {
-        write!(write, "{}{}", transclusion.original(), newline).unwrap();
+        write!(write, "{}{}", transclusion.original, newline).unwrap();
     }
 
     fn print_code_block(
@@ -390,7 +390,7 @@ pub mod code {
         settings: Option<&LanguageSettings>,
         newline: &str,
     ) -> Result<String, CompileError> {
-        let line_offset = block.line_number();
+        let line_offset = block.line_number;
         block
             .source
             .iter()

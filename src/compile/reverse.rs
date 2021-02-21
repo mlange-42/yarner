@@ -16,7 +16,7 @@ pub fn compile_all(
             transclude_dry_run(config, file_name, file_name, documents, track_code_files)?;
 
         let file_str = file_name.to_str().unwrap();
-        document.set_source(file_str);
+        super::set_source(&mut document, file_str);
 
         compile(config, &document, file_name, track_code_files);
 
@@ -52,7 +52,7 @@ fn compile(
 ) {
     println!("Compiling file {}", file_name.display());
 
-    let mut entries = document.entry_points(&config.parser.file_prefix);
+    let mut entries = super::entry_points(document, &config.parser.file_prefix);
 
     let file_name_without_ext = file_name.with_extension("");
     entries.insert(
@@ -85,26 +85,26 @@ fn transclude_dry_run(
 
     let mut trans_so_far = HashSet::new();
     for trans in transclusions {
-        if !trans_so_far.contains(trans.file()) {
+        if !trans_so_far.contains(&trans.file) {
             let (doc, sub_links) =
-                transclude_dry_run(config, root_file, trans.file(), documents, track_code_files)?;
+                transclude_dry_run(config, root_file, &trans.file, documents, track_code_files)?;
 
             if doc.newline() != document.newline() {
                 return Err(format!(
                     "Different EndOfLine sequences used in files {} and {}.\n  Change line endings of one of the files and try again.",
                     file_name.display(),
-                    trans.file().display(),
+                    trans.file.display(),
                 )
                     .into());
             }
 
-            compile(config, &doc, trans.file(), track_code_files);
+            compile(config, &doc, &trans.file, track_code_files);
 
             links.extend(sub_links.into_iter());
-            documents.insert(trans.file().clone(), doc);
-            trans_so_far.insert(trans.file().clone());
+            documents.insert(trans.file.clone(), doc);
+            trans_so_far.insert(trans.file.clone());
         } else {
-            return Err(format!("Multiple transclusions of {}", trans.file().display()).into());
+            return Err(format!("Multiple transclusions of {}", trans.file.display()).into());
         }
     }
 

@@ -1,6 +1,5 @@
 mod code;
 mod compile;
-mod compile_reverse;
 mod config;
 mod create;
 mod files;
@@ -259,7 +258,7 @@ fn process_inputs_reverse(
                 any_input = true;
                 let file_name = PathBuf::from(&input);
 
-                compile_reverse::compile_all(
+                compile::reverse::compile_all(
                     &config,
                     &file_name,
                     &mut source_files,
@@ -332,13 +331,15 @@ fn process_inputs_forward(
                 any_input = true;
                 let file_name = PathBuf::from(&input);
 
-                compile::collect_documents(&config, &file_name, &mut documents).map_err(|err| {
-                    format!(
-                        "Failed to compile source file \"{}\": {}",
-                        file_name.display(),
-                        err
-                    )
-                })?;
+                compile::forward::collect_documents(&config, &file_name, &mut documents).map_err(
+                    |err| {
+                        format!(
+                            "Failed to compile source file \"{}\": {}",
+                            file_name.display(),
+                            err
+                        )
+                    },
+                )?;
             }
         }
     }
@@ -354,7 +355,7 @@ fn process_inputs_forward(
     }
 
     let documents = preprocess::pre_process(config, documents)?;
-    let code_files = compile::compile_all(config, &documents)?;
+    let code_files = compile::forward::compile_all(config, &documents)?;
 
     Ok((
         documents.keys().cloned().collect(),
