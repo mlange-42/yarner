@@ -6,8 +6,13 @@ use std::fs::{self, File};
 use std::io::Write;
 use std::path::{Path, PathBuf};
 
-use crate::{files, parse, print, util::Fallible};
-use yarner_lib::{config::Config, config::ParserSettings, document::Document};
+use yarner_lib::Document;
+
+use crate::{
+    config::{Config, ParserSettings},
+    files, parse, print,
+    util::Fallible,
+};
 
 pub fn collect_documents(
     config: &Config,
@@ -35,7 +40,20 @@ pub fn collect_documents(
     Ok(())
 }
 
-pub fn compile(
+pub fn compile_all(
+    config: &Config,
+    documents: &HashMap<PathBuf, Document>,
+) -> Fallible<HashMap<PathBuf, Option<PathBuf>>> {
+    let mut code_files = HashMap::new();
+
+    for (path, doc) in documents.iter() {
+        compile(config, &doc, &path, &mut code_files)?;
+    }
+
+    Ok(code_files)
+}
+
+fn compile(
     config: &Config,
     document: &Document,
     file_name: &Path,
@@ -43,7 +61,7 @@ pub fn compile(
 ) -> Fallible {
     println!("Compiling file {}", file_name.display());
 
-    let mut entries = document.entry_points(&config.parser);
+    let mut entries = document.entry_points(&config.parser.file_prefix);
 
     let file_name_without_ext = file_name.with_extension("");
     entries.insert(

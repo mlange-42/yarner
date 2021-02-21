@@ -1,11 +1,13 @@
-use crate::util::Fallible;
 use std::collections::HashMap;
 use std::error::Error;
 use std::io::Write;
 use std::path::PathBuf;
 use std::process::{Command, Stdio};
-use yarner_lib::config::Config;
-use yarner_lib::document::Document;
+
+use yarner_lib::Document;
+
+use crate::config::Config;
+use crate::util::Fallible;
 
 pub fn pre_process(
     config: &Config,

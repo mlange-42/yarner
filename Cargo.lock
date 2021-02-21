@@ -384,6 +384,8 @@ dependencies = [
  "path-clean",
  "pathdiff",
  "regex",
+ "serde",
+ "toml",
  "yarner-lib",
 ]
 

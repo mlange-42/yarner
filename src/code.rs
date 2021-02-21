@@ -1,11 +1,12 @@
-use crate::files;
-use crate::util::Fallible;
 use std::collections::{
     hash_map::Entry::{Occupied, Vacant},
     HashMap, HashSet,
 };
 use std::path::PathBuf;
-use yarner_lib::config::{BlockLabels, Config, ParserSettings};
+
+use crate::config::{BlockLabels, Config, ParserSettings};
+use crate::files;
+use crate::util::Fallible;
 
 type BlockKey = (PathBuf, Option<String>, usize);
 
@@ -172,7 +173,7 @@ fn parse(
 #[cfg(test)]
 mod tests {
     use super::*;
-    use yarner_lib::config::default_config;
+    use crate::config::default_config;
 
     #[test]
     fn no_block() {

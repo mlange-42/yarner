@@ -1,10 +1,10 @@
 //! Config objects, to be read from Yarner.toml
-use std::collections::{BTreeMap, HashMap};
+use std::collections::HashMap;
 use std::path::{Path, PathBuf};
 
+use crate::util::Fallible;
 use regex::Regex;
 use serde::{de::Error as _, Deserialize, Deserializer, Serialize, Serializer};
-use std::error::Error;
 use toml::value::Table;
 
 pub const LINK_PATTERN: &str = r"\[([^\[\]]*)\]\((.*?)\)";
@@ -28,7 +28,7 @@ pub struct Config {
 }
 
 impl Config {
-    pub fn read<P: AsRef<Path>>(path: P) -> Result<Self, Box<dyn Error>> {
+    pub fn read<P: AsRef<Path>>(path: P) -> Fallible<Self> {
         let buf = std::fs::read_to_string(&path)
             .map_err(|err| format!("{}: {}", err, path.as_ref().display()))?;
         let val = toml::from_str::<Self>(&buf)?;
@@ -37,7 +37,7 @@ impl Config {
     }
 
     /// Check the validity of the configuration
-    pub fn check(&self) -> Result<(), Box<dyn Error>> {
+    pub fn check(&self) -> Fallible {
         self.parser.check()?;
         for language in self.language.values() {
             language.check()?;
@@ -168,7 +168,7 @@ pub struct LanguageSettings {
 
 impl LanguageSettings {
     /// Check the validity of language settings
-    fn check(&self) -> Result<(), Box<dyn Error>> {
+    fn check(&self) -> Fallible {
         if let Some(labels) = &self.block_labels {
             labels.check()
         } else {
@@ -194,7 +194,7 @@ pub struct BlockLabels {
 
 impl BlockLabels {
     /// Check the validity of block label settings
-    fn check(&self) -> Result<(), Box<dyn Error>> {
+    fn check(&self) -> Fallible {
         if self.block_start.starts_with(&self.block_next) {
             return Err(
                 "Language parameter 'block_start' must not start with the same sequence as 'block_next'"
@@ -219,36 +219,7 @@ impl BlockLabels {
     }
 }
 
-/// Content for Yarner.lock files
-#[derive(Serialize, Deserialize)]
-pub struct Lock {
-    pub source_hashes: BTreeMap<String, String>,
-    pub code_hashes: BTreeMap<String, String>,
-}
-
-impl Lock {
-    pub fn read<P: AsRef<Path>>(path: P) -> Result<Self, Box<dyn Error>> {
-        let buf = std::fs::read_to_string(&path)
-            .map_err(|err| format!("{}: {}", err, path.as_ref().display()))?;
-        let val = toml::from_str::<Self>(&buf).map_err(|err| {
-            format!(
-                "Invalid lock file {}: {}\n  Delete the file or run with option `--force`.",
-                path.as_ref().display(),
-                err.to_string()
-            )
-        })?;
-
-        Ok(val)
-    }
-
-    pub fn write<P: AsRef<Path>>(&self, path: P) -> Result<(), Box<dyn Error>> {
-        let str = toml::to_string(self)?;
-        std::fs::write(path, str)?;
-
-        Ok(())
-    }
-}
-
+#[cfg(test)]
 pub fn default_config() -> Config {
     Config {
         parser: ParserSettings {

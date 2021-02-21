@@ -1,12 +1,17 @@
-use crate::util::Fallible;
+use std::{
+    error::Error,
+    fmt::Write,
+    ops::Deref,
+    path::{Path, PathBuf},
+};
+
 use once_cell::sync::Lazy;
 use regex::{Captures, Regex};
-use std::error::Error;
-use std::fmt::Write;
-use std::ops::Deref;
-use std::path::{Path, PathBuf};
-use yarner_lib::config::{ParserSettings, CRLF_NEWLINE, LF_NEWLINE, LINK_PATTERN};
-use yarner_lib::document::{CodeBlock, Document, Line, Node, Source, TextBlock, Transclusion};
+
+use yarner_lib::{CodeBlock, Document, Line, Node, Source, TextBlock, Transclusion};
+
+use crate::config::{ParserSettings, CRLF_NEWLINE, LF_NEWLINE, LINK_PATTERN};
+use crate::util::Fallible;
 
 pub static LINK_REGEX: Lazy<Regex> = Lazy::new(|| Regex::new(LINK_PATTERN).unwrap());
 
@@ -362,10 +367,12 @@ fn is_relative_link(link: &str) -> bool {
 
 #[cfg(test)]
 mod tests {
-    use super::*;
     use regex::Regex;
-    use yarner_lib::config::LINK_PATTERN;
-    use yarner_lib::document::Source::Macro;
+
+    use crate::config::LINK_PATTERN;
+    use yarner_lib::Source::Macro;
+
+    use super::*;
 
     #[test]
     fn detect_newline() {

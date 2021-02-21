@@ -1,11 +1,11 @@
-use crate::document::Document;
 use std::collections::HashMap;
 use std::io::Read;
 use std::path::PathBuf;
 use toml::Value;
 
-pub mod config;
-pub mod document;
+mod document;
+
+pub use document::*;
 
 pub fn to_json(
     config: &Value,

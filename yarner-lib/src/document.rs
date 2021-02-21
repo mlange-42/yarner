@@ -1,6 +1,4 @@
 //! The internal representation of a literate document
-use crate::config::ParserSettings;
-
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
 use std::path::{Path, PathBuf};
@@ -102,13 +100,12 @@ impl Document {
     /// Finds all file-specific entry points
     pub fn entry_points(
         &self,
-        settings: &ParserSettings,
+        file_prefix: &str,
     ) -> HashMap<Option<&str>, (&Path, Option<PathBuf>)> {
         let mut entries = HashMap::new();
-        let pref = &settings.file_prefix;
         for block in self.code_blocks() {
             if let Some(name) = block.name.as_deref() {
-                if let Some(rest) = name.strip_prefix(pref) {
+                if let Some(rest) = name.strip_prefix(file_prefix) {
                     entries.insert(
                         Some(name),
                         (
@@ -255,45 +252,4 @@ pub struct Line {
     /// The literate compiler defined comment - this is extracted from source text to be rendered
     /// in an appropriate format in the documentation, rather than as a comment in the source file
     pub comment: Option<String>,
-}
-
-#[cfg(test)]
-mod tests {
-    use super::*;
-    use crate::config::{default_config, LF_NEWLINE};
-    use crate::document::Node::{Code, Text};
-
-    #[test]
-    fn document_elements() {
-        let mut config = default_config();
-        config.paths.entrypoint = Some("Main".to_owned());
-
-        let mut code = CodeBlock::new();
-        code.name = Some("file:README.md#Main".to_owned());
-        let doc = Document {
-            nodes: vec![
-                Text(TextBlock { text: vec![] }),
-                Code(code),
-                Text(TextBlock { text: vec![] }),
-                Node::Transclusion(Transclusion::new(
-                    PathBuf::from("trans.md"),
-                    "@{{trans.md}}".to_string(),
-                )),
-            ],
-            newline: LF_NEWLINE.to_string(),
-        };
-
-        let code_blocks: Vec<_> = doc.code_blocks().collect();
-        assert_eq!(code_blocks.len(), 1);
-
-        let transclusions: Vec<_> = doc.transclusions().collect();
-        assert_eq!(transclusions.len(), 1);
-
-        let entrypoints = doc.entry_points(&config.parser);
-        assert_eq!(entrypoints.len(), 1);
-
-        let entry = &entrypoints[&Some("file:README.md#Main")];
-        assert_eq!(entry.0.to_str(), Some("README.md#Main"));
-        assert_eq!(entry.1, None);
-    }
 }

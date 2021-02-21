@@ -1,8 +1,8 @@
 use std::collections::{HashMap, HashSet};
 use std::path::{Path, PathBuf};
 
-use crate::{files, parse, util::Fallible};
-use yarner_lib::{config::Config, document::Document};
+use crate::{config::Config, files, parse, util::Fallible};
+use yarner_lib::Document;
 
 pub fn compile_all(
     config: &Config,
@@ -52,7 +52,7 @@ fn compile(
 ) {
     println!("Compiling file {}", file_name.display());
 
-    let mut entries = document.entry_points(&config.parser);
+    let mut entries = document.entry_points(&config.parser.file_prefix);
 
     let file_name_without_ext = file_name.with_extension("");
     entries.insert(

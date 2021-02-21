@@ -1,7 +1,6 @@
+use serde::{Deserialize, Serialize};
 use std::collections::{BTreeMap, HashSet};
 use std::path::{Path, PathBuf};
-
-use yarner_lib::config::Lock;
 
 use crate::{files, util::Fallible};
 
@@ -58,4 +57,34 @@ where
 fn hash_file<P: AsRef<Path>>(file: P) -> Fallible<String> {
     let bytes = files::read_file(file.as_ref())?;
     Ok(blake3::hash(&bytes).to_hex().to_string())
+}
+
+/// Content for Yarner.lock files
+#[derive(Serialize, Deserialize)]
+pub struct Lock {
+    pub source_hashes: BTreeMap<String, String>,
+    pub code_hashes: BTreeMap<String, String>,
+}
+
+impl Lock {
+    pub fn read<P: AsRef<Path>>(path: P) -> Fallible<Self> {
+        let buf = std::fs::read_to_string(&path)
+            .map_err(|err| format!("{}: {}", err, path.as_ref().display()))?;
+        let val = toml::from_str::<Self>(&buf).map_err(|err| {
+            format!(
+                "Invalid lock file {}: {}\n  Delete the file or run with option `--force`.",
+                path.as_ref().display(),
+                err.to_string()
+            )
+        })?;
+
+        Ok(val)
+    }
+
+    pub fn write<P: AsRef<Path>>(&self, path: P) -> Fallible {
+        let str = toml::to_string(self)?;
+        std::fs::write(path, str)?;
+
+        Ok(())
+    }
 }

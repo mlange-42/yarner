@@ -1,6 +1,7 @@
 mod code;
 mod compile;
 mod compile_reverse;
+mod config;
 mod create;
 mod files;
 mod lock;
@@ -19,8 +20,9 @@ use std::path::PathBuf;
 
 use clap::{crate_version, App, Arg, ArgMatches, SubCommand};
 
+use crate::config::Config;
 use crate::util::{Fallible, JoinExt};
-use yarner_lib::{config::Config, document::Document};
+use yarner_lib::Document;
 
 fn main() {
     std::process::exit(match run() {
@@ -317,7 +319,6 @@ fn process_inputs_forward(
 ) -> Fallible<(HashSet<PathBuf>, HashSet<PathBuf>)> {
     let mut any_input = false;
     let mut documents = HashMap::new();
-    let mut track_code_files = HashMap::new();
     for pattern in input_patterns {
         let paths = glob::glob(&pattern)
             .map_err(|err| format!("Unable to process glob pattern \"{}\": {}", pattern, err))?;
@@ -353,13 +354,10 @@ fn process_inputs_forward(
     }
 
     let documents = preprocess::pre_process(config, documents)?;
-
-    for (path, doc) in documents.iter() {
-        compile::compile(config, &doc, &path, &mut track_code_files)?;
-    }
+    let code_files = compile::compile_all(config, &documents)?;
 
     Ok((
         documents.keys().cloned().collect(),
-        track_code_files.keys().cloned().collect(),
+        code_files.keys().cloned().collect(),
     ))
 }
