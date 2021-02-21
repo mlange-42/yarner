@@ -9,8 +9,11 @@ license = "MIT"
 edition = "2018"
 
 [workspace]
-members = ["yarner-lib"]
-default-members = ["yarner-lib"]
+members = ["yarner-lib", "."]
+default-members = ["yarner-lib", "."]
+
+[[bin]]
+name = "yarner"
 
 [profile.release]
 panic = "abort"

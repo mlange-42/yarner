@@ -7,7 +7,7 @@ use std::path::{Path, PathBuf};
 #[derive(Debug, Serialize, Deserialize)]
 pub struct Document {
     pub nodes: Vec<Node>,
-    pub newline: String,
+    newline: String,
 }
 
 #[derive(Debug, Serialize, Deserialize)]
