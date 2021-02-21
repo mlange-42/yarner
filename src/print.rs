@@ -130,8 +130,7 @@ pub mod docs {
         }
 
         let mut comments = vec![];
-        let line_offset = block.line_number().unwrap_or(0);
-        for line in &block.source {
+        for (line_number, line) in block.source.iter().enumerate() {
             print_line(
                 &line,
                 settings,
@@ -142,7 +141,7 @@ pub mod docs {
             );
             if settings.comments_as_aside {
                 if let Some(comment) = &line.comment {
-                    comments.push((line.line_number - line_offset, comment));
+                    comments.push((line_number, comment));
                 }
             }
         }
@@ -244,6 +243,7 @@ pub mod docs {
             let config = default_config();
 
             let code = CodeBlock {
+                line_number: 1,
                 indent: "".to_string(),
                 name: Some("Code block".to_string()),
                 is_unnamed: false,
@@ -253,13 +253,11 @@ pub mod docs {
                 source_file: None,
                 source: vec![
                     Line {
-                        line_number: 0,
                         indent: "    ".to_string(),
                         source: Source::Source("fn main() {}".to_string()),
                         comment: None,
                     },
                     Line {
-                        line_number: 1,
                         indent: "    ".to_string(),
                         source: Source::Macro("Another block".to_string()),
                         comment: None,
@@ -392,10 +390,14 @@ pub mod code {
         settings: Option<&LanguageSettings>,
         newline: &str,
     ) -> Result<String, CompileError> {
+        let line_offset = block.line_number();
         block
             .source
             .iter()
-            .map(|line| compile_line(&line, code_blocks, settings, newline))
+            .enumerate()
+            .map(|(idx, line)| {
+                compile_line(&line, line_offset + idx, code_blocks, settings, newline)
+            })
             .try_collect()
             .map(|lines| lines.join(newline))
             .map_err(CompileError::Multi)
@@ -403,6 +405,7 @@ pub mod code {
 
     fn compile_line(
         line: &Line,
+        line_number: usize,
         code_blocks: &HashMap<Option<&str>, Vec<&CodeBlock>>,
         settings: Option<&LanguageSettings>,
         newline: &str,
@@ -440,7 +443,7 @@ pub mod code {
             }
             Source::Macro(name) => {
                 let blocks = code_blocks.get(&Some(name)).ok_or(CompileError::Single {
-                    line_number: line.line_number,
+                    line_number,
                     kind: CompileErrorKind::UnknownMacro(name.to_string()),
                 })?;
 

@@ -145,6 +145,8 @@ impl Transclusion {
 /// A `CodeBlock` is a block of code as defined by the input format.
 #[derive(Clone, Default, Debug, Serialize, Deserialize)]
 pub struct CodeBlock {
+    /// Source line number of the first code line
+    pub line_number: usize,
     /// The indent of this code block is in the documentation file
     pub indent: String,
     /// The name of this code block
@@ -199,8 +201,8 @@ impl CodeBlock {
     }
 
     /// Returns the line number of the first line in this code block
-    pub fn line_number(&self) -> Option<usize> {
-        self.source.first().map(|line| line.line_number)
+    pub fn line_number(&self) -> usize {
+        self.line_number
     }
 }
 
@@ -216,8 +218,6 @@ pub enum Source {
 /// A `Line` defines a line of code.
 #[derive(Clone, Debug, Serialize, Deserialize)]
 pub struct Line {
-    /// The line number of this line (original source)
-    pub line_number: usize,
     /// The indent on this line. An indent is defined as leading whitespace (spaces/tabs)
     pub indent: String,
     /// The source text
