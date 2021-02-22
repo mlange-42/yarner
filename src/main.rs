@@ -1,6 +1,5 @@
 mod code;
 mod compile;
-mod compile_reverse;
 mod config;
 mod create;
 mod document;
@@ -259,7 +258,7 @@ fn process_inputs_reverse(
                 any_input = true;
                 let file_name = PathBuf::from(&input);
 
-                compile_reverse::compile_all(
+                compile::reverse::compile_all(
                     &config,
                     &file_name,
                     &mut source_files,
@@ -333,7 +332,7 @@ fn process_inputs_forward(
                 any_input = true;
                 let file_name = PathBuf::from(&input);
 
-                compile::compile_all(
+                compile::forward::compile_all(
                     &config,
                     &file_name,
                     &mut track_source_files,

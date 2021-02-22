@@ -88,7 +88,7 @@ pub mod docs {
         write!(
             write,
             "**WARNING!** Missed/skipped transclusion: {}{}",
-            transclusion.file().to_str().unwrap(),
+            transclusion.file.to_str().unwrap(),
             newline
         )
         .unwrap();
@@ -99,7 +99,7 @@ pub mod docs {
         newline: &str,
         write: &mut impl Write,
     ) {
-        write!(write, "{}{}", transclusion.original(), newline).unwrap();
+        write!(write, "{}{}", transclusion.original, newline).unwrap();
     }
 
     fn print_code_block(

@@ -1,8 +1,6 @@
 //! The internal representation of a literate document
-use crate::config::ParserSettings;
-
 use std::collections::HashMap;
-use std::path::{Path, PathBuf};
+use std::path::PathBuf;
 
 /// A representation of a `Document` of literate code
 #[derive(Debug)]
@@ -29,17 +27,6 @@ impl Document {
 
     pub fn newline(&self) -> &str {
         self.newline
-    }
-
-    /// Sets the source file for all code blocks that have none
-    pub fn set_source(&mut self, source: &str) {
-        for node in &mut self.nodes {
-            if let Node::Code(block) = node {
-                if block.source_file.is_none() {
-                    block.source_file = Some(source.to_owned());
-                }
-            }
-        }
     }
 
     /// Gets all the code blocks of this document
@@ -70,56 +57,6 @@ impl Document {
             _ => None,
         })
     }
-
-    pub fn transclude(&mut self, replace: &Transclusion, with: Document, from: &str) {
-        let mut index = 0;
-        while index < self.nodes.len() {
-            if let Node::Transclusion(trans) = &self.nodes[index] {
-                if trans == replace {
-                    self.nodes.remove(index);
-                    for (i, mut node) in with.nodes.into_iter().enumerate() {
-                        if let Node::Code(code) = &mut node {
-                            if code.name.is_none() {
-                                code.name = Some(from.to_string());
-                                code.is_unnamed = true;
-                            }
-                            if code.source_file.is_none() {
-                                code.source_file = Some(replace.file.to_str().unwrap().to_owned());
-                            }
-                        };
-                        self.nodes.insert(index + i, node);
-                    }
-                    // TODO: currently, only a single transclusion of a particular document is possible.
-                    // May be sufficient (or even desired), but should be checked.
-                    break;
-                }
-            }
-            index += 1;
-        }
-    }
-
-    /// Finds all file-specific entry points
-    pub fn entry_points(
-        &self,
-        settings: &ParserSettings,
-    ) -> HashMap<Option<&str>, (&Path, Option<PathBuf>)> {
-        let mut entries = HashMap::new();
-        let pref = &settings.file_prefix;
-        for block in self.code_blocks() {
-            if let Some(name) = block.name.as_deref() {
-                if let Some(rest) = name.strip_prefix(pref) {
-                    entries.insert(
-                        Some(name),
-                        (
-                            Path::new(rest),
-                            block.source_file.as_ref().map(|file| file.into()),
-                        ),
-                    );
-                }
-            }
-        }
-        entries
-    }
 }
 
 /// A `TextBlock` is just text that will be copied verbatim into the output documentation file
@@ -149,26 +86,9 @@ impl TextBlock {
 #[derive(Debug, PartialEq, Clone)]
 pub struct Transclusion {
     /// The target file path
-    file: PathBuf,
+    pub file: PathBuf,
     /// The original string of the transclusion
-    original: String,
-}
-
-impl Transclusion {
-    /// Creates a new `Transclusion`
-    pub fn new(file: PathBuf, original: String) -> Self {
-        Transclusion { file, original }
-    }
-
-    /// The path to the file this transclusion points to
-    pub fn file(&self) -> &PathBuf {
-        &self.file
-    }
-
-    /// The original string of the transclusion
-    pub fn original(&self) -> &str {
-        &self.original
-    }
+    pub original: String,
 }
 
 /// A `CodeBlock` is a block of code as defined by the input format.
@@ -254,45 +174,4 @@ pub struct Line {
     /// The literate compiler defined comment - this is extracted from source text to be rendered
     /// in an appropriate format in the documentation, rather than as a comment in the source file
     pub comment: Option<String>,
-}
-
-#[cfg(test)]
-mod tests {
-    use super::*;
-    use crate::config::{Config, LF_NEWLINE};
-    use crate::document::Node::{Code, Text};
-
-    #[test]
-    fn document_elements() {
-        let mut config = toml::from_str::<Config>(include_str!("create/Yarner.toml")).unwrap();
-        config.paths.entrypoint = Some("Main".to_owned());
-
-        let mut code = CodeBlock::new();
-        code.name = Some("file:README.md#Main".to_owned());
-        let doc = Document {
-            nodes: vec![
-                Text(TextBlock { text: vec![] }),
-                Code(code),
-                Text(TextBlock { text: vec![] }),
-                Node::Transclusion(Transclusion::new(
-                    PathBuf::from("trans.md"),
-                    "@{{trans.md}}".to_string(),
-                )),
-            ],
-            newline: LF_NEWLINE,
-        };
-
-        let code_blocks: Vec<_> = doc.code_blocks().collect();
-        assert_eq!(code_blocks.len(), 1);
-
-        let transclusions: Vec<_> = doc.transclusions().collect();
-        assert_eq!(transclusions.len(), 1);
-
-        let entrypoints = doc.entry_points(&config.parser);
-        assert_eq!(entrypoints.len(), 1);
-
-        let entry = &entrypoints[&Some("file:README.md#Main")];
-        assert_eq!(entry.0.to_str(), Some("README.md#Main"));
-        assert_eq!(entry.1, None);
-    }
 }

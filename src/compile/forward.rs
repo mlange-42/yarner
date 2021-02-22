@@ -6,8 +6,12 @@ use std::fs::{self, File};
 use std::io::Write;
 use std::path::{Path, PathBuf};
 
-use crate::config::Config;
-use crate::{config::ParserSettings, document::Document, files, parse, print, util::Fallible};
+use crate::{
+    config::{Config, ParserSettings},
+    document::{Document, Node, Transclusion},
+    files, parse, print,
+    util::Fallible,
+};
 
 pub fn compile_all(
     config: &Config,
@@ -19,7 +23,7 @@ pub fn compile_all(
         let (mut document, links) = transclude(&config.parser, file_name, file_name)?;
 
         let file_str = file_name.to_str().unwrap();
-        document.set_source(file_str);
+        super::set_source(&mut document, file_str);
 
         compile(config, &document, file_name, track_code_files)?;
         track_input_files.insert(file_name.to_owned());
@@ -46,7 +50,7 @@ fn compile(
 ) -> Fallible {
     println!("Compiling file {}", file_name.display());
 
-    let mut entries = document.entry_points(&config.parser);
+    let mut entries = super::entry_points(document, &config.parser.file_prefix);
 
     let file_name_without_ext = file_name.with_extension("");
     entries.insert(
@@ -140,14 +144,14 @@ fn transclude(
 
     let mut trans_so_far = HashSet::new();
     for trans in transclusions {
-        if !trans_so_far.contains(trans.file()) {
-            let (doc, sub_links) = transclude(parser, root_file, trans.file())?;
+        if !trans_so_far.contains(&trans.file) {
+            let (doc, sub_links) = transclude(parser, root_file, &trans.file)?;
 
             if doc.newline() != document.newline() {
                 return Err(format!(
                     "Different EndOfLine sequences used in files {} and {}.\n  Change line endings of one of the files and try again.",
                     file_name.display(),
-                    trans.file().display(),
+                    trans.file.display(),
                 )
                 .into());
             }
@@ -155,15 +159,42 @@ fn transclude(
             let path = format!(
                 "{}{}",
                 parser.file_prefix,
-                trans.file().with_extension("").to_str().unwrap(),
+                trans.file.with_extension("").to_str().unwrap(),
             );
-            document.transclude(&trans, doc, &path);
+            transclude_into(&mut document, &trans, doc, &path);
 
             links.extend(sub_links.into_iter());
-            trans_so_far.insert(trans.file().clone());
+            trans_so_far.insert(trans.file.clone());
         } else {
-            return Err(format!("Multiple transclusions of {}", trans.file().display()).into());
+            return Err(format!("Multiple transclusions of {}", trans.file.display()).into());
         }
     }
     Ok((document, links))
+}
+
+fn transclude_into(into: &mut Document, replace: &Transclusion, with: Document, from: &str) {
+    let mut index = 0;
+    while index < into.nodes.len() {
+        if let Node::Transclusion(trans) = &into.nodes[index] {
+            if trans == replace {
+                into.nodes.remove(index);
+                for (i, mut node) in with.nodes.into_iter().enumerate() {
+                    if let Node::Code(code) = &mut node {
+                        if code.name.is_none() {
+                            code.name = Some(from.to_string());
+                            code.is_unnamed = true;
+                        }
+                        if code.source_file.is_none() {
+                            code.source_file = Some(replace.file.to_str().unwrap().to_owned());
+                        }
+                    };
+                    into.nodes.insert(index + i, node);
+                }
+                // TODO: currently, only a single transclusion of a particular document is possible.
+                // May be sufficient (or even desired), but should be checked.
+                break;
+            }
+        }
+        index += 1;
+    }
 }
