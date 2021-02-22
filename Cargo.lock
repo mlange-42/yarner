@@ -385,6 +385,7 @@ dependencies = [
  "pathdiff",
  "regex",
  "serde",
+ "serde_json",
  "toml",
  "yarner-lib",
 ]

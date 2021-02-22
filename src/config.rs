@@ -7,6 +7,7 @@ use regex::Regex;
 use serde::{de::Error as _, Deserialize, Deserializer};
 
 use crate::{files, util::Fallible};
+use toml::value::Table;
 
 pub const LINK_PATTERN: &str = r"\[([^\[\]]*)\]\((.*?)\)";
 pub static LINK_REGEX: Lazy<Regex> = Lazy::new(|| Regex::new(LINK_PATTERN).unwrap());
@@ -25,6 +26,9 @@ pub struct Config {
     /// Programming language specific settings
     #[serde(default)]
     pub language: HashMap<String, LanguageSettings>,
+    /// TOML table of settings for pre-processors
+    #[serde(default)]
+    pub preprocessor: Table,
 }
 
 impl Config {

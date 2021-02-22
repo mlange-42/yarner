@@ -25,6 +25,7 @@ codegen-units = 1
 yarner-lib = { path = "yarner-lib" }
 serde = { version = "1.0", features = ["derive"] }
 toml = { version = "0.5", features = ["preserve_order"] }
+serde_json = "1.0"
 regex = "1.4"
 path-clean = "0.1"
 pathdiff = "0.2"
