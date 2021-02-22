@@ -14,6 +14,7 @@ See the [**User Guide**](https://mlange-42.github.io/yarner/) for documentation.
 * Multiple files, multiple entrypoints
 * File transclusions
 * Reverse mode
+* Custom pre-procesors
 * ...
 
 See the [**User Guide**](https://mlange-42.github.io/yarner/) for a complete and detailed explanation of all features.
