@@ -6,9 +6,10 @@ use std::fs::{self, File};
 use std::io::Write;
 use std::path::{Path, PathBuf};
 
+use yarner_lib::{Document, Node, Transclusion};
+
 use crate::{
     config::{Config, ParserSettings},
-    document::{Document, Node, Transclusion},
     files, parse, print,
     util::Fallible,
 };
