@@ -1,15 +1,17 @@
 //! The internal representation of a literate document
+use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
+use std::default::Default;
 use std::path::PathBuf;
 
 /// A representation of a `Document` of literate code
-#[derive(Debug)]
+#[derive(Debug, Serialize, Deserialize)]
 pub struct Document {
     pub nodes: Vec<Node>,
-    newline: &'static str,
+    pub newline: String,
 }
 
-#[derive(Debug)]
+#[derive(Debug, Serialize, Deserialize)]
 pub enum Node {
     /// A text block
     Text(TextBlock),
@@ -21,12 +23,12 @@ pub enum Node {
 
 impl Document {
     /// Creates a new document with the given nodes
-    pub fn new(nodes: Vec<Node>, newline: &'static str) -> Self {
+    pub fn new(nodes: Vec<Node>, newline: String) -> Self {
         Document { nodes, newline }
     }
 
     pub fn newline(&self) -> &str {
-        self.newline
+        &self.newline
     }
 
     /// Gets all the code blocks of this document
@@ -60,30 +62,14 @@ impl Document {
 }
 
 /// A `TextBlock` is just text that will be copied verbatim into the output documentation file
-#[derive(Debug, Default)]
+#[derive(Debug, Default, Serialize, Deserialize)]
 pub struct TextBlock {
     /// The source text
-    text: Vec<String>,
-}
-
-impl TextBlock {
-    /// Creates a new empty `TextBlock`
-    pub fn new() -> Self {
-        Self::default()
-    }
-
-    /// Adds a line to this `TextBlock`
-    pub fn add_line(&mut self, line: String) {
-        self.text.push(line);
-    }
-
-    pub fn lines(&self) -> &[String] {
-        &self.text
-    }
+    pub text: Vec<String>,
 }
 
 /// A `Transclusion` is a reference to another file that should be pulled into the source
-#[derive(Debug, PartialEq, Clone)]
+#[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
 pub struct Transclusion {
     /// The target file path
     pub file: PathBuf,
@@ -92,8 +78,10 @@ pub struct Transclusion {
 }
 
 /// A `CodeBlock` is a block of code as defined by the input format.
-#[derive(Clone, Default, Debug)]
+#[derive(Default, Debug, Serialize, Deserialize)]
 pub struct CodeBlock {
+    /// Source line number of the first code line
+    pub line_number: usize,
     /// The indent of this code block is in the documentation file
     pub indent: String,
     /// The name of this code block
@@ -113,48 +101,24 @@ pub struct CodeBlock {
 }
 
 impl CodeBlock {
-    /// Creates a new empty `CodeBlock`
-    pub fn new() -> Self {
-        Self::default()
-    }
-
-    /// Indents this code block
-    pub fn indented(self, indent: &str) -> Self {
-        Self {
-            indent: indent.to_owned(),
-            ..self
-        }
-    }
-
-    /// Marks the code block as fenced by alternative sequence
-    pub fn alternative(self, alternative: bool) -> Self {
-        Self {
+    pub fn new(
+        line_number: usize,
+        indent: String,
+        language: Option<String>,
+        alternative: bool,
+    ) -> Self {
+        CodeBlock {
+            line_number,
+            indent,
+            language,
             alternative,
-            ..self
+            ..Default::default()
         }
-    }
-
-    /// Sets the language of this code block
-    pub fn in_language(self, language: String) -> Self {
-        Self {
-            language: Some(language),
-            ..self
-        }
-    }
-
-    /// Adds a line to this code block
-    pub fn add_line(&mut self, line: Line) {
-        self.source.push(line);
-    }
-
-    /// Returns the line number of the first line in this code block
-    pub fn line_number(&self) -> Option<usize> {
-        self.source.first().map(|line| line.line_number)
     }
 }
 
 /// A `Source` represents the source code on a line.
-#[derive(Clone, Debug)]
+#[derive(Debug, Serialize, Deserialize)]
 pub enum Source {
     /// A macro invocation, resolved by the literate compiler
     Macro(String),
@@ -163,10 +127,8 @@ pub enum Source {
 }
 
 /// A `Line` defines a line of code.
-#[derive(Clone, Debug)]
+#[derive(Debug, Serialize, Deserialize)]
 pub struct Line {
-    /// The line number of this line (original source)
-    pub line_number: usize,
     /// The indent on this line. An indent is defined as leading whitespace (spaces/tabs)
     pub indent: String,
     /// The source text
