@@ -61,15 +61,14 @@ fn hash_file<P: AsRef<Path>>(file: P) -> Fallible<String> {
 
 /// Content for Yarner.lock files
 #[derive(Serialize, Deserialize)]
-pub struct Lock {
-    pub source_hashes: BTreeMap<String, String>,
-    pub code_hashes: BTreeMap<String, String>,
+struct Lock {
+    source_hashes: BTreeMap<String, String>,
+    code_hashes: BTreeMap<String, String>,
 }
 
 impl Lock {
-    pub fn read<P: AsRef<Path>>(path: P) -> Fallible<Self> {
-        let buf = std::fs::read_to_string(&path)
-            .map_err(|err| format!("{}: {}", err, path.as_ref().display()))?;
+    fn read<P: AsRef<Path>>(path: P) -> Fallible<Self> {
+        let buf = files::read_file_string(path.as_ref())?;
         let val = toml::from_str::<Self>(&buf).map_err(|err| {
             format!(
                 "Invalid lock file {}: {}\n  Delete the file or run with option `--force`.",
@@ -81,7 +80,7 @@ impl Lock {
         Ok(val)
     }
 
-    pub fn write<P: AsRef<Path>>(&self, path: P) -> Fallible {
+    fn write<P: AsRef<Path>>(&self, path: P) -> Fallible {
         let str = toml::to_string(self)?;
         std::fs::write(path, str)?;
 

@@ -5,15 +5,12 @@ use std::{
     path::{Path, PathBuf},
 };
 
-use once_cell::sync::Lazy;
-use regex::{Captures, Regex};
+use regex::Captures;
 
 use yarner_lib::{CodeBlock, Document, Line, Node, Source, TextBlock, Transclusion};
 
-use crate::config::{ParserSettings, CRLF_NEWLINE, LF_NEWLINE, LINK_PATTERN};
+use crate::config::{ParserSettings, CRLF_NEWLINE, LF_NEWLINE, LINK_REGEX};
 use crate::util::Fallible;
-
-pub static LINK_REGEX: Lazy<Regex> = Lazy::new(|| Regex::new(LINK_PATTERN).unwrap());
 
 #[allow(clippy::nonminimal_bool)]
 pub fn parse(

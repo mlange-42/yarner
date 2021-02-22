@@ -3,11 +3,13 @@ use std::collections::HashMap;
 use std::path::{Path, PathBuf};
 
 use crate::util::Fallible;
+use once_cell::sync::Lazy;
 use regex::Regex;
 use serde::{de::Error as _, Deserialize, Deserializer, Serialize, Serializer};
 use toml::value::Table;
 
 pub const LINK_PATTERN: &str = r"\[([^\[\]]*)\]\((.*?)\)";
+pub static LINK_REGEX: Lazy<Regex> = Lazy::new(|| Regex::new(LINK_PATTERN).unwrap());
 
 pub const CRLF_NEWLINE: &str = "\r\n";
 pub const LF_NEWLINE: &str = "\n";

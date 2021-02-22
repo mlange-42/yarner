@@ -354,11 +354,10 @@ fn process_inputs_forward(
         .into());
     }
 
+    let original_documents = documents.keys().cloned().collect();
+
     let documents = preprocess::pre_process(config, documents)?;
     let code_files = compile::forward::compile_all(config, &documents)?;
 
-    Ok((
-        documents.keys().cloned().collect(),
-        code_files.keys().cloned().collect(),
-    ))
+    Ok((original_documents, code_files.keys().cloned().collect()))
 }
