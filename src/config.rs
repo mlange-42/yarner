@@ -4,7 +4,7 @@ use std::path::{Path, PathBuf};
 
 use once_cell::sync::Lazy;
 use regex::Regex;
-use serde::{de::Error as _, Deserialize, Deserializer, Serialize};
+use serde::{de::Error as _, Deserialize, Deserializer};
 
 use crate::{files, util::Fallible};
 
@@ -115,7 +115,7 @@ where
 }
 
 /// Config for paths
-#[derive(Serialize, Deserialize, Default, Debug, Clone)]
+#[derive(Deserialize, Default, Debug, Clone)]
 pub struct Paths {
     /// Code output path.
     pub root: Option<String>,
@@ -144,7 +144,7 @@ impl Paths {
 }
 
 /// Config for a programming language
-#[derive(Serialize, Deserialize, Default, Debug)]
+#[derive(Deserialize, Default, Debug)]
 pub struct LanguageSettings {
     /// Label format for blocks in code output
     pub block_labels: Option<BlockLabels>,
@@ -169,7 +169,7 @@ impl LanguageSettings {
 }
 
 /// Config for block labels for a programming language
-#[derive(Serialize, Deserialize, Default, Debug)]
+#[derive(Deserialize, Default, Debug)]
 pub struct BlockLabels {
     /// Start of comments in the language
     pub comment_start: String,
