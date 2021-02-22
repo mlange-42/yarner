@@ -21,9 +21,9 @@ branches:
 
 script:
   - rustup component add rustfmt clippy
-  - cargo fmt -- --check
-  - cargo clippy --all-targets -- --deny warnings
-  - cargo test --verbose
+  - cargo fmt --all -- --check
+  - cargo clippy --all --all-targets -- --deny warnings
+  - cargo test --all --verbose
 
 # Need to cache the whole `.cargo` directory to keep .crates.toml for
 # cargo-update to work

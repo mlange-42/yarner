@@ -1,6 +1,6 @@
-use crate::document::{Document, Node};
 use std::collections::HashMap;
 use std::path::{Path, PathBuf};
+use yarner_lib::{Document, Node};
 
 pub mod forward;
 pub mod reverse;

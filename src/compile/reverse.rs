@@ -1,7 +1,9 @@
 use std::collections::{HashMap, HashSet};
 use std::path::{Path, PathBuf};
 
-use crate::{config::Config, document::Document, files, parse, util::Fallible};
+use yarner_lib::Document;
+
+use crate::{config::Config, files, parse, util::Fallible};
 
 pub fn compile_all(
     config: &Config,
