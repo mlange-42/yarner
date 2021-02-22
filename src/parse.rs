@@ -210,12 +210,12 @@ fn parse_transclusion(
 
             let path = into.parent().unwrap_or_else(|| Path::new(".")).join(target);
 
-            Ok(Some(Node::Transclusion(Transclusion::new(
-                PathBuf::from(path_clean::clean(
+            Ok(Some(Node::Transclusion(Transclusion {
+                file: PathBuf::from(path_clean::clean(
                     &path.to_str().unwrap().replace("\\", "/"),
                 )),
-                line.to_owned(),
-            ))))
+                original: line.to_owned(),
+            })))
         } else {
             Err(format!("Unclosed transclusion in: {}", line).into())
         }
@@ -695,7 +695,7 @@ text
         assert_eq!(doc.nodes.len(), 3);
         assert_eq!(links.len(), 0);
         assert!(if let Node::Transclusion(trans) = &doc.nodes[1] {
-            trans.file() == &PathBuf::from("test.md")
+            trans.file == PathBuf::from("test.md")
         } else {
             false
         });
