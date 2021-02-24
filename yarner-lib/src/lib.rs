@@ -16,7 +16,7 @@ pub const YARNER_VERSION: &str = env!(
 /// Pre-processor call context
 #[derive(Debug, Serialize, Deserialize)]
 pub struct YarnerData {
-    /// The context of the pre-processor call, inclusing configuration
+    /// The context of the pre-processor call, including configuration
     pub context: Context,
     /// The documents, mapped to file paths
     pub documents: HashMap<PathBuf, Document>,
