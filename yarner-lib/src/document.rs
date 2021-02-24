@@ -65,7 +65,7 @@ impl Document {
 #[derive(Debug, Default, Serialize, Deserialize)]
 pub struct TextBlock {
     /// The source text
-    pub text: String,
+    pub text: Vec<String>,
 }
 
 /// A `Transclusion` is a reference to another file that should be pulled into the source
@@ -120,8 +120,8 @@ impl CodeBlock {
 /// A `Source` represents the source code on a line.
 #[derive(Debug, Serialize, Deserialize)]
 pub enum Line {
-    /// A macro invocation, resolved by the literate compiler
+    /// A macro invocation, resolved by the literate compiler. (indent, macro name).
     Macro(String, String),
-    /// Source text, possibly including meta variable interpolations
+    /// A line of source code. (indent, source text).
     Source(String, String),
 }

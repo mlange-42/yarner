@@ -83,7 +83,6 @@ pub fn parse(
                         path,
                         settings,
                         is_reverse,
-                        newline,
                         &mut links,
                         block,
                     );
@@ -168,7 +167,6 @@ fn start_or_extend_text(
     path: &Path,
     settings: &ParserSettings,
     is_reverse: bool,
-    newline: &str,
     mut links: &mut Vec<PathBuf>,
     block: Option<&mut TextBlock>,
 ) -> (Option<Node>, Option<Box<dyn Error>>) {
@@ -188,10 +186,10 @@ fn start_or_extend_text(
             }
             None => {
                 if let Some(block) = block {
-                    write!(block.text, "{}{}", line, newline).unwrap();
+                    block.text.push(line.to_owned());
                 } else {
                     let mut new_block = TextBlock::default();
-                    write!(new_block.text, "{}{}", line, newline).unwrap();
+                    new_block.text.push(line.to_owned());
                     node = Some(Node::Text(new_block));
                 };
             }
