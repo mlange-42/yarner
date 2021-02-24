@@ -1,11 +1,28 @@
 {
   "$schema": "http://json-schema.org/draft-07/schema#",
-  "$id": "https://github.com/mlange-42/yarner/schemas/documents.json",
-  "title": "Map_of_Document",
-  "description": "A map of documents (file path as key), as passed from pre-processors back to Yarner",
+  "$id": "https://github.com/mlange-42/yarner/schemas/yarner-data.json",
+  "title": "YarnerData",
   "type": "object",
-  "additionalProperties": {
-    "$ref": "#/definitions/Document"
+  "required": [
+    "context",
+    "documents"
+  ],
+  "properties": {
+    "context": {
+      "description": "The context of the pre-processor call, including configuration",
+      "allOf": [
+        {
+          "$ref": "#/definitions/Context"
+        }
+      ]
+    },
+    "documents": {
+      "description": "The documents, mapped to file paths",
+      "type": "object",
+      "additionalProperties": {
+        "$ref": "#/definitions/Document"
+      }
+    }
   },
   "definitions": {
     "CodeBlock": {
@@ -90,6 +107,23 @@
           "items": {
             "$ref": "#/definitions/Node"
           }
+        }
+      }
+    },
+    "DummyContext": {
+      "type": "object",
+      "required": [
+        "name",
+        "yarner_version"
+      ],
+      "properties": {
+        "name": {
+          "description": "Name of the pre-processor",
+          "type": "string"
+        },
+        "yarner_version": {
+          "description": "Yarner version from from which the pre-processor is called",
+          "type": "string"
         }
       }
     },
@@ -191,7 +225,7 @@
       ],
       "properties": {
         "text": {
-          "description": "The source text, with a single line of text per item",
+          "description": "The source text",
           "type": "array",
           "items": {
             "type": "string"

@@ -4,7 +4,7 @@ use std::io::Write;
 use std::path::PathBuf;
 use std::process::{Command, Stdio};
 
-use yarner_lib::{Context, Document, YARNER_VERSION};
+use yarner_lib::{Context, Document, YarnerData, YARNER_VERSION};
 
 use crate::config::Config;
 use crate::util::Fallible;
@@ -20,13 +20,16 @@ pub fn pre_process(
             .and_then(|cmd| cmd.as_str().map(|s| s.to_owned()))
             .unwrap_or_else(|| format!("yarner-{}", name));
 
-        let context = Context {
-            name: name.to_owned(),
-            config: config.clone(),
-            yarner_version: YARNER_VERSION.to_string(),
+        let data = YarnerData {
+            context: Context {
+                name: name.to_owned(),
+                config: config.clone(),
+                yarner_version: YARNER_VERSION.to_string(),
+            },
+            documents: docs,
         };
 
-        let json = to_json(&context, &docs)?;
+        let json = to_json(data)?;
 
         println!("Running pre-processor {}", command);
 
@@ -54,19 +57,18 @@ pub fn pre_process(
         let out_json =
             String::from_utf8(output.stdout).map_err(|err| format_error(err.into(), &command))?;
 
-        docs = from_json(&out_json).map_err(|err| format_error(err.into(), &command))?;
+        docs = from_json(&out_json)
+            .map_err(|err| format_error(err.into(), &command))?
+            .documents;
     }
     Ok(docs)
 }
 
-fn to_json(
-    context: &Context,
-    documents: &HashMap<PathBuf, Document>,
-) -> serde_json::Result<String> {
-    serde_json::to_string_pretty(&(context, documents))
+fn to_json(data: YarnerData) -> serde_json::Result<String> {
+    serde_json::to_string_pretty(&data)
 }
 
-fn from_json(json: &str) -> serde_json::Result<HashMap<PathBuf, Document>> {
+fn from_json(json: &str) -> serde_json::Result<YarnerData> {
     serde_json::from_str(json)
 }
 
