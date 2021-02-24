@@ -133,7 +133,4 @@ pub struct Line {
     pub indent: String,
     /// The source text
     pub source: Source,
-    /// The literate compiler defined comment - this is extracted from source text to be rendered
-    /// in an appropriate format in the documentation, rather than as a comment in the source file
-    pub comment: Option<String>,
 }

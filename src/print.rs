@@ -121,35 +121,11 @@ pub mod docs {
             .unwrap();
         }
 
-        let mut comments = vec![];
-        for (line_number, line) in block.source.iter().enumerate() {
-            print_line(
-                &line,
-                settings,
-                !settings.comments_as_aside,
-                indent,
-                newline,
-                write,
-            );
-            if settings.comments_as_aside {
-                if let Some(comment) = &line.comment {
-                    comments.push((line_number, comment));
-                }
-            }
+        for line in &block.source {
+            print_line(&line, settings, indent, newline, write);
         }
 
         write!(write, "{}{}{}", indent, fence_sequence, newline).unwrap();
-
-        for (line, comment) in comments {
-            write!(
-                write,
-                "<aside class=\"comment\" data-line=\"{}\">{}</aside>{}",
-                line,
-                comment.trim(),
-                newline
-            )
-            .unwrap();
-        }
     }
 
     fn print_code_block_reverse(
@@ -189,7 +165,7 @@ pub mod docs {
             }
         } else {
             for line in &block.source {
-                print_line(&line, settings, true, indent, newline, write);
+                print_line(&line, settings, indent, newline, write);
             }
         }
         write!(write, "{}{}", fence_sequence, newline).unwrap();
@@ -199,7 +175,6 @@ pub mod docs {
     fn print_line(
         line: &Line,
         settings: &ParserSettings,
-        print_comments: bool,
         indent: &str,
         newline: &str,
         write: &mut impl Write,
@@ -215,11 +190,6 @@ pub mod docs {
             }
             Source::Source(string) => {
                 write!(write, "{}", string).unwrap();
-            }
-        }
-        if print_comments {
-            if let Some(comment) = &line.comment {
-                write!(write, "{}{}", settings.block_name_prefix, comment).unwrap();
             }
         }
         write!(write, "{}", newline).unwrap();

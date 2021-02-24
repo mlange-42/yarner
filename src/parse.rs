@@ -235,24 +235,11 @@ fn parse_line(input: &str, settings: &ParserSettings) -> Line {
     let indent_len = input.chars().take_while(|ch| ch.is_whitespace()).count();
     let (indent, rest) = input.split_at(indent_len);
 
-    // TODO: Temporarily disables comment extraction.
-    let (rest, comment) = (rest, None);
-    /*let (rest, comment) = if let Some(comment_index) = rest.find(&settings.block_name_prefix) {
-        let (rest, comment) = rest.split_at(comment_index);
-        (
-            rest,
-            Some((&comment[settings.block_name_prefix.len()..]).to_owned()),
-        )
-    } else {
-        (rest, None)
-    };*/
-
     if let Some(stripped) = rest.strip_prefix(&settings.macro_start) {
         if let Some(name) = stripped.strip_suffix(&settings.macro_end) {
             return Line {
                 indent: indent.to_owned(),
                 source: Source::Macro(name.trim().to_owned()),
-                comment,
             };
         }
     }
@@ -260,7 +247,6 @@ fn parse_line(input: &str, settings: &ParserSettings) -> Line {
     Line {
         indent: indent.to_owned(),
         source: Source::Source(rest.to_owned()),
-        comment,
     }
 }
 
