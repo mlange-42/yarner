@@ -1,0 +1,252 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "https://github.com/mlange-42/yarner/schemas/data.json",
+  "description": "A data pair of Context and a map of documents (file path as key), as passed from Yarner to pre-processors",
+  "type": "array",
+  "items": [
+    {
+      "$ref": "#/definitions/Context"
+    },
+    {
+      "type": "object",
+      "additionalProperties": {
+        "$ref": "#/definitions/Document"
+      }
+    }
+  ],
+  "maxItems": 2,
+  "minItems": 2,
+  "definitions": {
+    "CodeBlock": {
+      "description": "A `CodeBlock` is a block of code as defined by the input format.",
+      "type": "object",
+      "required": [
+        "alternative",
+        "hidden",
+        "indent",
+        "is_unnamed",
+        "line_number",
+        "source"
+      ],
+      "properties": {
+        "alternative": {
+          "description": "Marks the code block as fenced by alternative sequence",
+          "type": "boolean"
+        },
+        "hidden": {
+          "description": "Marks the code block as hidden from docs",
+          "type": "boolean"
+        },
+        "indent": {
+          "description": "The indent of this code block is in the documentation file",
+          "type": "string"
+        },
+        "is_unnamed": {
+          "description": "Whether the code block was originally unnamed",
+          "type": "boolean"
+        },
+        "language": {
+          "description": "The language this block was written in",
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "line_number": {
+          "description": "Source line number of the first code line",
+          "type": "integer",
+          "format": "uint",
+          "minimum": 0.0
+        },
+        "name": {
+          "description": "The name of this code block",
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "source": {
+          "description": "The source is the lines of code",
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/Line"
+          }
+        },
+        "source_file": {
+          "description": "Source file, for transcluded blocks",
+          "type": [
+            "string",
+            "null"
+          ]
+        }
+      }
+    },
+    "Document": {
+      "description": "A representation of a `Document` of literate code",
+      "type": "object",
+      "required": [
+        "newline",
+        "nodes"
+      ],
+      "properties": {
+        "newline": {
+          "description": "The newline character(s) used in the sources",
+          "type": "string"
+        },
+        "nodes": {
+          "description": "The nodes forming the document",
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/Node"
+          }
+        }
+      }
+    },
+    "Context": {
+      "type": "object",
+      "required": [
+        "config",
+        "name",
+        "yarner_version"
+      ],
+      "properties": {
+        "config": {
+          "description": "Configuration of the pre-processor",
+          "type": "object"
+        },
+        "name": {
+          "description": "Name of the pre-processor",
+          "type": "string"
+        },
+        "yarner_version": {
+          "description": "Yarner version from from which the pre-processor is called",
+          "type": "string"
+        }
+      }
+    },
+    "Line": {
+      "description": "A `Source` represents the source code on a line.",
+      "anyOf": [
+        {
+          "description": "A macro invocation, resolved by the literate compiler. (indent, macro name).",
+          "type": "object",
+          "required": [
+            "Macro"
+          ],
+          "properties": {
+            "Macro": {
+              "type": "array",
+              "items": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "string"
+                }
+              ],
+              "maxItems": 2,
+              "minItems": 2
+            }
+          }
+        },
+        {
+          "description": "A line of source code. (indent, source text).",
+          "type": "object",
+          "required": [
+            "Source"
+          ],
+          "properties": {
+            "Source": {
+              "type": "array",
+              "items": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "string"
+                }
+              ],
+              "maxItems": 2,
+              "minItems": 2
+            }
+          }
+        }
+      ]
+    },
+    "Node": {
+      "description": "A node, representing text and code blocks, as well as transclusions",
+      "anyOf": [
+        {
+          "description": "A text block",
+          "type": "object",
+          "required": [
+            "Text"
+          ],
+          "properties": {
+            "Text": {
+              "$ref": "#/definitions/TextBlock"
+            }
+          }
+        },
+        {
+          "description": "A code block",
+          "type": "object",
+          "required": [
+            "Code"
+          ],
+          "properties": {
+            "Code": {
+              "$ref": "#/definitions/CodeBlock"
+            }
+          }
+        },
+        {
+          "description": "A transclusion",
+          "type": "object",
+          "required": [
+            "Transclusion"
+          ],
+          "properties": {
+            "Transclusion": {
+              "$ref": "#/definitions/Transclusion"
+            }
+          }
+        }
+      ]
+    },
+    "TextBlock": {
+      "description": "A `TextBlock` is just text that will be copied verbatim into the output documentation file",
+      "type": "object",
+      "required": [
+        "text"
+      ],
+      "properties": {
+        "text": {
+          "description": "The source text, with a single line of text per item",
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        }
+      }
+    },
+    "Transclusion": {
+      "description": "A `Transclusion` is a reference to another file that should be pulled into the source",
+      "type": "object",
+      "required": [
+        "file",
+        "original"
+      ],
+      "properties": {
+        "file": {
+          "description": "The target file path",
+          "type": "string"
+        },
+        "original": {
+          "description": "The original string of the transclusion",
+          "type": "string"
+        }
+      }
+    }
+  }
+}
