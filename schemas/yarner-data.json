@@ -9,7 +9,7 @@
   ],
   "properties": {
     "context": {
-      "description": "The context of the pre-processor call, including configuration",
+      "description": "The context of the pre-processor call, inclusing configuration",
       "allOf": [
         {
           "$ref": "#/definitions/Context"
@@ -110,7 +110,7 @@
         }
       }
     },
-    "DummyContext": {
+    "Context": {
       "type": "object",
       "required": [
         "name",
@@ -131,46 +131,54 @@
       "description": "A `Source` represents the source code on a line.",
       "anyOf": [
         {
-          "description": "A macro invocation, resolved by the literate compiler. (indent, macro name).",
+          "description": "A macro invocation",
           "type": "object",
           "required": [
             "Macro"
           ],
           "properties": {
             "Macro": {
-              "type": "array",
-              "items": [
-                {
+              "type": "object",
+              "required": [
+                "indent",
+                "name"
+              ],
+              "properties": {
+                "indent": {
+                  "description": "Indentation of the line, without block indent",
                   "type": "string"
                 },
-                {
+                "name": {
+                  "description": "Name of the macro",
                   "type": "string"
                 }
-              ],
-              "maxItems": 2,
-              "minItems": 2
+              }
             }
           }
         },
         {
-          "description": "A line of source code. (indent, source text).",
+          "description": "A line of source code",
           "type": "object",
           "required": [
             "Source"
           ],
           "properties": {
             "Source": {
-              "type": "array",
-              "items": [
-                {
+              "type": "object",
+              "required": [
+                "indent",
+                "source"
+              ],
+              "properties": {
+                "indent": {
+                  "description": "Indentation of the line, without block indent",
                   "type": "string"
                 },
-                {
+                "source": {
+                  "description": "Source code in the line",
                   "type": "string"
                 }
-              ],
-              "maxItems": 2,
-              "minItems": 2
+              }
             }
           }
         }

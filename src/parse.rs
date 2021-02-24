@@ -235,11 +235,17 @@ fn parse_line(input: &str, settings: &ParserSettings) -> Line {
 
     if let Some(stripped) = rest.strip_prefix(&settings.macro_start) {
         if let Some(name) = stripped.strip_suffix(&settings.macro_end) {
-            return Line::Macro(indent.to_owned(), name.trim().to_owned());
+            return Line::Macro {
+                indent: indent.to_owned(),
+                name: name.trim().to_owned(),
+            };
         }
     }
 
-    Line::Source(indent.to_owned(), rest.to_owned())
+    Line::Source {
+        indent: indent.to_owned(),
+        source: rest.to_owned(),
+    }
 }
 
 fn parse_links(
@@ -646,7 +652,7 @@ text
             assert_eq!(links.len(), 0);
             assert_eq!(block.name, Some(String::from("Code")));
             assert_eq!(block.source.len(), 2);
-            if let Line::Macro(_indent, name) = &block.source[1] {
+            if let Line::Macro { indent: _, name } = &block.source[1] {
                 assert_eq!(name, "Macro");
                 true
             } else {

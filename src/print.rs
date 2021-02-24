@@ -183,20 +183,20 @@ pub mod docs {
     fn print_line(
         line: &Line,
         settings: &ParserSettings,
-        indent: &str,
+        block_indent: &str,
         newline: &str,
         write: &mut impl Write,
     ) {
         match line {
-            Line::Macro(ln_indent, name) => {
-                write!(write, "{}{}{}", indent, ln_indent, settings.macro_start).unwrap();
+            Line::Macro { indent, name } => {
+                write!(write, "{}{}{}", block_indent, indent, settings.macro_start).unwrap();
                 if !settings.macro_start.ends_with(' ') {
                     write!(write, " ").unwrap();
                 }
                 write!(write, "{}{}", name, settings.macro_end).unwrap();
             }
-            Line::Source(ln_indent, string) => {
-                write!(write, "{}{}{}", indent, ln_indent, string).unwrap();
+            Line::Source { indent, source } => {
+                write!(write, "{}{}{}", block_indent, indent, source).unwrap();
             }
         }
         write!(write, "{}", newline).unwrap();
@@ -221,8 +221,14 @@ pub mod docs {
                 alternative: false,
                 source_file: None,
                 source: vec![
-                    Line::Source("    ".to_string(), "fn main() {}".to_string()),
-                    Line::Macro("    ".to_string(), "Another block".to_string()),
+                    Line::Source {
+                        indent: "    ".to_string(),
+                        source: "fn main() {}".to_string(),
+                    },
+                    Line::Macro {
+                        indent: "    ".to_string(),
+                        name: "Another block".to_string(),
+                    },
                 ],
             };
 
@@ -395,14 +401,14 @@ pub mod code {
 
         let blank_lines = settings.map(|s| s.clear_blank_lines).unwrap_or(true);
         match line {
-            Line::Source(ln_indent, string) => {
-                if blank_lines && string.trim().is_empty() {
+            Line::Source { indent, source } => {
+                if blank_lines && source.trim().is_empty() {
                     Ok("".to_string())
                 } else {
-                    Ok(format!("{}{}", ln_indent, string))
+                    Ok(format!("{}{}", indent, source))
                 }
             }
-            Line::Macro(ln_indent, name) => {
+            Line::Macro { indent, name } => {
                 let blocks = code_blocks.get(&Some(name)).ok_or(CompileError::Single {
                     line_number,
                     kind: CompileErrorKind::UnknownMacro(name.to_string()),
@@ -421,7 +427,7 @@ pub mod code {
                         write!(
                             result,
                             "{}{} {}{}{}{}{}{}{}{}",
-                            ln_indent,
+                            indent,
                             comment_start,
                             if idx == 0 { &block_start } else { &block_next },
                             path,
@@ -440,7 +446,7 @@ pub mod code {
                         if blank_lines && ln.trim().is_empty() {
                             write!(result, "{}", newline).unwrap();
                         } else {
-                            write!(result, "{}{}{}", ln_indent, ln, newline).unwrap();
+                            write!(result, "{}{}{}", indent, ln, newline).unwrap();
                         }
                     }
 
@@ -448,7 +454,7 @@ pub mod code {
                         write!(
                             result,
                             "{}{} {}{}{}{}{}{}{}{}",
-                            ln_indent,
+                            indent,
                             comment_start,
                             &block_end,
                             path,

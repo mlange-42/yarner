@@ -125,8 +125,18 @@ impl CodeBlock {
 /// A `Source` represents the source code on a line.
 #[derive(Debug, Serialize, Deserialize)]
 pub enum Line {
-    /// A macro invocation, resolved by the literate compiler. (indent, macro name).
-    Macro(String, String),
-    /// A line of source code. (indent, source text).
-    Source(String, String),
+    /// A macro invocation
+    Macro {
+        /// Indentation of the line, without block indent
+        indent: String,
+        /// Name of the macro
+        name: String,
+    },
+    /// A line of source code
+    Source {
+        /// Indentation of the line, without block indent
+        indent: String,
+        /// Source code in the line
+        source: String,
+    },
 }
