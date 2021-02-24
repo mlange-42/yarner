@@ -41,7 +41,6 @@ impl Config {
 
     /// Check the validity of the configuration
     pub fn check(&self) -> Fallible {
-        self.parser.check()?;
         for language in self.language.values() {
             language.check()?;
         }
@@ -64,9 +63,6 @@ pub struct ParserSettings {
     /// Alternative sequence that identifies the start and end of a fenced code block.
     /// Allows for normal Markdown fences in code blocks
     pub fence_sequence_alt: String,
-    /// Temporary switch to disable comment extraction
-    #[serde(default)]
-    pub comments_as_aside: bool,
     /// The sequence to identify a comment which should be omitted from the compiled code, and may
     /// be rendered as an `<aside>` if `comments_as_aside` is set.
     pub block_name_prefix: String,
@@ -87,17 +83,6 @@ pub struct ParserSettings {
     pub file_prefix: String,
     /// Name prefix for code blocks not shown in the docs.
     pub hidden_prefix: String,
-}
-
-impl ParserSettings {
-    pub fn check(&self) -> Result<(), String> {
-        if self.comments_as_aside {
-            Err(r#"Comment extraction is temporarily disabled.
-Please comment out option `comments_as_aside` until the next version, and rename `comment_start` to `block_name_prefix`"#.to_string())
-        } else {
-            Ok(())
-        }
-    }
 }
 
 fn from_link_prefix<'de, D>(deserializer: D) -> Result<(String, Regex), D::Error>

@@ -7,10 +7,13 @@ use std::path::PathBuf;
 /// A representation of a `Document` of literate code
 #[derive(Debug, Serialize, Deserialize)]
 pub struct Document {
+    /// The nodes forming the document
     pub nodes: Vec<Node>,
+    /// The newline character(s) used in the sources
     pub newline: String,
 }
 
+/// A node, representing text and code blocks, as well as transclusions
 #[derive(Debug, Serialize, Deserialize)]
 pub enum Node {
     /// A text block
@@ -27,6 +30,7 @@ impl Document {
         Document { nodes, newline }
     }
 
+    /// The newline character(s) used in the sources
     pub fn newline(&self) -> &str {
         &self.newline
     }
@@ -39,6 +43,7 @@ impl Document {
         })
     }
 
+    /// Code blocks, mapped by name
     pub fn code_blocks_by_name(&self) -> HashMap<Option<&str>, Vec<&CodeBlock>> {
         let mut code_blocks = HashMap::<_, Vec<&CodeBlock>>::new();
 
@@ -119,21 +124,9 @@ impl CodeBlock {
 
 /// A `Source` represents the source code on a line.
 #[derive(Debug, Serialize, Deserialize)]
-pub enum Source {
-    /// A macro invocation, resolved by the literate compiler
-    Macro(String),
-    /// Source text, possibly including meta variable interpolations
-    Source(String),
-}
-
-/// A `Line` defines a line of code.
-#[derive(Debug, Serialize, Deserialize)]
-pub struct Line {
-    /// The indent on this line. An indent is defined as leading whitespace (spaces/tabs)
-    pub indent: String,
-    /// The source text
-    pub source: Source,
-    /// The literate compiler defined comment - this is extracted from source text to be rendered
-    /// in an appropriate format in the documentation, rather than as a comment in the source file
-    pub comment: Option<String>,
+pub enum Line {
+    /// A macro invocation, resolved by the literate compiler. (indent, macro name).
+    Macro(String, String),
+    /// A line of source code. (indent, source text).
+    Source(String, String),
 }

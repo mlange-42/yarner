@@ -5,7 +5,7 @@ use std::path::{Path, PathBuf};
 
 use regex::Captures;
 
-use yarner_lib::{CodeBlock, Document, Line, Node, Source, TextBlock, Transclusion};
+use yarner_lib::{CodeBlock, Document, Line, Node, TextBlock, Transclusion};
 
 use crate::config::{ParserSettings, CRLF_NEWLINE, LF_NEWLINE, LINK_REGEX};
 use crate::util::Fallible;
@@ -233,33 +233,13 @@ fn parse_line(input: &str, settings: &ParserSettings) -> Line {
     let indent_len = input.chars().take_while(|ch| ch.is_whitespace()).count();
     let (indent, rest) = input.split_at(indent_len);
 
-    // TODO: Temporarily disables comment extraction.
-    let (rest, comment) = (rest, None);
-    /*let (rest, comment) = if let Some(comment_index) = rest.find(&settings.block_name_prefix) {
-        let (rest, comment) = rest.split_at(comment_index);
-        (
-            rest,
-            Some((&comment[settings.block_name_prefix.len()..]).to_owned()),
-        )
-    } else {
-        (rest, None)
-    };*/
-
     if let Some(stripped) = rest.strip_prefix(&settings.macro_start) {
         if let Some(name) = stripped.strip_suffix(&settings.macro_end) {
-            return Line {
-                indent: indent.to_owned(),
-                source: Source::Macro(name.trim().to_owned()),
-                comment,
-            };
+            return Line::Macro(indent.to_owned(), name.trim().to_owned());
         }
     }
 
-    Line {
-        indent: indent.to_owned(),
-        source: Source::Source(rest.to_owned()),
-        comment,
-    }
+    Line::Source(indent.to_owned(), rest.to_owned())
 }
 
 fn parse_links(
@@ -362,7 +342,6 @@ fn is_relative_link(link: &str) -> bool {
 #[cfg(test)]
 mod tests {
     use regex::Regex;
-    use yarner_lib::Source::Macro;
 
     use crate::config::LINK_PATTERN;
 
@@ -667,7 +646,7 @@ text
             assert_eq!(links.len(), 0);
             assert_eq!(block.name, Some(String::from("Code")));
             assert_eq!(block.source.len(), 2);
-            if let Macro(name) = &block.source[1].source {
+            if let Line::Macro(_indent, name) = &block.source[1] {
                 assert_eq!(name, "Macro");
                 true
             } else {
@@ -732,7 +711,6 @@ text
         ParserSettings {
             fence_sequence: "```".to_string(),
             fence_sequence_alt: "~~~".to_string(),
-            comments_as_aside: false,
             block_name_prefix: "//-".to_string(),
             macro_start: "// ==>".to_string(),
             macro_end: ".".to_string(),
