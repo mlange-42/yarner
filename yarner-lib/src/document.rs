@@ -119,18 +119,9 @@ impl CodeBlock {
 
 /// A `Source` represents the source code on a line.
 #[derive(Debug, Serialize, Deserialize)]
-pub enum Source {
+pub enum Line {
     /// A macro invocation, resolved by the literate compiler
-    Macro(String),
+    Macro(String, String),
     /// Source text, possibly including meta variable interpolations
-    Source(String),
-}
-
-/// A `Line` defines a line of code.
-#[derive(Debug, Serialize, Deserialize)]
-pub struct Line {
-    /// The indent on this line. An indent is defined as leading whitespace (spaces/tabs)
-    pub indent: String,
-    /// The source text
-    pub source: Source,
+    Source(String, String),
 }

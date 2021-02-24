@@ -3,7 +3,7 @@ pub mod docs {
     use crate::config::ParserSettings;
     use std::collections::HashMap;
     use std::fmt::Write;
-    use yarner_lib::{CodeBlock, Document, Line, Node, Source, Transclusion};
+    use yarner_lib::{CodeBlock, Document, Line, Node, Transclusion};
 
     /// Formats this `Document` as a string containing the documentation file contents
     pub fn print_docs(document: &Document, settings: &ParserSettings) -> String {
@@ -179,17 +179,16 @@ pub mod docs {
         newline: &str,
         write: &mut impl Write,
     ) {
-        write!(write, "{}{}", indent, line.indent).unwrap();
-        match &line.source {
-            Source::Macro(name) => {
-                write!(write, "{}", settings.macro_start).unwrap();
+        match line {
+            Line::Macro(ln_indent, name) => {
+                write!(write, "{}{}{}", indent, ln_indent, settings.macro_start).unwrap();
                 if !settings.macro_start.ends_with(' ') {
                     write!(write, " ").unwrap();
                 }
                 write!(write, "{}{}", name, settings.macro_end).unwrap();
             }
-            Source::Source(string) => {
-                write!(write, "{}", string).unwrap();
+            Line::Source(ln_indent, string) => {
+                write!(write, "{}{}{}", indent, ln_indent, string).unwrap();
             }
         }
         write!(write, "{}", newline).unwrap();
@@ -198,7 +197,7 @@ pub mod docs {
     #[cfg(test)]
     mod tests {
         use crate::config::Config;
-        use yarner_lib::{CodeBlock, Line, Source};
+        use yarner_lib::{CodeBlock, Line};
 
         #[test]
         fn print_code_block() {
@@ -214,16 +213,8 @@ pub mod docs {
                 alternative: false,
                 source_file: None,
                 source: vec![
-                    Line {
-                        indent: "    ".to_string(),
-                        source: Source::Source("fn main() {}".to_string()),
-                        comment: None,
-                    },
-                    Line {
-                        indent: "    ".to_string(),
-                        source: Source::Macro("Another block".to_string()),
-                        comment: None,
-                    },
+                    Line::Source("    ".to_string(), "fn main() {}".to_string()),
+                    Line::Macro("    ".to_string(), "Another block".to_string()),
                 ],
             };
 
@@ -248,7 +239,7 @@ pub mod code {
     use crate::util::TryCollectExt;
     use std::collections::HashMap;
     use std::fmt::Write;
-    use yarner_lib::{CodeBlock, Line, Source};
+    use yarner_lib::{CodeBlock, Line};
 
     /// Formats this `Document` as a string containing the compiled code
     pub fn print_code(
@@ -395,15 +386,15 @@ pub mod code {
         };
 
         let blank_lines = settings.map(|s| s.clear_blank_lines).unwrap_or(true);
-        match &line.source {
-            Source::Source(string) => {
+        match line {
+            Line::Source(ln_indent, string) => {
                 if blank_lines && string.trim().is_empty() {
                     Ok("".to_string())
                 } else {
-                    Ok(format!("{}{}", line.indent, string))
+                    Ok(format!("{}{}", ln_indent, string))
                 }
             }
-            Source::Macro(name) => {
+            Line::Macro(ln_indent, name) => {
                 let blocks = code_blocks.get(&Some(name)).ok_or(CompileError::Single {
                     line_number,
                     kind: CompileErrorKind::UnknownMacro(name.to_string()),
@@ -422,7 +413,7 @@ pub mod code {
                         write!(
                             result,
                             "{}{} {}{}{}{}{}{}{}{}",
-                            &line.indent,
+                            ln_indent,
                             comment_start,
                             if idx == 0 { &block_start } else { &block_next },
                             path,
@@ -441,7 +432,7 @@ pub mod code {
                         if blank_lines && ln.trim().is_empty() {
                             write!(result, "{}", newline).unwrap();
                         } else {
-                            write!(result, "{}{}{}", line.indent, ln, newline).unwrap();
+                            write!(result, "{}{}{}", ln_indent, ln, newline).unwrap();
                         }
                     }
 
@@ -449,7 +440,7 @@ pub mod code {
                         write!(
                             result,
                             "{}{} {}{}{}{}{}{}{}{}",
-                            &line.indent,
+                            ln_indent,
                             comment_start,
                             &block_end,
                             path,
