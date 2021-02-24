@@ -7,10 +7,13 @@ use std::path::PathBuf;
 /// A representation of a `Document` of literate code
 #[derive(Debug, Serialize, Deserialize)]
 pub struct Document {
+    /// The nodes forming the document
     pub nodes: Vec<Node>,
+    /// The newline character(s) used in the sources
     pub newline: String,
 }
 
+/// A node, representing text and code blocks, as well as transclusions
 #[derive(Debug, Serialize, Deserialize)]
 pub enum Node {
     /// A text block
@@ -27,6 +30,7 @@ impl Document {
         Document { nodes, newline }
     }
 
+    /// The newline character(s) used in the sources
     pub fn newline(&self) -> &str {
         &self.newline
     }
@@ -39,6 +43,7 @@ impl Document {
         })
     }
 
+    /// Code blocks, mapped by name
     pub fn code_blocks_by_name(&self) -> HashMap<Option<&str>, Vec<&CodeBlock>> {
         let mut code_blocks = HashMap::<_, Vec<&CodeBlock>>::new();
 
