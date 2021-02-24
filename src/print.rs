@@ -14,13 +14,9 @@ pub mod docs {
                     print_transclusion(transclusion, document.newline(), &mut output)
                 }
                 Node::Text(text_block) => {
-                    write!(
-                        output,
-                        "{}{}",
-                        text_block.text.join(&document.newline()),
-                        document.newline()
-                    )
-                    .unwrap();
+                    for line in text_block.text.lines() {
+                        write!(output, "{}{}", line, document.newline()).unwrap();
+                    }
                 }
                 Node::Code(code_block) => {
                     if !code_block.hidden {
@@ -53,13 +49,9 @@ pub mod docs {
                     print_transclusion_reverse(transclusion, document.newline(), &mut output)
                 }
                 Node::Text(text_block) => {
-                    write!(
-                        output,
-                        "{}{}",
-                        text_block.text.join(&document.newline()),
-                        document.newline()
-                    )
-                    .unwrap();
+                    for line in text_block.text.lines() {
+                        write!(output, "{}{}", line, document.newline()).unwrap();
+                    }
                 }
                 Node::Code(code_block) => {
                     let index = {

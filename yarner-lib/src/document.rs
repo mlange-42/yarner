@@ -65,7 +65,7 @@ impl Document {
 #[derive(Debug, Default, Serialize, Deserialize)]
 pub struct TextBlock {
     /// The source text
-    pub text: Vec<String>,
+    pub text: String,
 }
 
 /// A `Transclusion` is a reference to another file that should be pulled into the source
