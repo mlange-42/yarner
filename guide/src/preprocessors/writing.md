@@ -8,7 +8,7 @@ Each pre-processor is called by Yarner during the build process. It receives all
 
 ## Rust library
 
-To use the Rust crate `yarner-lib` to write pre-processors, add it to the dependencies of your `Cargo.toml`:
+To use the [Rust](https://rust-lang.org) crate `yarner-lib` to write pre-processors, add it to the dependencies of your `Cargo.toml`:
 
 ```toml
 [package]
@@ -61,4 +61,7 @@ See the [Known per-processors](./known.md) for more complex code examples.
 
 ## JSON schema
 
-TODO
+For pre-processors in languages other than Rust, JSON schemas are provided in the [GitHub repository](https://github.com/mlange-42/yarner), folder [schemas](https://github.com/mlange-42/yarner/tree/master/schemas).
+
+* [`data.json`](https://github.com/mlange-42/yarner/blob/master/schemas/data.json) describes the data passed from Yarner to pre-processors (context with config, as well as documents).
+* [`documents.json`](https://github.com/mlange-42/yarner/blob/master/schemas/documents.json) describes the data that should be passed back to Yarner (a map of documents, with file paths as keys).
