@@ -29,25 +29,30 @@
       "description": "A `CodeBlock` is a block of code as defined by the input format.",
       "type": "object",
       "required": [
-        "alternative",
-        "hidden",
         "indent",
+        "is_alternative",
+        "is_file",
+        "is_hidden",
         "is_unnamed",
         "line_number",
         "source"
       ],
       "properties": {
-        "alternative": {
-          "description": "Marks the code block as fenced by alternative sequence",
-          "type": "boolean"
-        },
-        "hidden": {
-          "description": "Marks the code block as hidden from docs",
-          "type": "boolean"
-        },
         "indent": {
           "description": "The indent of this code block is in the documentation file",
           "type": "string"
+        },
+        "is_alternative": {
+          "description": "Marks the code block as fenced by alternative sequence",
+          "type": "boolean"
+        },
+        "is_file": {
+          "description": "Marks the code block as a file-based entrypoint",
+          "type": "boolean"
+        },
+        "is_hidden": {
+          "description": "Marks the code block as hidden from docs",
+          "type": "boolean"
         },
         "is_unnamed": {
           "description": "Whether the code block was originally unnamed",
@@ -110,6 +115,9 @@
         }
       }
     },
+    "Config": {
+      "type": "object"
+    },
     "Context": {
       "type": "object",
       "required": [
@@ -120,7 +128,11 @@
       "properties": {
         "config": {
           "description": "Configuration of the pre-processor",
-          "type": "object"
+          "allOf": [
+            {
+              "$ref": "#/definitions/Config"
+            }
+          ]
         },
         "name": {
           "description": "Name of the pre-processor",
