@@ -87,7 +87,12 @@ fn transclude_dry_run(
     trace: &mut HashSet<PathBuf>,
 ) -> Fallible<(Document, Vec<PathBuf>)> {
     if trace.contains(file_name) {
-        return Err(format!("Circular transclusion: {}", file_name.display()).into());
+        return Err(format!(
+            "Circular transclusion: {} (root: {})",
+            file_name.display(),
+            root_file.display()
+        )
+        .into());
     } else {
         trace.insert(file_name.to_owned());
     }
