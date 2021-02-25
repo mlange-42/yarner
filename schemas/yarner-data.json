@@ -113,10 +113,15 @@
     "Context": {
       "type": "object",
       "required": [
+        "config",
         "name",
         "yarner_version"
       ],
       "properties": {
+        "config": {
+          "description": "Configuration of the pre-processor",
+          "type": "object"
+        },
         "name": {
           "description": "Name of the pre-processor",
           "type": "string"
