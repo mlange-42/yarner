@@ -536,13 +536,10 @@ pub mod code {
         fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
             match self {
                 CompileError::Multi(errors) => {
-                    for error in errors {
-                        writeln!(f, "{}", error)?;
-                    }
-                    Ok(())
+                    write!(f, "{}", crate::util::JoinExt::join(errors, "\n", ""))
                 }
                 CompileError::Single { line_number, kind } => {
-                    writeln!(f, "{:?} (line {})", kind, line_number)
+                    write!(f, "{:?} (line {})", kind, line_number)
                 }
             }
         }
