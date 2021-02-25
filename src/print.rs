@@ -262,8 +262,8 @@ pub mod docs {
 
 pub mod code {
     use crate::config::LanguageSettings;
-    use crate::util::TryCollectExt;
-    use std::collections::HashMap;
+    use crate::util::{Fallible, TryCollectExt};
+    use std::collections::{HashMap, HashSet};
     use std::fmt::Write;
     use yarner_lib::{CodeBlock, Line};
 
@@ -273,7 +273,7 @@ pub mod code {
         entry_blocks: &[&CodeBlock],
         settings: Option<&LanguageSettings>,
         newline: &str,
-    ) -> Result<String, CompileError> {
+    ) -> Fallible<String> {
         let block_labels = settings.and_then(|s| s.block_labels.as_ref());
         let comment_start = block_labels
             .map(|l| l.comment_start.as_str())
@@ -331,10 +331,12 @@ pub mod code {
                 )
                 .unwrap();
             }
+
+            let mut trace = HashSet::new();
             write!(
                 result,
                 "{}{}",
-                compile_code_block(block, &code_blocks, settings, newline)?,
+                compile_code_block(block, &code_blocks, settings, newline, &mut trace)?,
                 newline,
             )
             .unwrap();
@@ -368,6 +370,7 @@ pub mod code {
         code_blocks: &HashMap<Option<&str>, Vec<&CodeBlock>>,
         settings: Option<&LanguageSettings>,
         newline: &str,
+        trace: &mut HashSet<String>,
     ) -> Result<String, CompileError> {
         let line_offset = block.line_number;
         block
@@ -375,7 +378,14 @@ pub mod code {
             .iter()
             .enumerate()
             .map(|(idx, line)| {
-                compile_line(&line, line_offset + idx, code_blocks, settings, newline)
+                compile_line(
+                    &line,
+                    line_offset + idx,
+                    code_blocks,
+                    settings,
+                    newline,
+                    trace,
+                )
             })
             .try_collect()
             .map(|lines| lines.join(newline))
@@ -388,6 +398,7 @@ pub mod code {
         code_blocks: &HashMap<Option<&str>, Vec<&CodeBlock>>,
         settings: Option<&LanguageSettings>,
         newline: &str,
+        trace: &mut HashSet<String>,
     ) -> Result<String, CompileError> {
         let block_labels = settings.and_then(|s| s.block_labels.as_ref());
         let comment_start = block_labels
@@ -421,6 +432,18 @@ pub mod code {
                 }
             }
             Line::Macro { indent, name } => {
+                if trace.contains(name) {
+                    return Err(CompileError::Single {
+                        line_number,
+                        kind: CompileErrorKind::CircularReference(format!(
+                            "Circular macro call: {}",
+                            name,
+                        )),
+                    });
+                } else {
+                    trace.insert(name.clone());
+                }
+
                 let blocks = code_blocks.get(&Some(name)).ok_or(CompileError::Single {
                     line_number,
                     kind: CompileErrorKind::UnknownMacro(name.to_string()),
@@ -453,7 +476,7 @@ pub mod code {
                         .unwrap();
                     }
 
-                    let code = compile_code_block(block, code_blocks, settings, newline)?;
+                    let code = compile_code_block(block, code_blocks, settings, newline, trace)?;
                     for ln in code.lines() {
                         if blank_lines && ln.trim().is_empty() {
                             write!(result, "{}", newline).unwrap();
@@ -493,6 +516,8 @@ pub mod code {
     pub enum CompileErrorKind {
         /// An unknown macro name was encountered
         UnknownMacro(String),
+        /// A macro results in a circular reference
+        CircularReference(String),
     }
 
     /// Errors that were encountered while compiling the document
