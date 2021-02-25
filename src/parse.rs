@@ -26,7 +26,7 @@ pub fn parse(
 
     for (line_number, line) in input.lines().enumerate() {
         let (is_code, is_alt_fenced_code) = if let Some(Node::Code(code_block)) = nodes.last() {
-            (true, code_block.alternative)
+            (true, code_block.is_alternative)
         } else {
             (false, false)
         };
@@ -147,12 +147,21 @@ fn extend_code(line: &str, settings: &ParserSettings, block: &mut CodeBlock) {
     if block.source.is_empty() && line.trim().starts_with(&settings.block_name_prefix) {
         let name = line.trim()[settings.block_name_prefix.len()..].trim();
 
-        if let Some(stripped) = name.strip_prefix(&settings.hidden_prefix) {
-            block.name = Some(stripped.to_string());
-            block.hidden = true;
+        let name = if let Some(stripped) = name.strip_prefix(&settings.hidden_prefix) {
+            block.is_hidden = true;
+            stripped
         } else {
-            block.name = Some(name.to_string());
+            name
         };
+
+        let name = if let Some(stripped) = name.strip_prefix(&settings.file_prefix) {
+            block.is_file = true;
+            stripped
+        } else {
+            name
+        };
+
+        block.name = Some(name.to_string());
     } else {
         let line = parse_line(&line[block.indent.len()..], settings);
         block.source.push(line);

@@ -23,7 +23,7 @@ pub mod docs {
                     .unwrap();
                 }
                 Node::Code(code_block) => {
-                    if !code_block.hidden {
+                    if !code_block.is_hidden {
                         print_code_block(
                             code_block,
                             settings,
@@ -109,7 +109,7 @@ pub mod docs {
         newline: &str,
         write: &mut impl Write,
     ) {
-        let fence_sequence = if block.alternative {
+        let fence_sequence = if block.is_alternative {
             &settings.fence_sequence_alt
         } else {
             &settings.fence_sequence
@@ -123,8 +123,16 @@ pub mod docs {
         if let Some(name) = &block.name {
             write!(
                 write,
-                "{}{} {}{}",
-                indent, settings.block_name_prefix, name, newline,
+                "{}{} {}{}{}",
+                indent,
+                settings.block_name_prefix,
+                if block.is_file {
+                    &settings.file_prefix
+                } else {
+                    ""
+                },
+                name,
+                newline,
             )
             .unwrap();
         }
@@ -144,7 +152,7 @@ pub mod docs {
         newline: &str,
         write: &mut impl Write,
     ) {
-        let fence_sequence = if block.alternative {
+        let fence_sequence = if block.is_alternative {
             &settings.fence_sequence_alt
         } else {
             &settings.fence_sequence
@@ -157,8 +165,11 @@ pub mod docs {
 
         if let Some(name) = &block.name {
             write!(write, "{}{} ", indent, settings.block_name_prefix).unwrap();
-            if block.hidden {
+            if block.is_hidden {
                 write!(write, "{}", settings.hidden_prefix).unwrap();
+            }
+            if block.is_file {
+                write!(write, "{}", settings.file_prefix).unwrap();
             }
             write!(write, "{}{}", name, newline).unwrap();
         }
@@ -217,8 +228,9 @@ pub mod docs {
                 name: Some("Code block".to_string()),
                 is_unnamed: false,
                 language: Some("rust".to_string()),
-                hidden: false,
-                alternative: false,
+                is_file: false,
+                is_hidden: false,
+                is_alternative: false,
                 source_file: None,
                 source: vec![
                     Line::Source {

@@ -2,7 +2,7 @@
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
 use std::default::Default;
-use std::path::PathBuf;
+use std::path::{Path, PathBuf};
 
 /// A representation of a `Document` of literate code
 #[derive(Debug, Serialize, Deserialize)]
@@ -64,6 +64,25 @@ impl Document {
             _ => None,
         })
     }
+
+    /// Finds all file-specific entry points
+    pub fn entry_points(&self) -> HashMap<Option<&str>, (&Path, Option<PathBuf>)> {
+        let mut entries = HashMap::new();
+        for block in self.code_blocks() {
+            if let Some(name) = block.name.as_deref() {
+                if block.is_file {
+                    entries.insert(
+                        Some(name),
+                        (
+                            Path::new(name),
+                            block.source_file.as_ref().map(|file| file.into()),
+                        ),
+                    );
+                }
+            }
+        }
+        entries
+    }
 }
 
 /// A `TextBlock` is just text that will be copied verbatim into the output documentation file
@@ -96,9 +115,11 @@ pub struct CodeBlock {
     /// The language this block was written in
     pub language: Option<String>,
     /// Marks the code block as hidden from docs
-    pub hidden: bool,
+    pub is_hidden: bool,
+    /// Marks the code block as a file-based entrypoint
+    pub is_file: bool,
     /// Marks the code block as fenced by alternative sequence
-    pub alternative: bool,
+    pub is_alternative: bool,
     /// The source is the lines of code
     pub source: Vec<Line>,
     /// Source file, for transcluded blocks
@@ -116,7 +137,7 @@ impl CodeBlock {
             line_number,
             indent,
             language,
-            alternative,
+            is_alternative: alternative,
             ..Default::default()
         }
     }
