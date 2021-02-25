@@ -20,7 +20,8 @@ pub fn collect_documents(
     documents: &mut HashMap<PathBuf, Document>,
 ) -> Fallible {
     if !documents.contains_key(file_name) {
-        let (mut document, links) = transclude(&config.parser, file_name, file_name)?;
+        let mut trace = HashSet::new();
+        let (mut document, links) = transclude(&config.parser, file_name, file_name, &mut trace)?;
 
         let file_str = file_name.to_str().unwrap();
         super::set_source(&mut document, file_str);
@@ -146,7 +147,14 @@ fn transclude(
     parser: &ParserSettings,
     root_file: &Path,
     file_name: &Path,
+    trace: &mut HashSet<PathBuf>,
 ) -> Fallible<(Document, Vec<PathBuf>)> {
+    if trace.contains(file_name) {
+        return Err(format!("Circular transclusion: {}", file_name.display()).into());
+    } else {
+        trace.insert(file_name.to_owned());
+    }
+
     let source_main = files::read_file_string(&file_name)?;
     let (mut document, mut links) =
         parse::parse(&source_main, &root_file, &file_name, false, parser)?;
@@ -156,7 +164,7 @@ fn transclude(
     let mut trans_so_far = HashSet::new();
     for trans in transclusions {
         if !trans_so_far.contains(&trans.file) {
-            let (doc, sub_links) = transclude(parser, root_file, &trans.file)?;
+            let (doc, sub_links) = transclude(parser, root_file, &trans.file, trace)?;
 
             if doc.newline() != document.newline() {
                 return Err(format!(
