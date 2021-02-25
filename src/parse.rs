@@ -24,7 +24,8 @@ pub fn parse(
     let mut errors: Vec<Box<dyn Error>> = vec![];
     let mut links: Vec<PathBuf> = vec![];
 
-    for (line_number, line) in input.lines().enumerate() {
+    for (line_idx, line) in input.lines().enumerate() {
+        let line_number = line_idx + 1;
         let (is_code, is_alt_fenced_code) = if let Some(Node::Code(code_block)) = nodes.last() {
             (true, code_block.is_alternative)
         } else {

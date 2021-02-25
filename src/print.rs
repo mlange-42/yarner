@@ -380,7 +380,7 @@ pub mod code {
             .map(|(idx, line)| {
                 compile_line(
                     &line,
-                    line_offset + idx,
+                    line_offset + if block.is_unnamed { idx } else { idx + 1 },
                     code_blocks,
                     settings,
                     newline,
