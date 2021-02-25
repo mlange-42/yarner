@@ -123,8 +123,16 @@ pub mod docs {
         if let Some(name) = &block.name {
             write!(
                 write,
-                "{}{} {}{}",
-                indent, settings.block_name_prefix, name, newline,
+                "{}{} {}{}{}",
+                indent,
+                settings.block_name_prefix,
+                if block.is_file {
+                    &settings.file_prefix
+                } else {
+                    ""
+                },
+                name,
+                newline,
             )
             .unwrap();
         }
