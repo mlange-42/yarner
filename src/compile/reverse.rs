@@ -13,8 +13,15 @@ pub fn compile_all(
     documents: &mut HashMap<PathBuf, Document>,
 ) -> Fallible {
     if !track_input_files.contains(file_name) {
-        let (mut document, links) =
-            transclude_dry_run(config, file_name, file_name, documents, track_code_files)?;
+        let mut trace = HashSet::new();
+        let (mut document, links) = transclude_dry_run(
+            config,
+            file_name,
+            file_name,
+            documents,
+            track_code_files,
+            &mut trace,
+        )?;
 
         let file_str = file_name.to_str().unwrap();
         super::set_source(&mut document, file_str);
@@ -77,7 +84,19 @@ fn transclude_dry_run(
     file_name: &Path,
     documents: &mut HashMap<PathBuf, Document>,
     track_code_files: &mut HashSet<PathBuf>,
+    trace: &mut HashSet<PathBuf>,
 ) -> Fallible<(Document, Vec<PathBuf>)> {
+    if trace.contains(file_name) {
+        return Err(format!(
+            "Circular transclusion: {} (root: {})",
+            file_name.display(),
+            root_file.display()
+        )
+        .into());
+    } else {
+        trace.insert(file_name.to_owned());
+    }
+
     let source_main = files::read_file_string(&file_name)?;
     let (document, mut links) =
         parse::parse(&source_main, &root_file, &file_name, true, &config.parser)?;
@@ -87,8 +106,14 @@ fn transclude_dry_run(
     let mut trans_so_far = HashSet::new();
     for trans in transclusions {
         if !trans_so_far.contains(&trans.file) {
-            let (doc, sub_links) =
-                transclude_dry_run(config, root_file, &trans.file, documents, track_code_files)?;
+            let (doc, sub_links) = transclude_dry_run(
+                config,
+                root_file,
+                &trans.file,
+                documents,
+                track_code_files,
+                trace,
+            )?;
 
             if doc.newline() != document.newline() {
                 return Err(format!(
