@@ -61,4 +61,4 @@ See the [Known per-processors](./known.md) for more complex code examples.
 
 ## JSON schema
 
-For pre-processors in languages other than Rust, a JSON schema is provided in the [GitHub repository](https://github.com/mlange-42/yarner), folder [schemas](https://github.com/mlange-42/yarner/tree/master/schemas). [`yarner-data.json`](./yarner-data.json) describes the data passed from Yarner to pre-processors (context with config, as well as documents), and back to Yarner.
+For pre-processors in languages other than Rust, a JSON schema is provided in the [GitHub repository](https://github.com/mlange-42/yarner), folder [schemas](https://github.com/mlange-42/yarner/tree/master/schemas). [`yarner-data.json`](https://github.com/mlange-42/yarner/tree/master/schemas/yarner-data.json) describes the data passed from Yarner to pre-processors (context with config, as well as documents), and back to Yarner.
