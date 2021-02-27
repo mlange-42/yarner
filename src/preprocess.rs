@@ -14,7 +14,7 @@ pub fn pre_process(
     documents: HashMap<PathBuf, Document>,
 ) -> Fallible<HashMap<PathBuf, Document>> {
     let mut docs = documents;
-    for (name, config) in &config.preprocessor {
+    for (name, config) in &config.plugin {
         let command = config
             .get("command")
             .and_then(|cmd| cmd.as_str().map(|s| s.to_owned()))
@@ -31,7 +31,7 @@ pub fn pre_process(
 
         let json = to_json(data)?;
 
-        println!("Running pre-processor {}", command);
+        println!("Running plugin {}", command);
 
         let mut child = Command::new(&command)
             .stdin(Stdio::piped())

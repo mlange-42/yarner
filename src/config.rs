@@ -26,9 +26,10 @@ pub struct Config {
     /// Programming language specific settings
     #[serde(default)]
     pub language: HashMap<String, LanguageSettings>,
-    /// TOML table of settings for pre-processors
+    /// TOML table of settings for plugins
     #[serde(default)]
-    pub preprocessor: Table,
+    #[serde(alias = "preprocessor")] // TODO: remove alias in version 0.6.0
+    pub plugin: Table,
 }
 
 impl Config {

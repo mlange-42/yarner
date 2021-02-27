@@ -54,15 +54,10 @@ pub fn extract_code_all(
     Ok(code_files)
 }
 
-pub fn write_documentation_all(
-    config: &Config,
-    documents: &HashMap<PathBuf, Document>,
-) -> Fallible {
+pub fn write_documentation_all(config: &Config, documents: &HashMap<PathBuf, Document>) {
     for (path, doc) in documents.iter() {
-        write_documentation(config, &doc, &path)?;
+        write_documentation(config, &doc, &path);
     }
-
-    Ok(())
 }
 
 fn extract_code(
@@ -143,7 +138,7 @@ fn extract_code(
     Ok(())
 }
 
-fn write_documentation(config: &Config, document: &Document, file_name: &Path) -> Fallible {
+fn write_documentation(config: &Config, document: &Document, file_name: &Path) {
     println!("Writing documentation file {}", file_name.display());
 
     match &config.paths.docs {
@@ -157,8 +152,6 @@ fn write_documentation(config: &Config, document: &Document, file_name: &Path) -
         }
         None => eprintln!("WARNING: Missing output location for docs, skipping docs output."),
     }
-
-    Ok(())
 }
 
 fn transclude(
