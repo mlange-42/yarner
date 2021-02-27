@@ -27,7 +27,7 @@ pub struct YarnerData {
 pub struct Context {
     /// Configuration of plugin
     pub config: Value,
-    /// Name of the pre-processor
+    /// Name of the plugin
     pub name: String,
     /// Yarner version from from which the plugin is called
     pub yarner_version: String,
