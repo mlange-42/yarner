@@ -9,7 +9,7 @@ There are multiple ways to install Yarner:
 1. Download the [latest binaries](https://github.com/mlange-42/yarner/releases) for your platform  
    (Binaries are available for Linux, Windows and macOS)
 2. Unzip somewhere
-3. *Optional:* add directory `yarner` to your `PATH` environmental variable
+3. *Optional:* add the parent directory of the executable to your `PATH` environmental variable
 
 ## From GitHub using `cargo`
 

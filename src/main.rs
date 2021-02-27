@@ -1,14 +1,15 @@
 mod code;
 mod compile;
-mod compile_reverse;
 mod config;
 mod create;
-mod document;
 mod files;
 mod lock;
 mod parse;
+mod preprocess;
 mod print;
 mod util;
+
+extern crate yarner_lib;
 
 use std::collections::{HashMap, HashSet};
 use std::env::set_current_dir;
@@ -18,9 +19,10 @@ use std::path::PathBuf;
 
 use clap::{crate_version, App, Arg, ArgMatches, SubCommand};
 
+use yarner_lib::Document;
+
 use crate::{
     config::Config,
-    document::Document,
     util::{Fallible, JoinExt},
 };
 
@@ -259,7 +261,7 @@ fn process_inputs_reverse(
                 any_input = true;
                 let file_name = PathBuf::from(&input);
 
-                compile_reverse::compile_all(
+                compile::reverse::compile_all(
                     &config,
                     &file_name,
                     &mut source_files,
@@ -287,7 +289,7 @@ fn process_inputs_reverse(
         .into());
     }
 
-    let code_blocks = compile_reverse::collect_code_blocks(&code_files, &config)?;
+    let code_blocks = code::collect_code_blocks(&code_files, &config)?;
     for (path, doc) in documents {
         let blocks: HashMap<_, _> = code_blocks
             .iter()
@@ -301,7 +303,7 @@ fn process_inputs_reverse(
             .collect();
 
         if !blocks.is_empty() {
-            let print = print::print_reverse(&doc, &config.parser, &blocks);
+            let print = print::docs::print_reverse(&doc, &config.parser, &blocks);
             println!("  Writing back to file {}", path.display());
             let mut file = File::create(path).unwrap();
             write!(file, "{}", print).unwrap()
@@ -318,8 +320,7 @@ fn process_inputs_forward(
     config: &Config,
 ) -> Fallible<(HashSet<PathBuf>, HashSet<PathBuf>)> {
     let mut any_input = false;
-    let mut track_source_files = HashSet::new();
-    let mut track_code_files = HashMap::new();
+    let mut documents = HashMap::new();
     for pattern in input_patterns {
         let paths = glob::glob(&pattern)
             .map_err(|err| format!("Unable to process glob pattern \"{}\": {}", pattern, err))?;
@@ -333,19 +334,15 @@ fn process_inputs_forward(
                 any_input = true;
                 let file_name = PathBuf::from(&input);
 
-                compile::compile_all(
-                    &config,
-                    &file_name,
-                    &mut track_source_files,
-                    &mut track_code_files,
-                )
-                .map_err(|err| {
-                    format!(
-                        "Failed to compile source file \"{}\": {}",
-                        file_name.display(),
-                        err
-                    )
-                })?
+                compile::forward::collect_documents(&config, &file_name, &mut documents).map_err(
+                    |err| {
+                        format!(
+                            "Failed to compile source file \"{}\": {}",
+                            file_name.display(),
+                            err
+                        )
+                    },
+                )?;
             }
         }
     }
@@ -360,8 +357,10 @@ fn process_inputs_forward(
         .into());
     }
 
-    Ok((
-        track_source_files,
-        track_code_files.keys().cloned().collect(),
-    ))
+    let original_documents = documents.keys().cloned().collect();
+
+    let documents = preprocess::pre_process(config, documents)?;
+    let code_files = compile::forward::compile_all(config, &documents)?;
+
+    Ok((original_documents, code_files.keys().cloned().collect()))
 }

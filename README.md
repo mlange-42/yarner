@@ -8,12 +8,20 @@ Yarner works with familiar syntax, which can be further customized to suit your 
 See the [examples](examples) directory for full working examples using different programming languages.
 See the [**User Guide**](https://mlange-42.github.io/yarner/) for documentation.
 
+* [Features](#features)
+* [Installation](#installation)
+* [Getting started](#getting-started)
+* [Configuration](#configuration)
+* [Contributing](#contributing)
+* [Acknowledgements](#acknowledgements)
+
 ## Features
 
 * Macros and named code blocks
 * Multiple files, multiple entrypoints
 * File transclusions
 * Reverse mode
+* Custom pre-processors
 * ...
 
 See the [**User Guide**](https://mlange-42.github.io/yarner/) for a complete and detailed explanation of all features.
@@ -24,7 +32,7 @@ See the [**User Guide**](https://mlange-42.github.io/yarner/) for a complete and
 
 1. Download the [latest binaries](https://github.com/mlange-42/yarner/releases) for your platform
 2. Unzip somewhere
-3. *Optional:* add directory `yarner` to your `PATH` environmental variable
+3. *Optional:* add the parent directory of the executable to your `PATH` environmental variable
 
 **Using `cargo`**
 
@@ -154,6 +162,12 @@ fn say_hello() {
 Configuration is provided via a toml configuration file (default: `Yarner.toml`).
 A file with default configurations is generated through the `init` sub-command.
 See the user guide chapters [configuration](https://mlange-42.github.io/yarner/configuration.html) for details on individual settings.
+
+## Contributing
+
+Please use the [Issues](https://github.com/mlange-42/yarner/issues) for bug reports and feature suggestions. For questions and general discussion, use the [Discussions](https://github.com/mlange-42/yarner/discussions).
+
+Pull requests are welcome!
 
 ## Acknowledgements
 

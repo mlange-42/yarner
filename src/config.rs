@@ -4,9 +4,10 @@ use std::path::{Path, PathBuf};
 
 use once_cell::sync::Lazy;
 use regex::Regex;
-use serde::{de::Error as _, Deserialize, Deserializer, Serialize};
+use serde::{de::Error as _, Deserialize, Deserializer};
 
 use crate::{files, util::Fallible};
+use toml::value::Table;
 
 pub const LINK_PATTERN: &str = r"\[([^\[\]]*)\]\((.*?)\)";
 pub static LINK_REGEX: Lazy<Regex> = Lazy::new(|| Regex::new(LINK_PATTERN).unwrap());
@@ -25,6 +26,9 @@ pub struct Config {
     /// Programming language specific settings
     #[serde(default)]
     pub language: HashMap<String, LanguageSettings>,
+    /// TOML table of settings for pre-processors
+    #[serde(default)]
+    pub preprocessor: Table,
 }
 
 impl Config {
@@ -37,7 +41,6 @@ impl Config {
 
     /// Check the validity of the configuration
     pub fn check(&self) -> Fallible {
-        self.parser.check()?;
         for language in self.language.values() {
             language.check()?;
         }
@@ -60,9 +63,6 @@ pub struct ParserSettings {
     /// Alternative sequence that identifies the start and end of a fenced code block.
     /// Allows for normal Markdown fences in code blocks
     pub fence_sequence_alt: String,
-    /// Temporary switch to disable comment extraction
-    #[serde(default)]
-    pub comments_as_aside: bool,
     /// The sequence to identify a comment which should be omitted from the compiled code, and may
     /// be rendered as an `<aside>` if `comments_as_aside` is set.
     pub block_name_prefix: String,
@@ -85,17 +85,6 @@ pub struct ParserSettings {
     pub hidden_prefix: String,
 }
 
-impl ParserSettings {
-    pub fn check(&self) -> Result<(), String> {
-        if self.comments_as_aside {
-            Err(r#"Comment extraction is temporarily disabled.
-Please comment out option `comments_as_aside` until the next version, and rename `comment_start` to `block_name_prefix`"#.to_string())
-        } else {
-            Ok(())
-        }
-    }
-}
-
 fn from_link_prefix<'de, D>(deserializer: D) -> Result<(String, Regex), D::Error>
 where
     D: Deserializer<'de>,
@@ -115,7 +104,7 @@ where
 }
 
 /// Config for paths
-#[derive(Serialize, Deserialize, Default, Debug, Clone)]
+#[derive(Deserialize, Default, Debug, Clone)]
 pub struct Paths {
     /// Code output path.
     pub root: Option<String>,
@@ -144,7 +133,7 @@ impl Paths {
 }
 
 /// Config for a programming language
-#[derive(Serialize, Deserialize, Default, Debug)]
+#[derive(Deserialize, Default, Debug)]
 pub struct LanguageSettings {
     /// Label format for blocks in code output
     pub block_labels: Option<BlockLabels>,
@@ -169,7 +158,7 @@ impl LanguageSettings {
 }
 
 /// Config for block labels for a programming language
-#[derive(Serialize, Deserialize, Default, Debug)]
+#[derive(Deserialize, Default, Debug)]
 pub struct BlockLabels {
     /// Start of comments in the language
     pub comment_start: String,

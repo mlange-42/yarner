@@ -1,11 +1,14 @@
-use crate::config::{ParserSettings, CRLF_NEWLINE, LF_NEWLINE, LINK_REGEX};
-use crate::document::{CodeBlock, Document, Line, Node, Source, TextBlock, Transclusion};
-use crate::util::Fallible;
-use regex::Captures;
 use std::error::Error;
 use std::fmt::Write;
 use std::ops::Deref;
 use std::path::{Path, PathBuf};
+
+use regex::Captures;
+
+use yarner_lib::{CodeBlock, Document, Line, Node, TextBlock, Transclusion};
+
+use crate::config::{ParserSettings, CRLF_NEWLINE, LF_NEWLINE, LINK_REGEX};
+use crate::util::Fallible;
 
 #[allow(clippy::nonminimal_bool)]
 pub fn parse(
@@ -21,9 +24,10 @@ pub fn parse(
     let mut errors: Vec<Box<dyn Error>> = vec![];
     let mut links: Vec<PathBuf> = vec![];
 
-    for (line_number, line) in input.lines().enumerate() {
+    for (line_idx, line) in input.lines().enumerate() {
+        let line_number = line_idx + 1;
         let (is_code, is_alt_fenced_code) = if let Some(Node::Code(code_block)) = nodes.last() {
-            (true, code_block.alternative)
+            (true, code_block.is_alternative)
         } else {
             (false, false)
         };
@@ -49,10 +53,11 @@ pub fn parse(
                         errors
                             .push(format!("Incorrect indentation in line {}", line_number).into());
                     }
-                    nodes.push(Node::Text(TextBlock::new()));
+                    nodes.push(Node::Text(TextBlock::default()));
                 }
                 _previous => {
-                    let code_block = start_code(line, fence_sequence, starts_fenced_alt);
+                    let code_block =
+                        start_code(line_number, line, fence_sequence, starts_fenced_alt);
                     nodes.push(Node::Code(code_block));
                 }
             }
@@ -60,7 +65,7 @@ pub fn parse(
             match nodes.last_mut() {
                 Some(Node::Code(block)) => {
                     if line.starts_with(&block.indent) {
-                        extend_code(line, line_number, settings, block);
+                        extend_code(line, settings, block);
                     } else {
                         errors.push(format!("Incorrect indentation line {}", line_number).into());
                     }
@@ -94,7 +99,7 @@ pub fn parse(
     }
 
     if let Some(Node::Text(text)) = nodes.last() {
-        if text.lines().is_empty() {
+        if text.text.is_empty() {
             nodes.pop();
         }
     }
@@ -107,7 +112,7 @@ pub fn parse(
         return Err(msg.into());
     }
 
-    Ok((Document::new(nodes, newline), links))
+    Ok((Document::new(nodes, newline.to_owned()), links))
 }
 
 fn detect_newline(text: &str) -> &'static str {
@@ -120,12 +125,15 @@ fn detect_newline(text: &str) -> &'static str {
     LF_NEWLINE
 }
 
-fn start_code(line: &str, fence_sequence: &str, is_alt_fenced: bool) -> CodeBlock {
+fn start_code(
+    line_number: usize,
+    line: &str,
+    fence_sequence: &str,
+    is_alt_fenced: bool,
+) -> CodeBlock {
     let indent_len = line.find(fence_sequence).unwrap();
     let (indent, rest) = line.split_at(indent_len);
     let rest = &rest[fence_sequence.len()..];
-
-    let mut code_block = CodeBlock::new().indented(indent);
 
     let language = rest.trim();
     let language = if language.is_empty() {
@@ -133,25 +141,31 @@ fn start_code(line: &str, fence_sequence: &str, is_alt_fenced: bool) -> CodeBloc
     } else {
         Some(language.to_owned())
     };
-    if let Some(language) = language {
-        code_block = code_block.in_language(language);
-    }
-    code_block.alternative(is_alt_fenced)
+    CodeBlock::new(line_number + 1, indent.to_owned(), language, is_alt_fenced)
 }
 
-fn extend_code(line: &str, line_number: usize, settings: &ParserSettings, block: &mut CodeBlock) {
+fn extend_code(line: &str, settings: &ParserSettings, block: &mut CodeBlock) {
     if block.source.is_empty() && line.trim().starts_with(&settings.block_name_prefix) {
         let name = line.trim()[settings.block_name_prefix.len()..].trim();
 
-        if let Some(stripped) = name.strip_prefix(&settings.hidden_prefix) {
-            block.name = Some(stripped.to_string());
-            block.hidden = true;
+        let name = if let Some(stripped) = name.strip_prefix(&settings.hidden_prefix) {
+            block.is_hidden = true;
+            stripped
         } else {
-            block.name = Some(name.to_string());
+            name
         };
+
+        let name = if let Some(stripped) = name.strip_prefix(&settings.file_prefix) {
+            block.is_file = true;
+            stripped
+        } else {
+            name
+        };
+
+        block.name = Some(name.to_string());
     } else {
-        let line = parse_line(line_number, &line[block.indent.len()..], settings);
-        block.add_line(line);
+        let line = parse_line(&line[block.indent.len()..], settings);
+        block.source.push(line);
     }
 }
 
@@ -182,10 +196,10 @@ fn start_or_extend_text(
             }
             None => {
                 if let Some(block) = block {
-                    block.add_line(line.to_owned());
+                    block.text.push(line.to_owned());
                 } else {
-                    let mut new_block = TextBlock::new();
-                    new_block.add_line(line.to_owned());
+                    let mut new_block = TextBlock::default();
+                    new_block.text.push(line.to_owned());
                     node = Some(Node::Text(new_block));
                 };
             }
@@ -210,12 +224,12 @@ fn parse_transclusion(
 
             let path = into.parent().unwrap_or_else(|| Path::new(".")).join(target);
 
-            Ok(Some(Node::Transclusion(Transclusion::new(
-                PathBuf::from(path_clean::clean(
+            Ok(Some(Node::Transclusion(Transclusion {
+                file: PathBuf::from(path_clean::clean(
                     &path.to_str().unwrap().replace("\\", "/"),
                 )),
-                line.to_owned(),
-            ))))
+                original: line.to_owned(),
+            })))
         } else {
             Err(format!("Unclosed transclusion in: {}", line).into())
         }
@@ -225,38 +239,22 @@ fn parse_transclusion(
 }
 
 /// Parses a line as code, returning the parsed `Line` object
-fn parse_line(line_number: usize, input: &str, settings: &ParserSettings) -> Line {
+fn parse_line(input: &str, settings: &ParserSettings) -> Line {
     let indent_len = input.chars().take_while(|ch| ch.is_whitespace()).count();
     let (indent, rest) = input.split_at(indent_len);
 
-    // TODO: Temporarily disables comment extraction.
-    let (rest, comment) = (rest, None);
-    /*let (rest, comment) = if let Some(comment_index) = rest.find(&settings.block_name_prefix) {
-        let (rest, comment) = rest.split_at(comment_index);
-        (
-            rest,
-            Some((&comment[settings.block_name_prefix.len()..]).to_owned()),
-        )
-    } else {
-        (rest, None)
-    };*/
-
     if let Some(stripped) = rest.strip_prefix(&settings.macro_start) {
         if let Some(name) = stripped.strip_suffix(&settings.macro_end) {
-            return Line {
-                line_number,
+            return Line::Macro {
                 indent: indent.to_owned(),
-                source: Source::Macro(name.trim().to_owned()),
-                comment,
+                name: name.trim().to_owned(),
             };
         }
     }
 
-    Line {
-        line_number,
+    Line::Source {
         indent: indent.to_owned(),
-        source: Source::Source(rest.to_owned()),
-        comment,
+        source: rest.to_owned(),
     }
 }
 
@@ -359,10 +357,11 @@ fn is_relative_link(link: &str) -> bool {
 
 #[cfg(test)]
 mod tests {
-    use super::*;
-    use crate::config::LINK_PATTERN;
-    use crate::document::Source::Macro;
     use regex::Regex;
+
+    use crate::config::LINK_PATTERN;
+
+    use super::*;
 
     #[test]
     fn detect_newline() {
@@ -663,7 +662,7 @@ text
             assert_eq!(links.len(), 0);
             assert_eq!(block.name, Some(String::from("Code")));
             assert_eq!(block.source.len(), 2);
-            if let Macro(name) = &block.source[1].source {
+            if let Line::Macro { indent: _, name } = &block.source[1] {
                 assert_eq!(name, "Macro");
                 true
             } else {
@@ -695,7 +694,7 @@ text
         assert_eq!(doc.nodes.len(), 3);
         assert_eq!(links.len(), 0);
         assert!(if let Node::Transclusion(trans) = &doc.nodes[1] {
-            trans.file() == &PathBuf::from("test.md")
+            trans.file == PathBuf::from("test.md")
         } else {
             false
         });
@@ -728,7 +727,6 @@ text
         ParserSettings {
             fence_sequence: "```".to_string(),
             fence_sequence_alt: "~~~".to_string(),
-            comments_as_aside: false,
             block_name_prefix: "//-".to_string(),
             macro_start: "// ==>".to_string(),
             macro_end: ".".to_string(),
