@@ -32,7 +32,7 @@ See the [**User Guide**](https://mlange-42.github.io/yarner/) for a complete and
 
 1. Download the [latest binaries](https://github.com/mlange-42/yarner/releases) for your platform
 2. Unzip somewhere
-3. *Optional:* add directory `yarner` to your `PATH` environmental variable
+3. *Optional:* add the parent directory of the executable to your `PATH` environmental variable
 
 **Using `cargo`**
 
