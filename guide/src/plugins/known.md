@@ -1,6 +1,6 @@
-# Known pre-processors
+# Known plugins
 
-A list of pre-processors known to the developers of Yarner.
+A list of plugins known to the authors of Yarner.
 
 [[_TOC_]]
 

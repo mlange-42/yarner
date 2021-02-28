@@ -13,23 +13,23 @@ pub const YARNER_VERSION: &str = env!(
     "Environmental variable CARGO_PKG_VERSION not found"
 );
 
-/// Pre-processor call context
+/// Plugin call context
 #[derive(Debug, Serialize, Deserialize)]
 pub struct YarnerData {
-    /// The context of the pre-processor call, including configuration
+    /// The context of the plugin call, including configuration
     pub context: Context,
     /// The documents, mapped to file paths
     pub documents: HashMap<PathBuf, Document>,
 }
 
-/// Pre-processor call context
+/// Plugin call context
 #[derive(Debug, Serialize, Deserialize)]
 pub struct Context {
-    /// Configuration of the pre-processor
+    /// Configuration of plugin
     pub config: Value,
-    /// Name of the pre-processor
+    /// Name of the plugin
     pub name: String,
-    /// Yarner version from from which the pre-processor is called
+    /// Yarner version from from which the plugin is called
     pub yarner_version: String,
 }
 

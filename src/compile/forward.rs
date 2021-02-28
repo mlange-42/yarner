@@ -41,26 +41,32 @@ pub fn collect_documents(
     Ok(())
 }
 
-pub fn compile_all(
+pub fn extract_code_all(
     config: &Config,
     documents: &HashMap<PathBuf, Document>,
 ) -> Fallible<HashMap<PathBuf, Option<PathBuf>>> {
     let mut code_files = HashMap::new();
 
     for (path, doc) in documents.iter() {
-        compile(config, &doc, &path, &mut code_files)?;
+        extract_code(config, &doc, &path, &mut code_files)?;
     }
 
     Ok(code_files)
 }
 
-fn compile(
+pub fn write_documentation_all(config: &Config, documents: &HashMap<PathBuf, Document>) {
+    for (path, doc) in documents.iter() {
+        write_documentation(config, &doc, &path);
+    }
+}
+
+fn extract_code(
     config: &Config,
     document: &Document,
     file_name: &Path,
     track_code_files: &mut HashMap<PathBuf, Option<PathBuf>>,
 ) -> Fallible {
-    println!("Compiling file {}", file_name.display());
+    println!("Extracting code from {}", file_name.display());
 
     let mut entries = document.entry_points();
 
@@ -69,6 +75,71 @@ fn compile(
         config.paths.entrypoint.as_deref(),
         (&file_name_without_ext, Some(file_name.to_owned())),
     );
+
+    let mut any_output = false;
+    for (entrypoint, (sub_file_name, sub_source_file)) in entries {
+        if let Some(code_dir) = &config.paths.code {
+            let code_blocks = document.code_blocks_by_name();
+            if let Some(entry_blocks) = code_blocks.get(&entrypoint) {
+                any_output = true;
+
+                let mut file_path = code_dir.to_owned();
+                file_path.push(sub_file_name);
+
+                let extension = file_path
+                    .extension()
+                    .and_then(|ext| ext.to_str())
+                    .unwrap_or("")
+                    .to_string();
+                let settings = config.language.get(&extension);
+
+                // TODO: only track files that are really created!
+                match track_code_files.entry(file_path.clone()) {
+                    Occupied(entry) => {
+                        if sub_source_file == *entry.get() {
+                            println!("  Skipping file {} (already written)", file_path.display());
+                            continue;
+                        } else {
+                            return Err(format!(
+                                "Multiple distinct locations point to code file {}",
+                                file_path.display()
+                            )
+                            .into());
+                        }
+                    }
+                    Vacant(entry) => {
+                        entry.insert(sub_source_file);
+                    }
+                }
+
+                let code = print::code::print_code(
+                    &code_blocks,
+                    entry_blocks,
+                    settings,
+                    document.newline(),
+                )?;
+                println!("  Writing file {}", file_path.display());
+                fs::create_dir_all(file_path.parent().unwrap())?;
+                let mut code_file = File::create(file_path)?;
+                write!(code_file, "{}", code)?;
+            }
+        } else {
+            eprintln!("WARNING: Missing output location for code, skipping code output.");
+        }
+    }
+
+    if !any_output {
+        eprintln!(
+            "  No entrypoint for file {}, skipping code output.",
+            file_name.display()
+        );
+    }
+
+    Ok(())
+}
+
+fn write_documentation(config: &Config, document: &Document, file_name: &Path) {
+    println!("Writing documentation file {}", file_name.display());
 
     match &config.paths.docs {
         Some(doc_dir) => {
@@ -81,66 +152,6 @@ fn compile(
         }
         None => eprintln!("WARNING: Missing output location for docs, skipping docs output."),
     }
-
-    for (entrypoint, (sub_file_name, sub_source_file)) in entries {
-        match &config.paths.code {
-            Some(code_dir) => {
-                let code_blocks = document.code_blocks_by_name();
-                if let Some(entry_blocks) = code_blocks.get(&entrypoint) {
-                    let mut file_path = code_dir.to_owned();
-                    file_path.push(sub_file_name);
-
-                    let extension = file_path
-                        .extension()
-                        .and_then(|ext| ext.to_str())
-                        .unwrap_or("")
-                        .to_string();
-                    let settings = config.language.get(&extension);
-
-                    // TODO: only track files that are really created!
-                    match track_code_files.entry(file_path.clone()) {
-                        Occupied(entry) => {
-                            if sub_source_file == *entry.get() {
-                                println!(
-                                    "  Skipping file {} (already written)",
-                                    file_path.display()
-                                );
-                                continue;
-                            } else {
-                                return Err(format!(
-                                    "Multiple distinct locations point to code file {}",
-                                    file_path.display()
-                                )
-                                .into());
-                            }
-                        }
-                        Vacant(entry) => {
-                            entry.insert(sub_source_file);
-                        }
-                    }
-
-                    let code = print::code::print_code(
-                        &code_blocks,
-                        entry_blocks,
-                        settings,
-                        document.newline(),
-                    )?;
-                    println!("  Writing file {}", file_path.display());
-                    fs::create_dir_all(file_path.parent().unwrap())?;
-                    let mut code_file = File::create(file_path)?;
-                    write!(code_file, "{}", code)?;
-                } else {
-                    eprintln!(
-                        "  No entrypoint for file {}, skipping code output.",
-                        sub_file_name.display()
-                    );
-                }
-            }
-            None => eprintln!("WARNING: Missing output location for code, skipping code output."),
-        }
-    }
-
-    Ok(())
 }
 
 fn transclude(
