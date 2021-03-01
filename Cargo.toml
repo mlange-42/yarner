@@ -1,6 +1,6 @@
 [package]
 name = "yarner"
-version = "0.5.0"
+version = "0.5.1"
 authors = ["Martin Lange <martin_lange_@gmx.net>", "Cameron Eldridge <cameldridge@gmail.com>"]
 description = "Literate programming tool for Markdown"
 homepage = "https://mlange-42.github.io/yarner/"
