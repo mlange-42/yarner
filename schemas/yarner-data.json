@@ -9,7 +9,7 @@
   ],
   "properties": {
     "context": {
-      "description": "The context of the pre-processor call, inclusing configuration",
+      "description": "The context of the plugin call, including configuration",
       "allOf": [
         {
           "$ref": "#/definitions/Context"
@@ -127,7 +127,7 @@
       ],
       "properties": {
         "config": {
-          "description": "Configuration of the pre-processor",
+          "description": "Configuration of the plugin",
           "allOf": [
             {
               "$ref": "#/definitions/Config"
@@ -135,11 +135,11 @@
           ]
         },
         "name": {
-          "description": "Name of the pre-processor",
+          "description": "Name of the plugin",
           "type": "string"
         },
         "yarner_version": {
-          "description": "Yarner version from from which the pre-processor is called",
+          "description": "Yarner version from from which the plugin is called",
           "type": "string"
         }
       }

@@ -1,8 +1,12 @@
-# Known pre-processors
+# Known plugins
 
-A list of pre-processors known to the developers of Yarner.
+A list of plugins known to the authors of Yarner.
 
 [[_TOC_]]
+
+## Reference management
+
+**[yarner-bib](https://github.com/mlange-42/yarner-bib)** allows for citations using a BibTeX bibliography.
 
 ## Formatting
 
