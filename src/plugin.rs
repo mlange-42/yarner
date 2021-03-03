@@ -29,6 +29,13 @@ pub fn pre_process(
                 .collect(),
         };
 
+        let command_string = format!(
+            "{}{}{}",
+            command,
+            if arguments.is_empty() { "" } else { " " },
+            &arguments.join(" "),
+        );
+
         let data = YarnerData {
             context: Context {
                 name: name.to_owned(),
@@ -40,7 +47,7 @@ pub fn pre_process(
 
         let json = to_json(&data)?;
 
-        println!("Running plugin {}", command);
+        println!("Running plugin command '{}'", command_string);
 
         let mut child = Command::new(&command)
             .stdin(Stdio::piped())
@@ -65,12 +72,7 @@ pub fn pre_process(
             .map_err(|err| format_error(err.into(), &command))?;
 
         if !output.status.success() {
-            return Err(format!(
-                "Plugin failed: {}",
-                String::from_utf8(output.stderr)
-                    .unwrap_or_else(|_| "Invalid STDERR output.".to_string())
-            )
-            .into());
+            return Err(format!("Plugin command '{}' exits with error.", command_string,).into());
         }
 
         let out_json =
@@ -80,11 +82,8 @@ pub fn pre_process(
             Ok(context) => context.documents,
             Err(err) => {
                 eprintln!(
-                    "Warning: Invalid output from plugin command '{}{}{}': {}",
-                    command,
-                    if arguments.is_empty() { "" } else { " " },
-                    &arguments.join(" "),
-                    err
+                    "Warning: Invalid output from plugin command '{}': {}",
+                    command_string, err
                 );
                 data.documents
             }
