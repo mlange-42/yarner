@@ -121,6 +121,12 @@ fn run() -> Fallible {
         .check()
         .map_err(|err| format!("Invalid config file \"{}\": {}", config_path, err))?;
 
+    let reverse = matches.subcommand_matches("reverse").is_some();
+
+    if reverse && !config.has_reverse_config() {
+        return Err("Reverse mode not enabled for any language. Stopping.".into());
+    }
+
     let lock_path = PathBuf::from(config_path).with_extension("lock");
 
     let clean_code = matches.is_present("clean");
@@ -156,8 +162,6 @@ fn run() -> Fallible {
             "No inputs provided via arguments or toml file. For help, use:\n\
                > yarner -h",
         )?;
-
-    let reverse = matches.subcommand_matches("reverse").is_some();
 
     if !force
         && config.has_reverse_config()
