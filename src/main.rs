@@ -364,7 +364,7 @@ fn process_inputs_forward(
     let original_documents = documents.keys().cloned().collect();
     let code_files = compile::forward::extract_code_all(config, &documents)?;
 
-    let documents = plugin::pre_process(config, documents)?;
+    let documents = plugin::run_plugins(config, documents)?;
     compile::forward::write_documentation_all(config, &documents);
 
     Ok((original_documents, code_files.keys().cloned().collect()))

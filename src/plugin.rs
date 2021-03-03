@@ -9,7 +9,7 @@ use yarner_lib::{Context, Document, YarnerData, YARNER_VERSION};
 use crate::config::Config;
 use crate::util::Fallible;
 
-pub fn pre_process(
+pub fn run_plugins(
     config: &Config,
     documents: HashMap<PathBuf, Document>,
 ) -> Fallible<HashMap<PathBuf, Document>> {
