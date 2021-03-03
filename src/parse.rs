@@ -98,6 +98,10 @@ pub fn parse(
         }
     }
 
+    if let Some(Node::Code(_)) = nodes.last() {
+        return Err(format!("Unclosed code block in {}", path.display()).into());
+    }
+
     if let Some(Node::Text(text)) = nodes.last() {
         if text.text.is_empty() {
             nodes.pop();
@@ -671,6 +675,27 @@ text
         } else {
             false
         });
+    }
+
+    #[test]
+    #[should_panic]
+    fn parse_doc_code_unclosed() {
+        let settings = default_settings();
+        let text = r#"# Caption
+
+```
+//- Code
+code
+
+"#;
+        let (_doc, _links) = parse(
+            text,
+            Path::new("README.md"),
+            Path::new("README.md"),
+            false,
+            &settings,
+        )
+        .unwrap();
     }
 
     #[test]
