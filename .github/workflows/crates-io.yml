@@ -8,8 +8,8 @@ env:
   CARGO_TERM_COLOR: always
 
 jobs:
-  library:
-    name: Publish library
+  publish:
+    name: Publish to crates.io
     runs-on: ubuntu-latest
     steps:
       - name: Checkout
@@ -19,23 +19,12 @@ jobs:
         with:
           toolchain: stable
           override: true
-      - name: Publish to crates.io
+      - name: Publish library
         uses: katyo/publish-crates@v1
         with:
           path: './yarner-lib'
           registry-token: ${{ secrets.CRATES_IO_TOKEN }}
-  binaries:
-    name: Publish binaries
-    runs-on: ubuntu-latest
-    steps:
-      - name: Checkout
-        uses: actions/checkout@v2
-      - name: Install Rust
-        uses: actions-rs/toolchain@v1
-        with:
-          toolchain: stable
-          override: true
-      - name: Publish to crates.io
+      - name: Publish binaries
         uses: katyo/publish-crates@v1
         with:
           registry-token: ${{ secrets.CRATES_IO_TOKEN }}
