@@ -36,12 +36,12 @@ jobs:
       - name: Compress
         run: |
           cp -f target/release/$REPO${{ matrix.bin_extension }} .
-          tar -czf $REPO-${{ env.RELEASE_VERSION }}-${{ matrix.os_name }}.tar.gz $REPO${{ matrix.bin_extension }}
+          tar -czf release.tar.gz $REPO${{ matrix.bin_extension }}
         shell: bash
       - name: Upload binaries to release
         uses: svenstaro/upload-release-action@v2
         with:
           repo_token: ${{ secrets.GITHUB_TOKEN }}
-          file: ${{ env.REPO }}-${{ env.RELEASE_VERSION }}-${{ matrix.os_name }}.tar.gz
+          file: release.tar.gz
           asset_name: ${{ env.REPO }}-${{ env.RELEASE_VERSION }}-${{ matrix.os_name }}.tar.gz
           tag: ${{ github.ref }}
