@@ -9,5 +9,5 @@ See chapter [Writing plugins](https://mlange-42.github.io/yarner/plugins/writing
 Add this to your `Cargo.toml`:
 
 ```toml
-yarner-lib = { git = "https://github.com/mlange-42/yarner.git", tag = "0.5.0" }
+yarner-lib = "0.5"
 ```
