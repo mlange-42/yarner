@@ -9,7 +9,7 @@ use yarner_lib::{Context, Document, YarnerData, YARNER_VERSION};
 use crate::config::Config;
 use crate::util::Fallible;
 
-pub fn pre_process(
+pub fn run_plugins(
     config: &Config,
     documents: HashMap<PathBuf, Document>,
 ) -> Fallible<HashMap<PathBuf, Document>> {
@@ -20,6 +20,22 @@ pub fn pre_process(
             .and_then(|cmd| cmd.as_str().map(|s| s.to_owned()))
             .unwrap_or_else(|| format!("yarner-{}", name));
 
+        let arguments: Vec<&str> = match config.get("arguments") {
+            None => vec![],
+            Some(v) => v
+                .as_array()
+                .map(|arr| arr.iter().map(|l| l.as_str().unwrap_or_default()))
+                .ok_or("Can't parse array of plugin arguments")?
+                .collect(),
+        };
+
+        let command_string = format!(
+            "{}{}{}",
+            command,
+            if arguments.is_empty() { "" } else { " " },
+            &arguments.join(" "),
+        );
+
         let data = YarnerData {
             context: Context {
                 name: name.to_owned(),
@@ -29,13 +45,14 @@ pub fn pre_process(
             documents: docs,
         };
 
-        let json = to_json(data)?;
+        let json = to_json(&data)?;
 
-        println!("Running plugin {}", command);
+        println!("Running plugin command '{}'", command_string);
 
         let mut child = Command::new(&command)
             .stdin(Stdio::piped())
             .stdout(Stdio::piped())
+            .args(&arguments)
             .spawn()
             .map_err(|err| format_error(err.into(), &command))?;
 
@@ -54,17 +71,28 @@ pub fn pre_process(
             .wait_with_output()
             .map_err(|err| format_error(err.into(), &command))?;
 
+        if !output.status.success() {
+            return Err(format!("Plugin command '{}' exits with error.", command_string,).into());
+        }
+
         let out_json =
             String::from_utf8(output.stdout).map_err(|err| format_error(err.into(), &command))?;
 
-        docs = from_json(&out_json)
-            .map_err(|err| format_error(err.into(), &command))?
-            .documents;
+        docs = match from_json(&out_json) {
+            Ok(context) => context.documents,
+            Err(err) => {
+                eprintln!(
+                    "Warning: Invalid output from plugin command '{}': {}",
+                    command_string, err
+                );
+                data.documents
+            }
+        }
     }
     Ok(docs)
 }
 
-fn to_json(data: YarnerData) -> serde_json::Result<String> {
+fn to_json(data: &YarnerData) -> serde_json::Result<String> {
     serde_json::to_string_pretty(&data)
 }
 
@@ -73,5 +101,9 @@ fn from_json(json: &str) -> serde_json::Result<YarnerData> {
 }
 
 fn format_error(err: Box<dyn Error>, name: &str) -> String {
-    format!("Failed to run command '{}': {}", name, err.to_string())
+    format!(
+        "Failed to run plugin command '{}': {}",
+        name,
+        err.to_string()
+    )
 }
