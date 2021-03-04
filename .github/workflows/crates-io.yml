@@ -24,10 +24,6 @@ jobs:
         with:
           path: './yarner-lib'
           registry-token: ${{ secrets.CRATES_IO_TOKEN }}
-      - name: Wait 15 seconds
-        uses: jakejarvis/wait-action@v0.1.0
-        with:
-          time: '15s'
       - name: Publish binaries
         uses: katyo/publish-crates@v1
         with:
