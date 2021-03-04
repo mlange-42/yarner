@@ -39,7 +39,7 @@ See the [**User Guide**](https://mlange-42.github.io/yarner/) for a complete and
 In case you have [Rust](https://www.rust-lang.org/) installed, you can install with `cargo`:
 
 ```plaintext
-> cargo install --git https://github.com/mlange-42/yarner
+> cargo install yarner
 ```
 
 ## Getting started

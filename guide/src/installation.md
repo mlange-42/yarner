@@ -16,7 +16,7 @@ There are multiple ways to install Yarner:
 In case you have [Rust](https://www.rust-lang.org/) installed, you can install with `cargo`:
 
 ```
-cargo install --git https://github.com/mlange-42/yarner
+cargo install yarner
 ```
 
 ## Clone and build
