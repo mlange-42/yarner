@@ -1,3 +1,8 @@
+//! `yarner-lib` is a simple library for building plugins for the Literate Programming tool [Yarner](https://github.com/mlange-42/yarner).
+//!
+//! See chapter [Writing plugins](https://mlange-42.github.io/yarner/plugins/writing.html) of the Yarner user guide on how to use it.
+//!
+
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
 use std::path::PathBuf;

@@ -15,7 +15,7 @@ To use the [Rust](https://rust-lang.org) crate `yarner-lib` to write plugins, ad
 ...
 
 [dependencies]
-yarner-lib = { git = "https://github.com/mlange-42/yarner.git", tag = "0.5.0" }
+yarner-lib = "0.5"
 ...
 ```
 
