@@ -1,4 +1,4 @@
-name: Publish guide
+name: Publish
 
 on:
   push:
