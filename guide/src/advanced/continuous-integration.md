@@ -21,7 +21,7 @@ variables:
 before_script:
   - apt-get update; apt-get -y install curl
   - curl -L -o- https://github.com/mlange-42/yarner/releases/download/${YARNER_VERSION}/yarner-${YARNER_VERSION}-linux.tar.gz | tar xz
-  - export PATH="$PWD/yarner:$PATH"
+  - export PATH="$PWD:$PATH"
 
 build:
   script:
