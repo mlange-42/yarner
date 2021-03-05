@@ -2,6 +2,11 @@
 
 [[_TOC_]]
 
+[![Test status](https://github.com/mlange-42/yarner/actions/workflows/tests.yml/badge.svg)](https://github.com/mlange-42/yarner/actions/workflows/tests.yml)
+[![GitHub](https://img.shields.io/badge/github-repo-blue?logo=github)](https://github.com/mlange-42/yarner)
+[![Crate](https://img.shields.io/crates/v/yarner.svg)](https://crates.io/crates/yarner)
+[![MIT license](https://img.shields.io/github/license/mlange-42/yarner)](https://github.com/mlange-42/yarner/blob/master/LICENSE)
+
 **Yarner** is a language-independent Literate Programming command line tool for Markdown.
 
 From Markdown documents written and structured for humans, Yarner extracts code blocks into compilable source code. It offers sufficient features and flexibility to be usable also for larger projects with numerous files and multiple languages.
