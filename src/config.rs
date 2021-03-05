@@ -28,7 +28,6 @@ pub struct Config {
     pub language: HashMap<String, LanguageSettings>,
     /// TOML table of settings for plugins
     #[serde(default)]
-    #[serde(alias = "preprocessor")] // TODO: remove alias in version 0.6.0
     pub plugin: Table,
 }
 
