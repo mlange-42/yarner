@@ -20,21 +20,7 @@ pub fn run_plugins(
             .and_then(|cmd| cmd.as_str().map(|s| s.to_owned()))
             .unwrap_or_else(|| format!("yarner-{}", name));
 
-        let arguments: Vec<&str> = match config.get("arguments") {
-            None => vec![],
-            Some(v) => v
-                .as_array()
-                .map(|arr| arr.iter().map(|l| l.as_str().unwrap_or_default()))
-                .ok_or("Can't parse array of plugin arguments")?
-                .collect(),
-        };
-
-        let command_string = format!(
-            "{}{}{}",
-            command,
-            if arguments.is_empty() { "" } else { " " },
-            &arguments.join(" "),
-        );
+        let args = shlex::split(&command).ok_or(format!("Invalid plugin command {}", command))?;
 
         let data = YarnerData {
             context: Context {
@@ -47,12 +33,12 @@ pub fn run_plugins(
 
         let json = to_json(&data)?;
 
-        println!("Running plugin command '{}'", command_string);
+        println!("Running plugin command '{}'", command);
 
-        let mut child = Command::new(&command)
+        let mut child = Command::new(&args[0])
             .stdin(Stdio::piped())
             .stdout(Stdio::piped())
-            .args(&arguments)
+            .args(&args[1..])
             .spawn()
             .map_err(|err| format_error(err.into(), &command))?;
 
@@ -72,7 +58,7 @@ pub fn run_plugins(
             .map_err(|err| format_error(err.into(), &command))?;
 
         if !output.status.success() {
-            return Err(format!("Plugin command '{}' exits with error.", command_string,).into());
+            return Err(format!("Plugin command '{}' exits with error.", command,).into());
         }
 
         let out_json =
@@ -83,7 +69,7 @@ pub fn run_plugins(
             Err(err) => {
                 eprintln!(
                     "Warning: Invalid output from plugin command '{}': {}",
-                    command_string, err
+                    command, err
                 );
                 data.documents
             }
