@@ -20,21 +20,15 @@ pub fn run_plugins(
             .and_then(|cmd| cmd.as_str().map(|s| s.to_owned()))
             .unwrap_or_else(|| format!("yarner-{}", name));
 
-        let arguments: Vec<&str> = match config.get("arguments") {
-            None => vec![],
-            Some(v) => v
-                .as_array()
-                .map(|arr| arr.iter().map(|l| l.as_str().unwrap_or_default()))
-                .ok_or("Can't parse array of plugin arguments")?
-                .collect(),
-        };
-
-        let command_string = format!(
-            "{}{}{}",
-            command,
-            if arguments.is_empty() { "" } else { " " },
-            &arguments.join(" "),
-        );
+        let arguments: Vec<&str> = config
+            .get("arguments")
+            .map(|args| {
+                args.as_array()
+                    .map(|arr| arr.iter().map(|l| l.as_str().unwrap_or_default()).collect())
+                    .ok_or("Can't parse array of plugin arguments")
+            })
+            .transpose()?
+            .unwrap_or_default();
 
         let data = YarnerData {
             context: Context {
@@ -47,7 +41,7 @@ pub fn run_plugins(
 
         let json = to_json(&data)?;
 
-        println!("Running plugin command '{}'", command_string);
+        println!("Running plugin '{}'", name);
 
         let mut child = Command::new(&command)
             .stdin(Stdio::piped())
@@ -72,7 +66,7 @@ pub fn run_plugins(
             .map_err(|err| format_error(err.into(), &command))?;
 
         if !output.status.success() {
-            return Err(format!("Plugin command '{}' exits with error.", command_string,).into());
+            return Err(format!("Plugin '{}' exits with error.", name).into());
         }
 
         let out_json =
@@ -81,10 +75,7 @@ pub fn run_plugins(
         docs = match from_json(&out_json) {
             Ok(context) => context.documents,
             Err(err) => {
-                eprintln!(
-                    "Warning: Invalid output from plugin command '{}': {}",
-                    command_string, err
-                );
+                eprintln!("Warning: Invalid output from plugin '{}': {}", name, err);
                 data.documents
             }
         }
