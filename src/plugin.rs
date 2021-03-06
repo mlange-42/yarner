@@ -20,7 +20,15 @@ pub fn run_plugins(
             .and_then(|cmd| cmd.as_str().map(|s| s.to_owned()))
             .unwrap_or_else(|| format!("yarner-{}", name));
 
-        let args = shlex::split(&command).ok_or(format!("Invalid plugin command {}", command))?;
+        let arguments: Vec<&str> = config
+            .get("arguments")
+            .map(|args| {
+                args.as_array()
+                    .map(|arr| arr.iter().map(|l| l.as_str().unwrap_or_default()).collect())
+                    .ok_or("Can't parse array of plugin arguments")
+            })
+            .transpose()?
+            .unwrap_or_default();
 
         let data = YarnerData {
             context: Context {
@@ -33,12 +41,12 @@ pub fn run_plugins(
 
         let json = to_json(&data)?;
 
-        println!("Running plugin command '{}'", command);
+        println!("Running plugin '{}'", name);
 
-        let mut child = Command::new(&args[0])
+        let mut child = Command::new(&command)
             .stdin(Stdio::piped())
             .stdout(Stdio::piped())
-            .args(&args[1..])
+            .args(&arguments)
             .spawn()
             .map_err(|err| format_error(err.into(), &command))?;
 
@@ -58,7 +66,7 @@ pub fn run_plugins(
             .map_err(|err| format_error(err.into(), &command))?;
 
         if !output.status.success() {
-            return Err(format!("Plugin command '{}' exits with error.", command,).into());
+            return Err(format!("Plugin '{}' exits with error.", name).into());
         }
 
         let out_json =
@@ -67,10 +75,7 @@ pub fn run_plugins(
         docs = match from_json(&out_json) {
             Ok(context) => context.documents,
             Err(err) => {
-                eprintln!(
-                    "Warning: Invalid output from plugin command '{}': {}",
-                    command, err
-                );
+                eprintln!("Warning: Invalid output from plugin '{}': {}", name, err);
                 data.documents
             }
         }

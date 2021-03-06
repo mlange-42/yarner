@@ -35,9 +35,10 @@ Plugins have no effect in reverse mode.
 
 By default, the command of the plugin is derived from its name in the config file, prefixed with `yarner-`. E.g., the command derived from `[plugin.block-links]` is `yarner-block-links`.
 
-Alternatively, each plugin section can have optional parameters `command`, e.g.
+Alternatively, each plugin section can have optional parameters `command` and `arguments`, e.g.
 
 ```toml
 [plugin.xyz]
-command = "path/to/binary --arg value"
+command = "path/to/binary"
+arguments = ["--arg1", "value1", "--arg2", "value2"]
 ```
