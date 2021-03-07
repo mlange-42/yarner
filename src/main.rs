@@ -113,6 +113,10 @@ fn run() -> Fallible {
         return Ok(());
     }
 
+    run_with_args(&matches)
+}
+
+fn run_with_args(matches: &ArgMatches) -> Fallible {
     let config_path = matches.value_of("config").unwrap();
     let mut config = Config::read(config_path)
         .map_err(|err| format!("Could not read config file \"{}\": {}", config_path, err))?;
@@ -153,15 +157,14 @@ fn run() -> Fallible {
     if let Some(entry) = matches.value_of("entrypoint") {
         config.paths.entrypoint = Some(entry.to_owned());
     }
+    if let Some(patterns) = matches.values_of("input") {
+        config.paths.files = Some(patterns.map(|pattern| pattern.to_owned()).collect());
+    }
 
-    let input_patterns = matches
-        .values_of("input")
-        .map(|patterns| patterns.map(|pattern| pattern.to_owned()).collect())
-        .or_else(|| config.paths.files.clone())
-        .ok_or(
-            "No inputs provided via arguments or toml file. For help, use:\n\
+    let input_patterns = config.paths.files.as_ref().ok_or(
+        "No inputs provided via arguments or toml file. For help, use:\n\
                > yarner -h",
-        )?;
+    )?;
 
     if !force
         && config.has_reverse_config()
