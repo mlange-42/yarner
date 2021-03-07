@@ -113,10 +113,16 @@ fn run() -> Fallible {
         return Ok(());
     }
 
-    run_with_args(&matches)
+    let (config, mut watch_forward, _watch_reverse) = run_with_args(&matches)?;
+
+    if matches.subcommand_matches("watch").is_some() {
+        watch_forward.insert(config);
+    }
+
+    Ok(())
 }
 
-fn run_with_args(matches: &ArgMatches) -> Fallible {
+fn run_with_args(matches: &ArgMatches) -> Fallible<(PathBuf, HashSet<PathBuf>, HashSet<PathBuf>)> {
     let config_path = matches.value_of("config").unwrap();
     let mut config = Config::read(config_path)
         .map_err(|err| format!("Could not read config file \"{}\": {}", config_path, err))?;
@@ -210,7 +216,7 @@ fn run_with_args(matches: &ArgMatches) -> Fallible {
         lock::write_lock(lock_path, &source_files, &code_files)?;
     }
 
-    Ok(())
+    Ok((PathBuf::from(config_path), source_files, code_files))
 }
 
 fn locked_error_message(is_reverse: bool) -> String {
