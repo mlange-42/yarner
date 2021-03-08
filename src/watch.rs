@@ -19,6 +19,8 @@ where
     I: Iterator<Item = PathBuf>,
     J: Iterator<Item = PathBuf>,
 {
+    println!("Watching for changes...");
+
     let rx_changes = trigger_on_change(&mut watch_sources, &mut watch_code)?;
 
     for change in rx_changes {
@@ -31,12 +33,10 @@ where
             }
         );
 
-        if change == ChangeType::Sources {
-            let curr_dir = env::current_dir()?;
-            let (_config, _watch_forward, _watch_reverse) =
-                cmd::run_with_args(&args, Some(change == ChangeType::Code))?;
-            env::set_current_dir(&curr_dir)?;
-        }
+        let curr_dir = env::current_dir()?;
+        let (_config, _watch_forward, _watch_reverse) =
+            cmd::run_with_args(&args, Some(change == ChangeType::Code))?;
+        env::set_current_dir(&curr_dir)?;
     }
 
     Ok(())

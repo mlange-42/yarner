@@ -54,10 +54,15 @@ pub fn extract_code_all(
     Ok(code_files)
 }
 
-pub fn write_documentation_all(config: &Config, documents: &HashMap<PathBuf, Document>) {
+pub fn write_documentation_all(
+    config: &Config,
+    documents: &HashMap<PathBuf, Document>,
+) -> Fallible {
     for (path, doc) in documents.iter() {
-        write_documentation(config, &doc, &path);
+        write_documentation(config, &doc, &path)?;
     }
+
+    Ok(())
 }
 
 fn extract_code(
@@ -118,10 +123,15 @@ fn extract_code(
                     settings,
                     document.newline(),
                 )?;
-                println!("  Writing file {}", file_path.display());
-                fs::create_dir_all(file_path.parent().unwrap())?;
-                let mut code_file = File::create(file_path)?;
-                write!(code_file, "{}", code)?;
+
+                if files::file_differs(&file_path, &code)? {
+                    println!("  Writing file {}", file_path.display());
+                    fs::create_dir_all(file_path.parent().unwrap())?;
+                    let mut code_file = File::create(file_path)?;
+                    write!(code_file, "{}", code)?;
+                } else {
+                    println!("  Skipping unchanged file {}", file_path.display());
+                }
             }
         } else {
             eprintln!("WARNING: Missing output location for code, skipping code output.");
@@ -138,20 +148,29 @@ fn extract_code(
     Ok(())
 }
 
-fn write_documentation(config: &Config, document: &Document, file_name: &Path) {
-    println!("Writing documentation file {}", file_name.display());
-
+fn write_documentation(config: &Config, document: &Document, file_name: &Path) -> Fallible {
     match &config.paths.docs {
         Some(doc_dir) => {
             let documentation = print::docs::print_docs(document, &config.parser);
             let mut file_path = doc_dir.to_owned();
             file_path.push(file_name);
-            fs::create_dir_all(file_path.parent().unwrap()).unwrap();
-            let mut doc_file = File::create(file_path).unwrap();
-            write!(doc_file, "{}", documentation).unwrap();
+
+            if files::file_differs(&file_path, &documentation)? {
+                println!("Writing documentation file {}", file_name.display());
+                fs::create_dir_all(file_path.parent().unwrap()).unwrap();
+                let mut doc_file = File::create(file_path).unwrap();
+                write!(doc_file, "{}", documentation)?;
+            } else {
+                println!(
+                    "Skipping unchanged documentation file {}",
+                    file_name.display()
+                );
+            }
         }
         None => eprintln!("WARNING: Missing output location for docs, skipping docs output."),
     }
+
+    Ok(())
 }
 
 fn transclude(

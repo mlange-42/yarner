@@ -19,16 +19,32 @@ pub fn read_file(path: &Path) -> Fallible<Vec<u8>> {
     std::fs::read(&path).map_err(|err| format!("{}: {}", err, path.display()).into())
 }
 
+fn files_differ(old: &Path, new: &Path) -> Fallible<bool> {
+    if !(old.is_file() && new.is_file()) {
+        return Ok(true);
+    }
+
+    Ok(read_file(old)? != read_file(new)?)
+}
+
+pub fn file_differs(file: &Path, content: &str) -> Fallible<bool> {
+    if !file.is_file() {
+        return Ok(true);
+    }
+
+    Ok(read_file_string(file)? != content)
+}
+
 pub fn copy_files(
     patterns: &[String],
     path_mod: Option<&[String]>,
     target_dir: &Path,
     reverse: bool,
-) -> Result<(HashSet<PathBuf>, HashSet<PathBuf>), String> {
+) -> Fallible<(HashSet<PathBuf>, HashSet<PathBuf>)> {
     match path_mod {
         Some(path_mod) if patterns.len() != path_mod.len() => {
             return Err(
-                "If argument code_paths/doc_paths is given in the toml file, it must have as many elements as argument code_files/doc_files".to_string()
+                "If argument code_paths/doc_paths is given in the toml file, it must have as many elements as argument code_files/doc_files".into()
             );
         }
         _ => (),
@@ -65,7 +81,8 @@ pub fn copy_files(
                             file_path.display(),
                             entry.get().display(),
                             file.display()
-                        ));
+                        )
+                        .into());
                     }
                     Vacant(entry) => {
                         entry.insert(file.clone());
@@ -76,14 +93,23 @@ pub fn copy_files(
                     std::fs::create_dir_all(file_path.parent().unwrap()).unwrap();
                 }
                 let (from, to) = if reverse {
-                    println!("Copying file {} to {}", file_path.display(), file.display());
                     (&file_path, &file)
                 } else {
-                    println!("Copying file {} to {}", file.display(), file_path.display());
                     (&file, &file_path)
                 };
-                if let Err(err) = std::fs::copy(&from, &to) {
-                    return Err(format!("Error copying file {}: {}", file.display(), err));
+                if files_differ(&from, &to)? {
+                    println!("Copying file {} to {}", from.display(), to.display());
+                    if let Err(err) = std::fs::copy(&from, &to) {
+                        return Err(
+                            format!("Error copying file {}: {}", file.display(), err).into()
+                        );
+                    }
+                } else {
+                    println!(
+                        "Skipping copy unchanged file {} to {}",
+                        from.display(),
+                        to.display()
+                    );
                 }
             }
         }
