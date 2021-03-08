@@ -10,6 +10,7 @@
 - [Links and transclusions](./links-and-transclusions.md)
 - [Copying files](./copying-files.md)
 - [Reverse mode](./reverse-mode.md)
+- [Watch command](./watch-command.md)
 - [Plugins](./plugins/plugins.md)
   - [Using plugins](./plugins/using.md)
   - [Known plugins](./plugins/known.md)

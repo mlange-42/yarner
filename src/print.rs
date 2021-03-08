@@ -336,7 +336,8 @@ pub mod code {
             write!(
                 result,
                 "{}{}",
-                compile_code_block(block, &code_blocks, settings, newline, &mut trace)?,
+                compile_code_block(block, &code_blocks, settings, newline, &mut trace)?
+                    .join(newline),
                 newline,
             )
             .unwrap();
@@ -371,7 +372,7 @@ pub mod code {
         settings: Option<&LanguageSettings>,
         newline: &str,
         trace: &mut HashSet<String>,
-    ) -> Result<String, CompileError> {
+    ) -> Result<Vec<String>, CompileError> {
         let line_offset = block.line_number;
         block
             .source
@@ -388,7 +389,6 @@ pub mod code {
                 )
             })
             .try_collect()
-            .map(|lines| lines.join(newline))
             .map_err(CompileError::Multi)
     }
 
@@ -477,7 +477,7 @@ pub mod code {
                     }
 
                     let code = compile_code_block(block, code_blocks, settings, newline, trace)?;
-                    for ln in code.lines() {
+                    for ln in code {
                         if blank_lines && ln.trim().is_empty() {
                             write!(result, "{}", newline).unwrap();
                         } else {
