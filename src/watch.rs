@@ -2,23 +2,24 @@ use crate::{cmd, util::Fallible};
 
 use clap::ArgMatches;
 use notify::{DebouncedEvent, Watcher};
+use std::sync::mpsc::{Receiver, Sender};
 use std::time::Instant;
-use std::{collections::HashSet, env, path::PathBuf, sync::mpsc::channel, time::Duration};
+use std::{env, path::PathBuf, sync::mpsc::channel, time::Duration};
 
 const COLLECT_EVENTS_MILLIS: u64 = 500;
 
-#[derive(PartialEq)]
-pub enum ChangeType {
+#[derive(PartialEq, Clone)]
+enum ChangeType {
     Sources,
     Code,
 }
 
-pub fn watch(
-    args: ArgMatches,
-    watch_sources: HashSet<PathBuf>,
-    watch_code: HashSet<PathBuf>,
-) -> Fallible {
-    trigger_on_change(&watch_sources, &watch_code, |change| {
+pub fn watch<I, J>(args: ArgMatches, mut watch_sources: I, mut watch_code: J) -> Fallible
+where
+    I: Iterator<Item = PathBuf>,
+    J: Iterator<Item = PathBuf>,
+{
+    trigger_on_change(&mut watch_sources, &mut watch_code, |change| {
         println!(
             "{} changed. Re-building...",
             if change == ChangeType::Sources {
@@ -42,13 +43,15 @@ pub fn watch(
 }
 
 /// Calls the closure when a book source file is changed, blocking indefinitely.
-pub fn trigger_on_change<F>(
-    watch_sources: &HashSet<PathBuf>,
-    watch_code: &HashSet<PathBuf>,
+fn trigger_on_change<F, I, J>(
+    watch_sources: &mut I,
+    watch_code: &mut J,
     closure: F,
-) -> Fallible
+) -> Fallible<Receiver<ChangeType>>
 where
     F: Fn(ChangeType) -> Fallible,
+    I: Iterator<Item = PathBuf>,
+    J: Iterator<Item = PathBuf>,
 {
     use notify::RecursiveMode::*;
 
@@ -64,52 +67,48 @@ where
         code_watcher.watch(path, NonRecursive)?;
     }
 
-    let (tx_changes_sources, rx_changes) = channel();
-    let tx_changes_code = tx_changes_sources.clone();
-    std::thread::spawn(move || loop {
-        let deadline = Instant::now() + Duration::from_millis(COLLECT_EVENTS_MILLIS);
-        let mut send_event = false;
-        loop {
-            let timeout = deadline.saturating_duration_since(Instant::now());
-            if timeout.as_nanos() == 0 {
-                break;
-            }
+    let (tx_changes, rx_changes) = channel();
 
-            if let Ok(event) = rx_sources.recv_timeout(timeout) {
-                if is_file_change(event) {
-                    send_event = true;
-                }
-            }
-        }
-        if send_event {
-            tx_changes_sources.send(ChangeType::Sources).unwrap();
-        }
-    });
-
-    std::thread::spawn(move || loop {
-        let deadline = Instant::now() + Duration::from_millis(COLLECT_EVENTS_MILLIS);
-        let mut send_event = false;
-        loop {
-            let timeout = deadline.saturating_duration_since(Instant::now());
-            if timeout.as_nanos() == 0 {
-                break;
-            }
-
-            if let Ok(event) = rx_code.recv_timeout(timeout) {
-                if is_file_change(event) {
-                    send_event = true;
-                }
-            }
-        }
-        if send_event {
-            tx_changes_code.send(ChangeType::Code).unwrap();
-        }
-    });
+    start_event_thread(rx_sources, tx_changes.clone(), ChangeType::Sources);
+    start_event_thread(rx_code, tx_changes, ChangeType::Code);
 
     loop {
         let event = rx_changes.recv().unwrap();
         closure(event)?;
     }
+}
+
+fn start_event_thread(
+    in_channel: Receiver<DebouncedEvent>,
+    out_channel: Sender<ChangeType>,
+    event_type: ChangeType,
+) {
+    std::thread::spawn(move || loop {
+        let mut send_event = false;
+
+        let event = in_channel.recv().unwrap();
+        if is_file_change(event) {
+            send_event = true;
+        }
+
+        let deadline = Instant::now() + Duration::from_millis(COLLECT_EVENTS_MILLIS);
+        loop {
+            let timeout = match deadline.checked_duration_since(Instant::now()) {
+                None => break,
+                Some(timeout) => timeout,
+            };
+
+            if let Ok(event) = in_channel.recv_timeout(timeout) {
+                if is_file_change(event) {
+                    send_event = true;
+                }
+            }
+        }
+
+        if send_event {
+            out_channel.send(event_type.clone()).unwrap();
+        }
+    });
 }
 
 fn is_file_change(event: DebouncedEvent) -> bool {

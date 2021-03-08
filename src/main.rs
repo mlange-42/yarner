@@ -115,8 +115,8 @@ fn run() -> Fallible {
         watch_forward.insert(config);
         watch::watch(
             matches,
-            watch_forward.iter().map(|p| curr_dir.join(p)).collect(),
-            watch_reverse.iter().map(|p| curr_dir.join(p)).collect(),
+            watch_forward.into_iter(),
+            watch_reverse.into_iter(),
         )?;
     }
 
