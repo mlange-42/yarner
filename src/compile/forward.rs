@@ -19,19 +19,27 @@ pub fn collect_documents(
     config: &Config,
     file_name: &Path,
     documents: &mut HashMap<PathBuf, Document>,
+    source_files: &mut HashSet<PathBuf>,
 ) -> Fallible {
     if !documents.contains_key(file_name) {
         let mut trace = HashSet::new();
-        let (mut document, links) = transclude(&config.parser, file_name, file_name, &mut trace)?;
+        let (mut document, links) = transclude(
+            &config.parser,
+            file_name,
+            file_name,
+            &mut trace,
+            source_files,
+        )?;
 
         let file_str = file_name.to_str().unwrap();
         super::set_source(&mut document, file_str);
 
         documents.insert(file_name.to_owned(), document);
+        source_files.insert(file_name.to_owned());
         for file in links {
             if file.is_file() {
                 if !documents.contains_key(&file) {
-                    collect_documents(config, &file, documents)?;
+                    collect_documents(config, &file, documents, source_files)?;
                 }
             } else {
                 eprintln!("WARNING: link target not found for {}", file.display());
@@ -176,6 +184,7 @@ fn transclude(
     root_file: &Path,
     file_name: &Path,
     trace: &mut HashSet<PathBuf>,
+    source_files: &mut HashSet<PathBuf>,
 ) -> Fallible<(Document, Vec<PathBuf>)> {
     if trace.contains(file_name) {
         return Err(format!(
@@ -197,7 +206,9 @@ fn transclude(
     let mut trans_so_far = HashSet::new();
     for trans in transclusions {
         if !trans_so_far.contains(&trans.file) {
-            let (doc, sub_links) = transclude(parser, root_file, &trans.file, trace)?;
+            source_files.insert(trans.file.to_owned());
+
+            let (doc, sub_links) = transclude(parser, root_file, &trans.file, trace, source_files)?;
 
             if doc.newline() != document.newline() {
                 return Err(format!(
