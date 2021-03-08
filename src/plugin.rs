@@ -50,33 +50,40 @@ pub fn run_plugins(
             .spawn()
             .map_err(|err| format_error(err.into(), &command))?;
 
-        {
-            let stdin = child
-                .stdin
-                .as_mut()
-                .ok_or("Unable to access child process stdin.")
+        docs = if let Err(err) = child
+            .stdin
+            .as_mut()
+            .ok_or_else(|| "No stdin available.".to_string())
+            .and_then(|stdin| {
+                stdin
+                    .write_all(json.as_bytes())
+                    .map_err(|err| err.to_string())
+            }) {
+            eprintln!(
+                "Warning: Plugin '{}' is unable to access child process stdin: {}",
+                name,
+                err.to_string()
+            );
+
+            data.documents
+        } else {
+            let output = child
+                .wait_with_output()
                 .map_err(|err| format_error(err.into(), &command))?;
-            stdin
-                .write_all(json.as_bytes())
+
+            if !output.status.success() {
+                return Err(format!("Plugin '{}' exits with error.", name).into());
+            }
+
+            let out_json = String::from_utf8(output.stdout)
                 .map_err(|err| format_error(err.into(), &command))?;
-        }
 
-        let output = child
-            .wait_with_output()
-            .map_err(|err| format_error(err.into(), &command))?;
-
-        if !output.status.success() {
-            return Err(format!("Plugin '{}' exits with error.", name).into());
-        }
-
-        let out_json =
-            String::from_utf8(output.stdout).map_err(|err| format_error(err.into(), &command))?;
-
-        docs = match from_json(&out_json) {
-            Ok(context) => context.documents,
-            Err(err) => {
-                eprintln!("Warning: Invalid output from plugin '{}': {}", name, err);
-                data.documents
+            match from_json(&out_json) {
+                Ok(context) => context.documents,
+                Err(err) => {
+                    eprintln!("Warning: Invalid output from plugin '{}': {}", name, err);
+                    data.documents
+                }
             }
         }
     }
