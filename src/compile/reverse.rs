@@ -19,6 +19,7 @@ pub fn compile_all(
             file_name,
             file_name,
             documents,
+            track_input_files,
             track_code_files,
             &mut trace,
         )?;
@@ -83,6 +84,7 @@ fn transclude_dry_run(
     root_file: &Path,
     file_name: &Path,
     documents: &mut HashMap<PathBuf, Document>,
+    source_files: &mut HashSet<PathBuf>,
     track_code_files: &mut HashSet<PathBuf>,
     trace: &mut HashSet<PathBuf>,
 ) -> Fallible<(Document, Vec<PathBuf>)> {
@@ -111,9 +113,11 @@ fn transclude_dry_run(
                 root_file,
                 &trans.file,
                 documents,
+                source_files,
                 track_code_files,
                 trace,
             )?;
+            source_files.insert(trans.file.to_owned());
 
             if doc.newline() != document.newline() {
                 return Err(format!(

@@ -245,6 +245,7 @@ fn process_inputs_forward(
 ) -> Fallible<(HashSet<PathBuf>, HashSet<PathBuf>)> {
     let mut any_input = false;
     let mut documents = HashMap::new();
+    let mut source_file = HashSet::new();
     for pattern in input_patterns {
         let paths = glob::glob(&pattern)
             .map_err(|err| format!("Unable to process glob pattern \"{}\": {}", pattern, err))?;
@@ -258,15 +259,19 @@ fn process_inputs_forward(
                 any_input = true;
                 let file_name = PathBuf::from(&input);
 
-                compile::forward::collect_documents(&config, &file_name, &mut documents).map_err(
-                    |err| {
-                        format!(
-                            "Failed to compile source file \"{}\": {}",
-                            file_name.display(),
-                            err
-                        )
-                    },
-                )?;
+                compile::forward::collect_documents(
+                    &config,
+                    &file_name,
+                    &mut documents,
+                    &mut source_file,
+                )
+                .map_err(|err| {
+                    format!(
+                        "Failed to compile source file \"{}\": {}",
+                        file_name.display(),
+                        err
+                    )
+                })?;
             }
         }
     }
@@ -281,11 +286,10 @@ fn process_inputs_forward(
         .into());
     }
 
-    let original_documents = documents.keys().cloned().collect();
     let code_files = compile::forward::extract_code_all(config, &documents)?;
 
     let documents = plugin::run_plugins(config, documents)?;
     compile::forward::write_documentation_all(config, &documents)?;
 
-    Ok((original_documents, code_files.keys().cloned().collect()))
+    Ok((source_file, code_files.keys().cloned().collect()))
 }
