@@ -3,6 +3,7 @@ use crate::{cmd, util::Fallible};
 use clap::ArgMatches;
 use notify::{DebouncedEvent, RecommendedWatcher, RecursiveMode, Watcher};
 use std::collections::HashSet;
+use std::path::Path;
 use std::sync::mpsc::{Receiver, Sender};
 use std::time::Instant;
 use std::{env, path::PathBuf, sync::mpsc::channel, time::Duration};
@@ -15,51 +16,45 @@ enum ChangeType {
     Code,
 }
 
-pub fn watch<I, J>(
+pub fn watch(
     args: ArgMatches,
-    watch_sources: I,
-    watch_code: J,
+    watch_sources: impl Iterator<Item = PathBuf>,
+    watch_code: impl Iterator<Item = PathBuf>,
     allow_reverse: bool,
-) -> Fallible
-where
-    I: Iterator<Item = PathBuf>,
-    J: Iterator<Item = PathBuf>,
-{
+) -> Fallible {
     println!("Watching for changes...");
 
     let mut watch_sources_old: HashSet<_> = watch_sources.collect();
     let mut watch_code_old: HashSet<_> = watch_code.collect();
 
-    trigger_on_change(
-        watch_sources_old.clone(),
-        watch_code_old.clone(),
-        |change, sw, cw| {
-            if allow_reverse || change == ChangeType::Sources {
-                println!(
-                    "{} changed. Re-building...",
-                    if change == ChangeType::Sources {
-                        "Sources"
-                    } else {
-                        "Code"
-                    }
-                );
+    let (rx_changes, mut sw, mut cw) =
+        trigger_on_change(watch_sources_old.iter(), watch_code_old.iter())?;
 
-                let curr_dir = env::current_dir()?;
-                let (config, mut watch_sources_new, watch_code_new, _has_reverse) =
-                    cmd::run_with_args(&args, Some(change == ChangeType::Code))?;
-                env::set_current_dir(&curr_dir)?;
+    for change in rx_changes {
+        if allow_reverse || change == ChangeType::Sources {
+            println!(
+                "{} changed. Re-building...",
+                if change == ChangeType::Sources {
+                    "Sources"
+                } else {
+                    "Code"
+                }
+            );
 
-                watch_sources_new.insert(config);
+            let curr_dir = env::current_dir()?;
+            let (config, mut watch_sources_new, watch_code_new, _has_reverse) =
+                cmd::run_with_args(&args, Some(change == ChangeType::Code))?;
+            env::set_current_dir(&curr_dir)?;
 
-                update_watcher(sw, &watch_sources_old, &watch_sources_new)?;
-                update_watcher(cw, &watch_code_old, &watch_code_new)?;
+            watch_sources_new.insert(config);
 
-                watch_sources_old = watch_sources_new;
-                watch_code_old = watch_code_new;
-            }
-            Ok(())
-        },
-    )?;
+            update_watcher(&mut sw, &watch_sources_old, &watch_sources_new)?;
+            update_watcher(&mut cw, &watch_code_old, &watch_code_new)?;
+
+            watch_sources_old = watch_sources_new;
+            watch_code_old = watch_code_new;
+        }
+    }
 
     Ok(())
 }
@@ -69,27 +64,22 @@ fn update_watcher(
     old_files: &HashSet<PathBuf>,
     new_files: &HashSet<PathBuf>,
 ) -> Fallible {
-    for path in old_files {
-        if !new_files.contains(path) {
-            watcher.unwatch(path)?;
-        }
+    for path in old_files.difference(new_files) {
+        watcher.unwatch(path)?;
     }
-    for path in new_files {
-        if !old_files.contains(path) {
-            watcher.watch(&path, RecursiveMode::NonRecursive)?;
-        }
+    for path in new_files.difference(old_files) {
+        watcher.watch(&path, RecursiveMode::NonRecursive)?;
     }
     Ok(())
 }
 
 /// Calls the closure when a book source file is changed, blocking indefinitely.
-fn trigger_on_change<F>(
-    watch_sources: HashSet<PathBuf>,
-    watch_code: HashSet<PathBuf>,
-    mut closure: F,
-) -> Fallible<Receiver<ChangeType>>
+fn trigger_on_change<P>(
+    watch_sources: impl Iterator<Item = P>,
+    watch_code: impl Iterator<Item = P>,
+) -> Fallible<(Receiver<ChangeType>, RecommendedWatcher, RecommendedWatcher)>
 where
-    F: FnMut(ChangeType, &mut RecommendedWatcher, &mut RecommendedWatcher) -> Fallible,
+    P: AsRef<Path>,
 {
     let (tx_sources, rx_sources) = channel();
     let mut source_watcher = notify::watcher(tx_sources, Duration::from_secs(1))?;
@@ -108,10 +98,7 @@ where
     start_event_thread(rx_sources, tx_changes.clone(), ChangeType::Sources);
     start_event_thread(rx_code, tx_changes, ChangeType::Code);
 
-    loop {
-        let event = rx_changes.recv().unwrap();
-        closure(event, &mut source_watcher, &mut code_watcher)?;
-    }
+    Ok((rx_changes, source_watcher, code_watcher))
 }
 
 fn start_event_thread(
