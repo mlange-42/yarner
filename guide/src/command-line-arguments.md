@@ -45,4 +45,5 @@ SUBCOMMANDS:
     help       Prints this message or the help of the given subcommand(s)
     init       Creates a yarner project in the current directory
     reverse    Reverse mode: play back code changes into source files
+    watch      Watch files and build project on changes
 ```

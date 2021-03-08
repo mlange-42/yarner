@@ -3,10 +3,6 @@
 Programming inside Markdown code blocks may be inconvenient due to missing syntax highlighting and the lack of IDE support in general.
 Yarner offers a "reverse mode" that lets you edit generated code files, e.g. in an IDE, and to play back changes into the Markdown sources.
 
-<div style="border: 2px solid red; padding: 0.5em;">
-Warning: This feature is still experimental and modifies the original Markdown sources. Make a backup of the sources before using it!
-</div>
-
 [[_TOC_]]
 
 ## Usage
