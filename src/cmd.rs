@@ -1,8 +1,8 @@
-use std::collections::{HashMap, HashSet};
-use std::env::set_current_dir;
-use std::fs::File;
-use std::io::Write;
-use std::path::PathBuf;
+use std::{
+    collections::{HashMap, HashSet},
+    env, fs,
+    path::PathBuf,
+};
 
 use clap::ArgMatches;
 
@@ -47,7 +47,7 @@ pub fn run_with_args(
         .or_else(|| config.paths.root.as_deref());
 
     let root_path = if let Some(path) = root {
-        set_current_dir(path)
+        env::set_current_dir(path)
             .map_err(|err| format!("Unable to set root to \"{}\": {}", path, err))?;
         PathBuf::from(path)
     } else {
@@ -226,8 +226,7 @@ fn process_inputs_reverse(
         if !blocks.is_empty() {
             let print = print::docs::print_reverse(&doc, &config.parser, &blocks);
             println!("  Writing back to file {}", path.display());
-            let mut file = File::create(path).unwrap();
-            write!(file, "{}", print).unwrap()
+            fs::write(&path, print)?;
         } else {
             println!("  Skipping file {}", path.display());
         }

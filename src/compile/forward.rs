@@ -1,10 +1,11 @@
-use std::collections::{
-    hash_map::Entry::{Occupied, Vacant},
-    HashMap, HashSet,
+use std::{
+    collections::{
+        hash_map::Entry::{Occupied, Vacant},
+        HashMap, HashSet,
+    },
+    fs,
+    path::{Path, PathBuf},
 };
-use std::fs::{self, File};
-use std::io::Write;
-use std::path::{Path, PathBuf};
 
 use yarner_lib::{Document, Node, Transclusion};
 
@@ -61,7 +62,6 @@ pub fn write_documentation_all(
     for (path, doc) in documents.iter() {
         write_documentation(config, &doc, &path)?;
     }
-
     Ok(())
 }
 
@@ -124,11 +124,10 @@ fn extract_code(
                     document.newline(),
                 )?;
 
-                if files::file_differs(&file_path, &code)? {
+                if files::file_differs(&file_path, &code) {
                     println!("  Writing file {}", file_path.display());
                     fs::create_dir_all(file_path.parent().unwrap())?;
-                    let mut code_file = File::create(file_path)?;
-                    write!(code_file, "{}", code)?;
+                    fs::write(&file_path, code)?;
                 } else {
                     println!("  Skipping unchanged file {}", file_path.display());
                 }
@@ -155,11 +154,10 @@ fn write_documentation(config: &Config, document: &Document, file_name: &Path) -
             let mut file_path = doc_dir.to_owned();
             file_path.push(file_name);
 
-            if files::file_differs(&file_path, &documentation)? {
+            if files::file_differs(&file_path, &documentation) {
                 println!("Writing documentation file {}", file_name.display());
                 fs::create_dir_all(file_path.parent().unwrap()).unwrap();
-                let mut doc_file = File::create(file_path).unwrap();
-                write!(doc_file, "{}", documentation)?;
+                fs::write(&file_path, documentation)?;
             } else {
                 println!(
                     "Skipping unchanged documentation file {}",

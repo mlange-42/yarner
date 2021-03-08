@@ -1,7 +1,7 @@
 use std::{
     collections::{
         hash_map::Entry::{Occupied, Vacant},
-        HashMap,
+        HashMap, HashSet,
     },
     ffi::OsStr,
     iter::repeat,
@@ -9,7 +9,6 @@ use std::{
 };
 
 use crate::util::Fallible;
-use std::collections::HashSet;
 
 pub fn read_file_string(path: &Path) -> Fallible<String> {
     std::fs::read_to_string(&path).map_err(|err| format!("{}: {}", err, path.display()).into())
@@ -19,20 +18,14 @@ pub fn read_file(path: &Path) -> Fallible<Vec<u8>> {
     std::fs::read(&path).map_err(|err| format!("{}: {}", err, path.display()).into())
 }
 
-fn files_differ(old: &Path, new: &Path) -> Fallible<bool> {
-    if !(old.is_file() && new.is_file()) {
-        return Ok(true);
-    }
-
-    Ok(read_file(old)? != read_file(new)?)
+fn files_differ(old: &Path, new: &Path) -> bool {
+    read_file(old)
+        .and_then(|old| read_file(new).map(|new| old != new))
+        .unwrap_or(true)
 }
 
-pub fn file_differs(file: &Path, content: &str) -> Fallible<bool> {
-    if !file.is_file() {
-        return Ok(true);
-    }
-
-    Ok(read_file_string(file)? != content)
+pub fn file_differs(file: &Path, new_content: &str) -> bool {
+    read_file_string(file).map_or(true, |content| content != new_content)
 }
 
 pub fn copy_files(
@@ -97,7 +90,7 @@ pub fn copy_files(
                 } else {
                     (&file, &file_path)
                 };
-                if files_differ(&from, &to)? {
+                if files_differ(&from, &to) {
                     println!("Copying file {} to {}", from.display(), to.display());
                     if let Err(err) = std::fs::copy(&from, &to) {
                         return Err(
