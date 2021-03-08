@@ -51,28 +51,34 @@ where
 
                 watch_sources_new.insert(config);
 
-                for path in &watch_sources_old {
-                    sw.unwatch(path)?;
-                }
-                for path in &watch_code_old {
-                    cw.unwatch(path)?;
-                }
+                update_watcher(sw, &watch_sources_old, &watch_sources_new)?;
+                update_watcher(cw, &watch_code_old, &watch_code_new)?;
 
-                watch_sources_old.clear();
-                watch_code_old.clear();
-                for path in watch_sources_new {
-                    sw.watch(&path, RecursiveMode::NonRecursive)?;
-                    watch_sources_old.insert(path);
-                }
-                for path in watch_code_new {
-                    cw.watch(&path, RecursiveMode::NonRecursive)?;
-                    watch_code_old.insert(path);
-                }
+                watch_sources_old = watch_sources_new;
+                watch_code_old = watch_code_new;
             }
             Ok(())
         },
     )?;
 
+    Ok(())
+}
+
+fn update_watcher(
+    watcher: &mut RecommendedWatcher,
+    old_files: &HashSet<PathBuf>,
+    new_files: &HashSet<PathBuf>,
+) -> Fallible {
+    for path in old_files {
+        if !new_files.contains(path) {
+            watcher.unwatch(path)?;
+        }
+    }
+    for path in new_files {
+        if !old_files.contains(path) {
+            watcher.watch(&path, RecursiveMode::NonRecursive)?;
+        }
+    }
     Ok(())
 }
 
