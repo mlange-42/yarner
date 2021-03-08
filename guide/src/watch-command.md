@@ -18,4 +18,10 @@ To start watching, run subcommand `watch`:
 
 Yarner will do one forward build and then watch the detected source files, as well as the generated code files, for changes. When source files change, Yarner runs a forward build. When code files change, it runs a reverse build.
 
+The config file `Yarner.toml` is watched as a source file, thus a forward run will be done on changes.
+
 To stop watching, press `Ctrl + C`.
+
+## Limitations
+
+Currently, the list of watched files is not updated on changes. When this list should change, e.g. after adding a transclusion, watch mode should be restarted.
