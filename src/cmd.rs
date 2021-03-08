@@ -225,8 +225,12 @@ fn process_inputs_reverse(
 
         if !blocks.is_empty() {
             let print = print::docs::print_reverse(&doc, &config.parser, &blocks);
-            println!("  Writing back to file {}", path.display());
-            fs::write(&path, print)?;
+            if files::file_differs(&path, &print) {
+                println!("  Writing back to file {}", path.display());
+                fs::write(&path, print)?;
+            } else {
+                println!("  Skipping unchanged file {}", path.display());
+            }
         } else {
             println!("  Skipping file {}", path.display());
         }
