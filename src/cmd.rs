@@ -18,7 +18,7 @@ use crate::{
 pub fn run_with_args(
     matches: &ArgMatches,
     reverse_mode: Option<bool>,
-) -> Fallible<(PathBuf, HashSet<PathBuf>, HashSet<PathBuf>)> {
+) -> Fallible<(PathBuf, HashSet<PathBuf>, HashSet<PathBuf>, bool)> {
     let config_path = matches.value_of("config").unwrap();
     let mut config = Config::read(config_path)
         .map_err(|err| format!("Could not read config file \"{}\": {}", config_path, err))?;
@@ -28,8 +28,9 @@ pub fn run_with_args(
         .map_err(|err| format!("Invalid config file \"{}\": {}", config_path, err))?;
 
     let reverse = reverse_mode.unwrap_or_else(|| matches.subcommand_matches("reverse").is_some());
+    let has_reverse_config = config.has_reverse_config();
 
-    if reverse && !config.has_reverse_config() {
+    if reverse && !has_reverse_config {
         return Err("Reverse mode not enabled for any language. Stopping.".into());
     }
 
@@ -72,7 +73,7 @@ pub fn run_with_args(
     )?;
 
     if !force
-        && config.has_reverse_config()
+        && has_reverse_config
         && config.paths.has_valid_code_path()
         && lock::files_changed(&lock_path, reverse)?
     {
@@ -111,7 +112,7 @@ pub fn run_with_args(
         }
     }
 
-    if config.has_reverse_config() {
+    if has_reverse_config {
         lock::write_lock(lock_path, &source_files, &code_files)?;
     }
 
@@ -122,6 +123,7 @@ pub fn run_with_args(
             .map(|path| root_path.join(path))
             .collect(),
         code_files.iter().map(|path| root_path.join(path)).collect(),
+        has_reverse_config,
     ))
 }
 

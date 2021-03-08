@@ -14,7 +14,12 @@ enum ChangeType {
     Code,
 }
 
-pub fn watch<I, J>(args: ArgMatches, mut watch_sources: I, mut watch_code: J) -> Fallible
+pub fn watch<I, J>(
+    args: ArgMatches,
+    mut watch_sources: I,
+    mut watch_code: J,
+    allow_reverse: bool,
+) -> Fallible
 where
     I: Iterator<Item = PathBuf>,
     J: Iterator<Item = PathBuf>,
@@ -24,19 +29,21 @@ where
     let rx_changes = trigger_on_change(&mut watch_sources, &mut watch_code)?;
 
     for change in rx_changes {
-        println!(
-            "{} changed. Re-building...",
-            if change == ChangeType::Sources {
-                "Sources"
-            } else {
-                "Code"
-            }
-        );
+        if allow_reverse || change == ChangeType::Sources {
+            println!(
+                "{} changed. Re-building...",
+                if change == ChangeType::Sources {
+                    "Sources"
+                } else {
+                    "Code"
+                }
+            );
 
-        let curr_dir = env::current_dir()?;
-        let (_config, _watch_forward, _watch_reverse) =
-            cmd::run_with_args(&args, Some(change == ChangeType::Code))?;
-        env::set_current_dir(&curr_dir)?;
+            let curr_dir = env::current_dir()?;
+            let (_config, _watch_forward, _watch_reverse, _has_reverse) =
+                cmd::run_with_args(&args, Some(change == ChangeType::Code))?;
+            env::set_current_dir(&curr_dir)?;
+        }
     }
 
     Ok(())
