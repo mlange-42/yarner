@@ -1,7 +1,7 @@
 use crate::{cmd, util::Fallible};
 
 use clap::ArgMatches;
-use notify::{DebouncedEvent, RecommendedWatcher, RecursiveMode, Watcher};
+use notify::{RawEvent, RecommendedWatcher, RecursiveMode, Watcher};
 use std::collections::HashSet;
 use std::path::Path;
 use std::sync::atomic::{AtomicBool, Ordering};
@@ -10,7 +10,7 @@ use std::sync::Arc;
 use std::time::Instant;
 use std::{env, path::PathBuf, sync::mpsc::channel, time::Duration};
 
-const COLLECT_EVENTS_MILLIS: u64 = 500;
+const COLLECT_EVENTS_MILLIS: u64 = 1000;
 
 #[derive(PartialEq, Clone)]
 enum ChangeType {
@@ -94,9 +94,9 @@ where
     P: AsRef<Path>,
 {
     let (tx_sources, rx_sources) = channel();
-    let mut source_watcher = notify::watcher(tx_sources, Duration::from_secs(1))?;
+    let mut source_watcher = notify::raw_watcher(tx_sources)?;
     let (tx_code, rx_code) = channel();
-    let mut code_watcher = notify::watcher(tx_code, Duration::from_secs(1))?;
+    let mut code_watcher = notify::raw_watcher(tx_code)?;
 
     for path in watch_sources {
         source_watcher.watch(path, RecursiveMode::NonRecursive)?;
@@ -119,7 +119,7 @@ where
 }
 
 fn start_event_thread(
-    in_channel: Receiver<DebouncedEvent>,
+    in_channel: Receiver<RawEvent>,
     out_channel: Sender<ChangeType>,
     event_type: ChangeType,
     suspend: Arc<AtomicBool>,
@@ -127,22 +127,23 @@ fn start_event_thread(
     std::thread::spawn(move || loop {
         let mut send_event = false;
 
-        let event = in_channel.recv().unwrap();
-        if is_file_change(event) && !suspend.load(Ordering::SeqCst) {
+        in_channel.recv().unwrap();
+        if !suspend.load(Ordering::SeqCst) {
             send_event = true;
         }
 
-        let deadline = Instant::now() + Duration::from_millis(COLLECT_EVENTS_MILLIS);
+        let mut deadline = Instant::now() + Duration::from_millis(COLLECT_EVENTS_MILLIS);
         loop {
             let timeout = match deadline.checked_duration_since(Instant::now()) {
                 None => break,
                 Some(timeout) => timeout,
             };
 
-            if let Ok(event) = in_channel.recv_timeout(timeout) {
-                if is_file_change(event) && !suspend.load(Ordering::SeqCst) {
+            if in_channel.recv_timeout(timeout).is_ok() {
+                if !suspend.load(Ordering::SeqCst) {
                     send_event = true;
                 }
+                deadline = Instant::now() + Duration::from_millis(COLLECT_EVENTS_MILLIS);
             }
         }
 
@@ -150,14 +151,4 @@ fn start_event_thread(
             out_channel.send(event_type.clone()).unwrap();
         }
     });
-}
-
-fn is_file_change(event: DebouncedEvent) -> bool {
-    matches!(
-        event,
-        DebouncedEvent::Create(_)
-            | DebouncedEvent::Write(_)
-            | DebouncedEvent::Remove(_)
-            | DebouncedEvent::Rename(_, _)
-    )
 }
