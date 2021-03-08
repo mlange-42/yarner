@@ -4,7 +4,9 @@ use clap::ArgMatches;
 use notify::{DebouncedEvent, RecommendedWatcher, RecursiveMode, Watcher};
 use std::collections::HashSet;
 use std::path::Path;
+use std::sync::atomic::{AtomicBool, Ordering};
 use std::sync::mpsc::{Receiver, Sender};
+use std::sync::Arc;
 use std::time::Instant;
 use std::{env, path::PathBuf, sync::mpsc::channel, time::Duration};
 
@@ -27,8 +29,13 @@ pub fn watch(
     let mut watch_sources_old: HashSet<_> = watch_sources.collect();
     let mut watch_code_old: HashSet<_> = watch_code.collect();
 
-    let (rx_changes, mut sw, mut cw) =
-        trigger_on_change(watch_sources_old.iter(), watch_code_old.iter())?;
+    let suspend: Arc<AtomicBool> = Arc::new(AtomicBool::new(false));
+
+    let (rx_changes, mut sw, mut cw) = trigger_on_change(
+        watch_sources_old.iter(),
+        watch_code_old.iter(),
+        suspend.clone(),
+    )?;
 
     for change in rx_changes {
         if allow_reverse || change == ChangeType::Sources {
@@ -41,6 +48,8 @@ pub fn watch(
                 }
             );
 
+            suspend.swap(true, Ordering::SeqCst);
+
             let curr_dir = env::current_dir()?;
             let (config, mut watch_sources_new, watch_code_new, _has_reverse) =
                 cmd::run_with_args(&args, Some(change == ChangeType::Code))?;
@@ -50,6 +59,8 @@ pub fn watch(
 
             update_watcher(&mut sw, &watch_sources_old, &watch_sources_new)?;
             update_watcher(&mut cw, &watch_code_old, &watch_code_new)?;
+
+            suspend.swap(false, Ordering::SeqCst);
 
             watch_sources_old = watch_sources_new;
             watch_code_old = watch_code_new;
@@ -77,6 +88,7 @@ fn update_watcher(
 fn trigger_on_change<P>(
     watch_sources: impl Iterator<Item = P>,
     watch_code: impl Iterator<Item = P>,
+    suspend: Arc<AtomicBool>,
 ) -> Fallible<(Receiver<ChangeType>, RecommendedWatcher, RecommendedWatcher)>
 where
     P: AsRef<Path>,
@@ -95,8 +107,13 @@ where
 
     let (tx_changes, rx_changes) = channel();
 
-    start_event_thread(rx_sources, tx_changes.clone(), ChangeType::Sources);
-    start_event_thread(rx_code, tx_changes, ChangeType::Code);
+    start_event_thread(
+        rx_sources,
+        tx_changes.clone(),
+        ChangeType::Sources,
+        suspend.clone(),
+    );
+    start_event_thread(rx_code, tx_changes, ChangeType::Code, suspend);
 
     Ok((rx_changes, source_watcher, code_watcher))
 }
@@ -105,12 +122,13 @@ fn start_event_thread(
     in_channel: Receiver<DebouncedEvent>,
     out_channel: Sender<ChangeType>,
     event_type: ChangeType,
+    suspend: Arc<AtomicBool>,
 ) {
     std::thread::spawn(move || loop {
         let mut send_event = false;
 
         let event = in_channel.recv().unwrap();
-        if is_file_change(event) {
+        if is_file_change(event) && !suspend.load(Ordering::SeqCst) {
             send_event = true;
         }
 
@@ -122,7 +140,7 @@ fn start_event_thread(
             };
 
             if let Ok(event) = in_channel.recv_timeout(timeout) {
-                if is_file_change(event) {
+                if is_file_change(event) && !suspend.load(Ordering::SeqCst) {
                     send_event = true;
                 }
             }
