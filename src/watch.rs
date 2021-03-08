@@ -8,7 +8,7 @@ use std::sync::mpsc::{Receiver, Sender};
 use std::time::Instant;
 use std::{env, path::PathBuf, sync::mpsc::channel, time::Duration};
 
-const COLLECT_EVENTS_MILLIS: u64 = 500;
+const COLLECT_EVENTS_MILLIS: u64 = 100;
 
 #[derive(PartialEq, Clone)]
 enum ChangeType {
@@ -41,6 +41,11 @@ pub fn watch(
                 }
             );
 
+            match change {
+                ChangeType::Sources => unwatch_all(&mut cw, &watch_code_old)?,
+                ChangeType::Code => unwatch_all(&mut sw, &watch_sources_old)?,
+            }
+
             let curr_dir = env::current_dir()?;
             let (config, mut watch_sources_new, watch_code_new, _has_reverse) =
                 cmd::run_with_args(&args, Some(change == ChangeType::Code))?;
@@ -48,8 +53,16 @@ pub fn watch(
 
             watch_sources_new.insert(config);
 
-            update_watcher(&mut sw, &watch_sources_old, &watch_sources_new)?;
-            update_watcher(&mut cw, &watch_code_old, &watch_code_new)?;
+            match change {
+                ChangeType::Sources => {
+                    update_watcher(&mut sw, &watch_sources_old, &watch_sources_new)?;
+                    watch_all(&mut cw, &watch_code_new)?;
+                }
+                ChangeType::Code => {
+                    update_watcher(&mut cw, &watch_code_old, &watch_code_new)?;
+                    watch_all(&mut sw, &watch_sources_new)?;
+                }
+            }
 
             watch_sources_old = watch_sources_new;
             watch_code_old = watch_code_new;
@@ -68,6 +81,20 @@ fn update_watcher(
         watcher.unwatch(path)?;
     }
     for path in new_files.difference(old_files) {
+        watcher.watch(&path, RecursiveMode::NonRecursive)?;
+    }
+    Ok(())
+}
+
+fn unwatch_all(watcher: &mut RecommendedWatcher, old_files: &HashSet<PathBuf>) -> Fallible {
+    for path in old_files {
+        watcher.unwatch(&path)?;
+    }
+    Ok(())
+}
+
+fn watch_all(watcher: &mut RecommendedWatcher, new_files: &HashSet<PathBuf>) -> Fallible {
+    for path in new_files {
         watcher.watch(&path, RecursiveMode::NonRecursive)?;
     }
     Ok(())
