@@ -4,15 +4,16 @@ use clap::ArgMatches;
 use notify::{RawEvent, RecommendedWatcher, RecursiveMode, Watcher};
 use std::collections::HashSet;
 use std::path::Path;
-use std::sync::atomic::{AtomicBool, Ordering};
-use std::sync::mpsc::{Receiver, Sender};
-use std::sync::Arc;
-use std::time::Instant;
+use std::sync::{
+    atomic::{AtomicBool, Ordering},
+    mpsc::{Receiver, Sender},
+    Arc,
+};
 use std::{env, path::PathBuf, sync::mpsc::channel, time::Duration};
 
-const COLLECT_EVENTS_MILLIS: u64 = 1000;
+const COLLECT_EVENTS: Duration = Duration::from_millis(1000);
 
-#[derive(PartialEq, Clone)]
+#[derive(PartialEq, Clone, Copy)]
 enum ChangeType {
     Sources,
     Code,
@@ -48,7 +49,7 @@ pub fn watch(
                 }
             );
 
-            suspend.swap(true, Ordering::SeqCst);
+            suspend.store(true, Ordering::SeqCst);
 
             let curr_dir = env::current_dir()?;
             let (config, mut watch_sources_new, watch_code_new, _has_reverse) =
@@ -60,7 +61,7 @@ pub fn watch(
             update_watcher(&mut sw, &watch_sources_old, &watch_sources_new)?;
             update_watcher(&mut cw, &watch_code_old, &watch_code_new)?;
 
-            suspend.swap(false, Ordering::SeqCst);
+            suspend.store(false, Ordering::SeqCst);
 
             watch_sources_old = watch_sources_new;
             watch_code_old = watch_code_new;
@@ -125,30 +126,16 @@ fn start_event_thread(
     suspend: Arc<AtomicBool>,
 ) {
     std::thread::spawn(move || loop {
-        let mut send_event = false;
-
         in_channel.recv().unwrap();
-        if !suspend.load(Ordering::SeqCst) {
-            send_event = true;
+        if suspend.load(Ordering::SeqCst) {
+            continue;
         }
 
-        let mut deadline = Instant::now() + Duration::from_millis(COLLECT_EVENTS_MILLIS);
-        loop {
-            let timeout = match deadline.checked_duration_since(Instant::now()) {
-                None => break,
-                Some(timeout) => timeout,
-            };
-
-            if in_channel.recv_timeout(timeout).is_ok() {
-                if !suspend.load(Ordering::SeqCst) {
-                    send_event = true;
-                }
-                deadline = Instant::now() + Duration::from_millis(COLLECT_EVENTS_MILLIS);
-            }
+        while in_channel.recv_timeout(COLLECT_EVENTS).is_ok() {}
+        if suspend.load(Ordering::SeqCst) {
+            continue;
         }
 
-        if send_event {
-            out_channel.send(event_type.clone()).unwrap();
-        }
+        out_channel.send(event_type).unwrap();
     });
 }
