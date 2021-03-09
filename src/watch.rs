@@ -51,17 +51,18 @@ pub fn watch(
 
         suspend.store(true, Ordering::SeqCst);
 
-        let curr_dir = env::current_dir()?;
-
         let build_type = match change {
             ChangeType::Sources => BuildMode::Forward,
             ChangeType::Code => BuildMode::Reverse,
         };
 
+        let curr_dir = env::current_dir()?;
+
         let (config, mut watch_sources_new, watch_code_new) =
             cmd::run_with_args(&args, Some(build_type), false)?;
 
         if build_type == BuildMode::Reverse {
+            env::set_current_dir(&curr_dir)?;
             cmd::run_with_args(&args, Some(BuildMode::ForwardDocs), false)?;
         }
 
