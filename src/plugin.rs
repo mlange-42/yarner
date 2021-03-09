@@ -89,11 +89,15 @@ pub fn run_plugins(
                     }
                 }
             } else {
-                info!("{}", String::from_utf8(output.stdout)?);
+                if !output.stdout.is_empty() {
+                    info!("{}", String::from_utf8(output.stdout)?);
+                }
                 data.documents
             }
         } else {
-            info!("{}", String::from_utf8(output.stdout)?);
+            if !output.stdout.is_empty() {
+                info!("{}", String::from_utf8(output.stdout)?);
+            }
 
             let message = format!(
                 "Plugin '{}' exits with error {}.",

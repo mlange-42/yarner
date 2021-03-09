@@ -22,6 +22,7 @@ fn main() {
     env_logger::Builder::new()
         .format_module_path(false)
         .format_timestamp(None)
+        .format_indent(Some(8))
         .filter_level(LevelFilter::Info)
         .parse_env("RUST_LOG")
         .init();
