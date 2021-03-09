@@ -108,8 +108,7 @@ fn run() -> Fallible {
     }
 
     let curr_dir = env::current_dir()?;
-    let (config, mut watch_forward, watch_reverse, has_reverse_conf) =
-        cmd::run_with_args(&matches, None)?;
+    let (config, mut watch_forward, watch_reverse) = cmd::run_with_args(&matches, None, true)?;
     env::set_current_dir(&curr_dir)?;
 
     if matches.subcommand_matches("watch").is_some() {
@@ -118,7 +117,6 @@ fn run() -> Fallible {
             matches,
             watch_forward.into_iter(),
             watch_reverse.into_iter(),
-            has_reverse_conf,
         )?;
     }
 

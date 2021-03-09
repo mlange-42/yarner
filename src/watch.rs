@@ -23,7 +23,6 @@ pub fn watch(
     args: ArgMatches,
     watch_sources: impl Iterator<Item = PathBuf>,
     watch_code: impl Iterator<Item = PathBuf>,
-    allow_reverse: bool,
 ) -> Fallible {
     println!("Watching for changes...");
 
@@ -39,33 +38,31 @@ pub fn watch(
     )?;
 
     for change in rx_changes {
-        if allow_reverse || change == ChangeType::Sources {
-            println!(
-                "{} changed. Re-building...",
-                if change == ChangeType::Sources {
-                    "Sources"
-                } else {
-                    "Code"
-                }
-            );
+        println!(
+            "{} changed. Re-building...",
+            if change == ChangeType::Sources {
+                "Sources"
+            } else {
+                "Code"
+            }
+        );
 
-            suspend.store(true, Ordering::SeqCst);
+        suspend.store(true, Ordering::SeqCst);
 
-            let curr_dir = env::current_dir()?;
-            let (config, mut watch_sources_new, watch_code_new, _has_reverse) =
-                cmd::run_with_args(&args, Some(change == ChangeType::Code))?;
-            env::set_current_dir(&curr_dir)?;
+        let curr_dir = env::current_dir()?;
+        let (config, mut watch_sources_new, watch_code_new) =
+            cmd::run_with_args(&args, Some(change == ChangeType::Code), false)?;
+        env::set_current_dir(&curr_dir)?;
 
-            watch_sources_new.insert(config);
+        watch_sources_new.insert(config);
 
-            update_watcher(&mut sw, &watch_sources_old, &watch_sources_new)?;
-            update_watcher(&mut cw, &watch_code_old, &watch_code_new)?;
+        update_watcher(&mut sw, &watch_sources_old, &watch_sources_new)?;
+        update_watcher(&mut cw, &watch_code_old, &watch_code_new)?;
 
-            suspend.store(false, Ordering::SeqCst);
+        suspend.store(false, Ordering::SeqCst);
 
-            watch_sources_old = watch_sources_new;
-            watch_code_old = watch_code_new;
-        }
+        watch_sources_old = watch_sources_new;
+        watch_code_old = watch_code_new;
     }
 
     Ok(())
