@@ -15,13 +15,22 @@ extern crate yarner_lib;
 
 use crate::util::Fallible;
 use clap::{crate_version, App, Arg, ArgMatches, SubCommand};
+use log::{error, info, LevelFilter};
 use std::env;
 
 fn main() {
+    env_logger::Builder::new()
+        .format_module_path(false)
+        .format_timestamp(None)
+        .format_indent(Some(8))
+        .filter_level(LevelFilter::Info)
+        .parse_env("RUST_LOG")
+        .init();
+
     std::process::exit(match run() {
         Ok(()) => 0,
         Err(err) => {
-            eprintln!("ERROR: {}", err);
+            error!("{}", err);
             1
         }
     });
@@ -103,7 +112,7 @@ fn run() -> Fallible {
 
     if matches.subcommand_matches("init").is_some() {
         create::create_new_project().map_err(|err| format!("Could not create project: {}", err))?;
-        println!("Successfully created project.\nTo compile the project, run 'yarner' from here.",);
+        info!("Successfully created project.\nTo compile the project, run 'yarner' from here.",);
         return Ok(());
     }
 

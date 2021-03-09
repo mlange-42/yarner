@@ -4,6 +4,7 @@ use std::io::Write;
 use std::path::PathBuf;
 use std::process::{Command, Stdio};
 
+use log::{info, warn};
 use yarner_lib::{Context, Document, YarnerData, YARNER_VERSION};
 
 use crate::config::Config;
@@ -42,7 +43,7 @@ pub fn run_plugins(
 
         let json = to_json(&data)?;
 
-        println!("Running plugin '{}'", name);
+        info!("Running plugin '{}'", name);
 
         let mut child = Command::new(&command)
             .stdin(Stdio::piped())
@@ -60,8 +61,8 @@ pub fn run_plugins(
                     .write_all(json.as_bytes())
                     .map_err(|err| err.to_string())
             }) {
-            eprintln!(
-                "Warning: Plugin '{}' is unable to access child process stdin: {}",
+            warn!(
+                "Plugin '{}' is unable to access child process stdin: {}",
                 name,
                 err.to_string()
             );
@@ -83,16 +84,20 @@ pub fn run_plugins(
                 match from_json(&out_json) {
                     Ok(context) => context.documents,
                     Err(err) => {
-                        eprintln!("Warning: Invalid output from plugin '{}': {}", name, err);
+                        warn!("Invalid output from plugin '{}': {}", name, err);
                         data.documents
                     }
                 }
             } else {
-                print!("{}", String::from_utf8(output.stdout)?);
+                if !output.stdout.is_empty() {
+                    info!("{}", String::from_utf8(output.stdout)?);
+                }
                 data.documents
             }
         } else {
-            print!("{}", String::from_utf8(output.stdout)?);
+            if !output.stdout.is_empty() {
+                info!("{}", String::from_utf8(output.stdout)?);
+            }
 
             let message = format!(
                 "Plugin '{}' exits with error {}.",
@@ -103,7 +108,7 @@ pub fn run_plugins(
             if strict {
                 return Err(message.into());
             } else {
-                eprintln!("Warning: {}", message);
+                warn!("{}", message);
             }
 
             data.documents

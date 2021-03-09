@@ -5,6 +5,7 @@ use std::{
 };
 
 use clap::ArgMatches;
+use log::{info, warn};
 
 use yarner_lib::Document;
 
@@ -36,7 +37,7 @@ pub fn run_with_args(
         if strict {
             return Err(message.into());
         } else {
-            eprintln!("Warning: {}", message);
+            warn!("{}", message);
         }
     }
 
@@ -231,13 +232,13 @@ fn process_inputs_reverse(
         if !blocks.is_empty() {
             let print = print::docs::print_reverse(&doc, &config.parser, &blocks);
             if files::file_differs(&path, &print) {
-                println!("  Writing back to file {}", path.display());
+                info!("  Writing back to file {}", path.display());
                 fs::write(&path, print)?;
             } else {
-                println!("  Skipping unchanged file {}", path.display());
+                info!("  Skipping unchanged file {}", path.display());
             }
         } else {
-            println!("  Skipping file {}", path.display());
+            info!("  Skipping file {}", path.display());
         }
     }
 

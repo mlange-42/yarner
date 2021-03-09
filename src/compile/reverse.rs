@@ -1,6 +1,7 @@
 use std::collections::{HashMap, HashSet};
 use std::path::{Path, PathBuf};
 
+use log::{info, warn};
 use yarner_lib::Document;
 
 use crate::{config::Config, files, parse, util::Fallible};
@@ -45,7 +46,7 @@ pub fn compile_all(
                     )?;
                 }
             } else {
-                eprintln!("WARNING: link target not found for {}", file.display());
+                warn!("Link target not found for {}", file.display());
             }
         }
     }
@@ -59,7 +60,7 @@ fn compile(
     file_name: &Path,
     track_code_files: &mut HashSet<PathBuf>,
 ) {
-    println!("Compiling file {}", file_name.display());
+    info!("Compiling file {}", file_name.display());
 
     let mut entries = document.entry_points();
 
