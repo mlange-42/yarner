@@ -109,7 +109,7 @@ fn run() -> Fallible {
 
     let curr_dir = env::current_dir()?;
     let (config, mut watch_forward, watch_reverse, has_reverse_conf) =
-        cmd::run_with_args(&matches, None)?;
+        cmd::run_with_args(&matches, None, true)?;
     env::set_current_dir(&curr_dir)?;
 
     if matches.subcommand_matches("watch").is_some() {

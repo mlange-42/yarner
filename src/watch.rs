@@ -53,7 +53,7 @@ pub fn watch(
 
             let curr_dir = env::current_dir()?;
             let (config, mut watch_sources_new, watch_code_new, _has_reverse) =
-                cmd::run_with_args(&args, Some(change == ChangeType::Code))?;
+                cmd::run_with_args(&args, Some(change == ChangeType::Code), false)?;
             env::set_current_dir(&curr_dir)?;
 
             watch_sources_new.insert(config);

@@ -18,6 +18,7 @@ use crate::{
 pub fn run_with_args(
     matches: &ArgMatches,
     reverse_mode: Option<bool>,
+    strict: bool,
 ) -> Fallible<(PathBuf, HashSet<PathBuf>, HashSet<PathBuf>, bool)> {
     let config_path = matches.value_of("config").unwrap();
     let mut config = Config::read(config_path)
@@ -83,7 +84,7 @@ pub fn run_with_args(
     let (mut source_files, mut code_files) = if reverse {
         process_inputs_reverse(&input_patterns, &config)?
     } else {
-        process_inputs_forward(&input_patterns, &config)?
+        process_inputs_forward(&input_patterns, &config, strict)?
     };
 
     if let (Some(code_dir), Some(code_file_patterns)) =
@@ -242,6 +243,7 @@ fn process_inputs_reverse(
 fn process_inputs_forward(
     input_patterns: &[String],
     config: &Config,
+    strict: bool,
 ) -> Fallible<(HashSet<PathBuf>, HashSet<PathBuf>)> {
     let mut any_input = false;
     let mut documents = HashMap::new();
@@ -288,7 +290,7 @@ fn process_inputs_forward(
 
     let code_files = compile::forward::extract_code_all(config, &documents)?;
 
-    let documents = plugin::run_plugins(config, documents)?;
+    let documents = plugin::run_plugins(config, documents, strict)?;
     compile::forward::write_documentation_all(config, &documents)?;
 
     Ok((source_file, code_files.keys().cloned().collect()))
