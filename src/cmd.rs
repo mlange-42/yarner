@@ -19,7 +19,7 @@ pub fn run_with_args(
     matches: &ArgMatches,
     reverse_mode: Option<bool>,
     strict: bool,
-) -> Fallible<(PathBuf, HashSet<PathBuf>, HashSet<PathBuf>, bool)> {
+) -> Fallible<(PathBuf, HashSet<PathBuf>, HashSet<PathBuf>)> {
     let config_path = matches.value_of("config").unwrap();
     let mut config = Config::read(config_path)
         .map_err(|err| format!("Could not read config file \"{}\": {}", config_path, err))?;
@@ -32,7 +32,12 @@ pub fn run_with_args(
     let has_reverse_config = config.has_reverse_config();
 
     if reverse && !has_reverse_config {
-        return Err("Reverse mode not enabled for any language. Stopping.".into());
+        let message = "Reverse mode not enabled for any language. Stopping.";
+        if strict {
+            return Err(message.into());
+        } else {
+            eprintln!("Warning: {}", message);
+        }
     }
 
     let lock_path = PathBuf::from(config_path).with_extension("lock");
@@ -124,7 +129,6 @@ pub fn run_with_args(
             .map(|path| root_path.join(path))
             .collect(),
         code_files.iter().map(|path| root_path.join(path)).collect(),
-        has_reverse_config,
     ))
 }
 
