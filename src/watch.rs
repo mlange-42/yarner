@@ -1,5 +1,6 @@
 use crate::{cmd, util::Fallible};
 
+use crate::cmd::BuildMode;
 use clap::ArgMatches;
 use log::info;
 use notify::{RawEvent, RecommendedWatcher, RecursiveMode, Watcher};
@@ -51,8 +52,19 @@ pub fn watch(
         suspend.store(true, Ordering::SeqCst);
 
         let curr_dir = env::current_dir()?;
+
+        let build_type = match change {
+            ChangeType::Sources => BuildMode::Forward,
+            ChangeType::Code => BuildMode::Reverse,
+        };
+
         let (config, mut watch_sources_new, watch_code_new) =
-            cmd::run_with_args(&args, Some(change == ChangeType::Code), false)?;
+            cmd::run_with_args(&args, Some(build_type), false)?;
+
+        if build_type == BuildMode::Reverse {
+            cmd::run_with_args(&args, Some(BuildMode::ForwardDocs), false)?;
+        }
+
         env::set_current_dir(&curr_dir)?;
 
         watch_sources_new.insert(config);
