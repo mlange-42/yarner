@@ -7,6 +7,7 @@ use std::{
     path::{Path, PathBuf},
 };
 
+use log::{info, warn};
 use yarner_lib::{Document, Node, Transclusion};
 
 use crate::{
@@ -42,7 +43,7 @@ pub fn collect_documents(
                     collect_documents(config, &file, documents, source_files)?;
                 }
             } else {
-                eprintln!("WARNING: link target not found for {}", file.display());
+                warn!("Link target not found for {}", file.display());
             }
         }
     }
@@ -79,7 +80,7 @@ fn extract_code(
     file_name: &Path,
     track_code_files: &mut HashMap<PathBuf, Option<PathBuf>>,
 ) -> Fallible {
-    println!("Extracting code from {}", file_name.display());
+    info!("Extracting code from {}", file_name.display());
 
     let mut entries = document.entry_points();
 
@@ -110,7 +111,7 @@ fn extract_code(
                 match track_code_files.entry(file_path.clone()) {
                     Occupied(entry) => {
                         if sub_source_file == *entry.get() {
-                            println!("  Skipping file {} (already written)", file_path.display());
+                            info!("  Skipping file {} (already written)", file_path.display());
                             continue;
                         } else {
                             return Err(format!(
@@ -133,20 +134,20 @@ fn extract_code(
                 )?;
 
                 if files::file_differs(&file_path, &code) {
-                    println!("  Writing file {}", file_path.display());
+                    info!("  Writing file {}", file_path.display());
                     fs::create_dir_all(file_path.parent().unwrap())?;
                     fs::write(&file_path, code)?;
                 } else {
-                    println!("  Skipping unchanged file {}", file_path.display());
+                    info!("  Skipping unchanged file {}", file_path.display());
                 }
             }
         } else {
-            eprintln!("WARNING: Missing output location for code, skipping code output.");
+            warn!("Missing output location for code, skipping code output.");
         }
     }
 
     if !any_output {
-        eprintln!(
+        warn!(
             "  No entrypoint for file {}, skipping code output.",
             file_name.display()
         );
@@ -163,17 +164,17 @@ fn write_documentation(config: &Config, document: &Document, file_name: &Path) -
             file_path.push(file_name);
 
             if files::file_differs(&file_path, &documentation) {
-                println!("Writing documentation file {}", file_name.display());
+                info!("Writing documentation file {}", file_name.display());
                 fs::create_dir_all(file_path.parent().unwrap()).unwrap();
                 fs::write(&file_path, documentation)?;
             } else {
-                println!(
+                info!(
                     "Skipping unchanged documentation file {}",
                     file_name.display()
                 );
             }
         }
-        None => eprintln!("WARNING: Missing output location for docs, skipping docs output."),
+        None => warn!("Missing output location for docs, skipping docs output."),
     }
 
     Ok(())

@@ -1,6 +1,7 @@
 use crate::config::{BlockLabels, Config, ParserSettings};
 use crate::files;
 use crate::util::Fallible;
+use log::warn;
 use std::collections::{
     hash_map::Entry::{Occupied, Vacant},
     HashMap, HashSet,
@@ -64,7 +65,12 @@ pub fn collect_code_blocks(
                                 if entry.get().lines != block.lines {
                                     return Err(format!("Reverse mode impossible due to multiple, differing occurrences of a code block: {} # {} # {}", &block.file, &block.name.unwrap_or_else(|| "".to_string()), block.index).into());
                                 } else {
-                                    eprintln!("  WARNING: multiple occurrences of a code block: {} # {} # {}", &block.file, &block.name.unwrap_or_else(|| "".to_string()), block.index)
+                                    warn!(
+                                        "Multiple occurrences of a code block: {} # {} # {}",
+                                        &block.file,
+                                        &block.name.unwrap_or_else(|| "".to_string()),
+                                        block.index
+                                    )
                                 }
                             }
                             Vacant(entry) => {

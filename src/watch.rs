@@ -1,6 +1,7 @@
 use crate::{cmd, util::Fallible};
 
 use clap::ArgMatches;
+use log::info;
 use notify::{RawEvent, RecommendedWatcher, RecursiveMode, Watcher};
 use std::collections::HashSet;
 use std::path::Path;
@@ -24,7 +25,7 @@ pub fn watch(
     watch_sources: impl Iterator<Item = PathBuf>,
     watch_code: impl Iterator<Item = PathBuf>,
 ) -> Fallible {
-    println!("Watching for changes...");
+    info!("Watching for changes...");
 
     let mut watch_sources_old: HashSet<_> = watch_sources.collect();
     let mut watch_code_old: HashSet<_> = watch_code.collect();
@@ -38,7 +39,7 @@ pub fn watch(
     )?;
 
     for change in rx_changes {
-        println!(
+        info!(
             "{} changed. Re-building...",
             if change == ChangeType::Sources {
                 "Sources"

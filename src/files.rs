@@ -1,3 +1,4 @@
+use log::info;
 use std::{
     collections::{
         hash_map::Entry::{Occupied, Vacant},
@@ -91,14 +92,14 @@ pub fn copy_files(
                     (&file, &file_path)
                 };
                 if files_differ(&from, &to) {
-                    println!("Copying file {} to {}", from.display(), to.display());
+                    info!("Copying file {} to {}", from.display(), to.display());
                     if let Err(err) = std::fs::copy(&from, &to) {
                         return Err(
                             format!("Error copying file {}: {}", file.display(), err).into()
                         );
                     }
                 } else {
-                    println!(
+                    info!(
                         "Skipping copy unchanged file {} to {}",
                         from.display(),
                         to.display()
