@@ -16,9 +16,16 @@ use crate::{
     util::{Fallible, JoinExt},
 };
 
+#[derive(PartialEq, Copy, Clone)]
+pub enum BuildMode {
+    Forward,
+    ForwardDocs,
+    Reverse,
+}
+
 pub fn run_with_args(
     matches: &ArgMatches,
-    reverse_mode: Option<bool>,
+    build_mode: Option<BuildMode>,
     strict: bool,
 ) -> Fallible<(PathBuf, HashSet<PathBuf>, HashSet<PathBuf>)> {
     let config_path = matches.value_of("config").unwrap();
@@ -29,7 +36,11 @@ pub fn run_with_args(
         .check()
         .map_err(|err| format!("Invalid config file \"{}\": {}", config_path, err))?;
 
-    let reverse = reverse_mode.unwrap_or_else(|| matches.subcommand_matches("reverse").is_some());
+    let is_docs_rebuild = build_mode == Some(BuildMode::ForwardDocs);
+
+    let reverse = build_mode
+        .map(|mode| mode == BuildMode::Reverse)
+        .unwrap_or_else(|| matches.subcommand_matches("reverse").is_some());
     let has_reverse_config = config.has_reverse_config();
 
     if reverse && !has_reverse_config {
@@ -80,7 +91,7 @@ pub fn run_with_args(
     )?;
 
     if !force
-        && has_reverse_config
+        && !is_docs_rebuild
         && config.paths.has_valid_code_path()
         && lock::files_changed(&lock_path, reverse)?
     {
@@ -90,20 +101,22 @@ pub fn run_with_args(
     let (mut source_files, mut code_files) = if reverse {
         process_inputs_reverse(&input_patterns, &config)?
     } else {
-        process_inputs_forward(&input_patterns, &config, strict)?
+        process_inputs_forward(&input_patterns, &config, strict, !is_docs_rebuild)?
     };
 
-    if let (Some(code_dir), Some(code_file_patterns)) =
-        (&config.paths.code, &config.paths.code_files)
-    {
-        let (copy_in, copy_out) = files::copy_files(
-            code_file_patterns,
-            config.paths.code_paths.as_deref(),
-            &code_dir,
-            reverse,
-        )?;
-        source_files.extend(copy_in);
-        code_files.extend(copy_out);
+    if !is_docs_rebuild {
+        if let (Some(code_dir), Some(code_file_patterns)) =
+            (&config.paths.code, &config.paths.code_files)
+        {
+            let (copy_in, copy_out) = files::copy_files(
+                code_file_patterns,
+                config.paths.code_paths.as_deref(),
+                &code_dir,
+                reverse,
+            )?;
+            source_files.extend(copy_in);
+            code_files.extend(copy_out);
+        }
     }
 
     if !reverse {
@@ -119,7 +132,7 @@ pub fn run_with_args(
         }
     }
 
-    if has_reverse_config {
+    if has_reverse_config && !is_docs_rebuild {
         lock::write_lock(lock_path, &source_files, &code_files)?;
     }
 
@@ -249,6 +262,7 @@ fn process_inputs_forward(
     input_patterns: &[String],
     config: &Config,
     strict: bool,
+    write_code: bool,
 ) -> Fallible<(HashSet<PathBuf>, HashSet<PathBuf>)> {
     let mut any_input = false;
     let mut documents = HashMap::new();
@@ -293,7 +307,11 @@ fn process_inputs_forward(
         .into());
     }
 
-    let code_files = compile::forward::extract_code_all(config, &documents)?;
+    let code_files = if write_code {
+        compile::forward::extract_code_all(config, &documents)?
+    } else {
+        HashMap::new()
+    };
 
     let documents = plugin::run_plugins(config, documents, strict)?;
     compile::forward::write_documentation_all(config, &documents)?;
