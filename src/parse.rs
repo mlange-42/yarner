@@ -291,27 +291,30 @@ fn parse_links(
                     let link = &caps[3];
                     let follow = caps.get(1).is_some();
 
-                    if let Some(path) = absolute_link(link, from) {
-                        let new_link = relative_link(&path, root_file);
+                    match absolute_link(link, from) {
+                        Some(path) if !link.is_empty() => {
+                            let new_link = relative_link(&path, root_file);
 
-                        let line = format!(
-                            "{}[{}]({})",
-                            if is_reverse && follow { marker } else { "" },
-                            if label == link { &new_link } else { label },
-                            new_link,
-                        );
+                            let line = format!(
+                                "{}[{}]({})",
+                                if is_reverse && follow { marker } else { "" },
+                                if label == link { &new_link } else { label },
+                                new_link,
+                            );
 
-                        if follow {
-                            links_out.push(path);
+                            if follow {
+                                links_out.push(path);
+                            }
+                            line
                         }
-                        line
-                    } else {
-                        format!(
-                            "{}[{}]({})",
-                            if is_reverse && follow { marker } else { "" },
-                            label,
-                            link,
-                        )
+                        _ => {
+                            format!(
+                                "{}[{}]({})",
+                                if is_reverse && follow { marker } else { "" },
+                                label,
+                                link,
+                            )
+                        }
                     }
                 })
                 .deref()
