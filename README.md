@@ -1,8 +1,10 @@
 # Yarner
 
 [![Test status](https://github.com/mlange-42/yarner/actions/workflows/tests.yml/badge.svg)](https://github.com/mlange-42/yarner/actions/workflows/tests.yml)
+[![GitHub](https://img.shields.io/badge/github-repo-blue?logo=github)](https://github.com/mlange-42/yarner)
 [![Crate](https://img.shields.io/crates/v/yarner.svg)](https://crates.io/crates/yarner)
 [![Book](https://img.shields.io/badge/book-master-blue.svg)](https://mlange-42.github.io/yarner)
+[![MIT license](https://img.shields.io/github/license/mlange-42/yarner)](https://github.com/mlange-42/yarner/blob/master/LICENSE)
 
 A language-independent [Literate Programming](https://en.wikipedia.org/wiki/Literate_programming) tool for Markdown. From Markdown documents written and structured for humans, Yarner extracts code blocks into compilable source code. It offers sufficient features and flexibility to be usable also for larger projects with numerous files and multiple languages.
 

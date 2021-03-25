@@ -1,11 +1,13 @@
-use std::collections::{
-    hash_map::Entry::{Occupied, Vacant},
-    HashMap, HashSet,
+use std::{
+    collections::{
+        hash_map::Entry::{Occupied, Vacant},
+        HashMap, HashSet,
+    },
+    fs,
+    path::{Path, PathBuf},
 };
-use std::fs::{self, File};
-use std::io::Write;
-use std::path::{Path, PathBuf};
 
+use log::{info, warn};
 use yarner_lib::{Document, Node, Transclusion};
 
 use crate::{
@@ -18,22 +20,30 @@ pub fn collect_documents(
     config: &Config,
     file_name: &Path,
     documents: &mut HashMap<PathBuf, Document>,
+    source_files: &mut HashSet<PathBuf>,
 ) -> Fallible {
     if !documents.contains_key(file_name) {
         let mut trace = HashSet::new();
-        let (mut document, links) = transclude(&config.parser, file_name, file_name, &mut trace)?;
+        let (mut document, links) = transclude(
+            &config.parser,
+            file_name,
+            file_name,
+            &mut trace,
+            source_files,
+        )?;
 
         let file_str = file_name.to_str().unwrap();
         super::set_source(&mut document, file_str);
 
         documents.insert(file_name.to_owned(), document);
+        source_files.insert(file_name.to_owned());
         for file in links {
             if file.is_file() {
                 if !documents.contains_key(&file) {
-                    collect_documents(config, &file, documents)?;
+                    collect_documents(config, &file, documents, source_files)?;
                 }
             } else {
-                eprintln!("WARNING: link target not found for {}", file.display());
+                warn!("Link target not found for {}", file.display());
             }
         }
     }
@@ -54,10 +64,14 @@ pub fn extract_code_all(
     Ok(code_files)
 }
 
-pub fn write_documentation_all(config: &Config, documents: &HashMap<PathBuf, Document>) {
+pub fn write_documentation_all(
+    config: &Config,
+    documents: &HashMap<PathBuf, Document>,
+) -> Fallible {
     for (path, doc) in documents.iter() {
-        write_documentation(config, &doc, &path);
+        write_documentation(config, &doc, &path)?;
     }
+    Ok(())
 }
 
 fn extract_code(
@@ -66,7 +80,7 @@ fn extract_code(
     file_name: &Path,
     track_code_files: &mut HashMap<PathBuf, Option<PathBuf>>,
 ) -> Fallible {
-    println!("Extracting code from {}", file_name.display());
+    info!("Extracting code from {}", file_name.display());
 
     let mut entries = document.entry_points();
 
@@ -97,7 +111,7 @@ fn extract_code(
                 match track_code_files.entry(file_path.clone()) {
                     Occupied(entry) => {
                         if sub_source_file == *entry.get() {
-                            println!("  Skipping file {} (already written)", file_path.display());
+                            info!("  Skipping file {} (already written)", file_path.display());
                             continue;
                         } else {
                             return Err(format!(
@@ -118,18 +132,22 @@ fn extract_code(
                     settings,
                     document.newline(),
                 )?;
-                println!("  Writing file {}", file_path.display());
-                fs::create_dir_all(file_path.parent().unwrap())?;
-                let mut code_file = File::create(file_path)?;
-                write!(code_file, "{}", code)?;
+
+                if files::file_differs(&file_path, &code) {
+                    info!("  Writing file {}", file_path.display());
+                    fs::create_dir_all(file_path.parent().unwrap())?;
+                    fs::write(&file_path, code)?;
+                } else {
+                    info!("  Skipping unchanged file {}", file_path.display());
+                }
             }
         } else {
-            eprintln!("WARNING: Missing output location for code, skipping code output.");
+            warn!("Missing output location for code, skipping code output.");
         }
     }
 
     if !any_output {
-        eprintln!(
+        warn!(
             "  No entrypoint for file {}, skipping code output.",
             file_name.display()
         );
@@ -138,20 +156,28 @@ fn extract_code(
     Ok(())
 }
 
-fn write_documentation(config: &Config, document: &Document, file_name: &Path) {
-    println!("Writing documentation file {}", file_name.display());
-
+fn write_documentation(config: &Config, document: &Document, file_name: &Path) -> Fallible {
     match &config.paths.docs {
         Some(doc_dir) => {
             let documentation = print::docs::print_docs(document, &config.parser);
             let mut file_path = doc_dir.to_owned();
             file_path.push(file_name);
-            fs::create_dir_all(file_path.parent().unwrap()).unwrap();
-            let mut doc_file = File::create(file_path).unwrap();
-            write!(doc_file, "{}", documentation).unwrap();
+
+            if files::file_differs(&file_path, &documentation) {
+                info!("Writing documentation file {}", file_name.display());
+                fs::create_dir_all(file_path.parent().unwrap()).unwrap();
+                fs::write(&file_path, documentation)?;
+            } else {
+                info!(
+                    "Skipping unchanged documentation file {}",
+                    file_name.display()
+                );
+            }
         }
-        None => eprintln!("WARNING: Missing output location for docs, skipping docs output."),
+        None => warn!("Missing output location for docs, skipping docs output."),
     }
+
+    Ok(())
 }
 
 fn transclude(
@@ -159,6 +185,7 @@ fn transclude(
     root_file: &Path,
     file_name: &Path,
     trace: &mut HashSet<PathBuf>,
+    source_files: &mut HashSet<PathBuf>,
 ) -> Fallible<(Document, Vec<PathBuf>)> {
     if trace.contains(file_name) {
         return Err(format!(
@@ -180,7 +207,9 @@ fn transclude(
     let mut trans_so_far = HashSet::new();
     for trans in transclusions {
         if !trans_so_far.contains(&trans.file) {
-            let (doc, sub_links) = transclude(parser, root_file, &trans.file, trace)?;
+            source_files.insert(trans.file.to_owned());
+
+            let (doc, sub_links) = transclude(parser, root_file, &trans.file, trace, source_files)?;
 
             if doc.newline() != document.newline() {
                 return Err(format!(

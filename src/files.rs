@@ -1,7 +1,8 @@
+use log::info;
 use std::{
     collections::{
         hash_map::Entry::{Occupied, Vacant},
-        HashMap,
+        HashMap, HashSet,
     },
     ffi::OsStr,
     iter::repeat,
@@ -9,7 +10,6 @@ use std::{
 };
 
 use crate::util::Fallible;
-use std::collections::HashSet;
 
 pub fn read_file_string(path: &Path) -> Fallible<String> {
     std::fs::read_to_string(&path).map_err(|err| format!("{}: {}", err, path.display()).into())
@@ -19,16 +19,26 @@ pub fn read_file(path: &Path) -> Fallible<Vec<u8>> {
     std::fs::read(&path).map_err(|err| format!("{}: {}", err, path.display()).into())
 }
 
+fn files_differ(old: &Path, new: &Path) -> bool {
+    read_file(old)
+        .and_then(|old| read_file(new).map(|new| old != new))
+        .unwrap_or(true)
+}
+
+pub fn file_differs(file: &Path, new_content: &str) -> bool {
+    read_file_string(file).map_or(true, |content| content != new_content)
+}
+
 pub fn copy_files(
     patterns: &[String],
     path_mod: Option<&[String]>,
     target_dir: &Path,
     reverse: bool,
-) -> Result<(HashSet<PathBuf>, HashSet<PathBuf>), String> {
+) -> Fallible<(HashSet<PathBuf>, HashSet<PathBuf>)> {
     match path_mod {
         Some(path_mod) if patterns.len() != path_mod.len() => {
             return Err(
-                "If argument code_paths/doc_paths is given in the toml file, it must have as many elements as argument code_files/doc_files".to_string()
+                "If argument code_paths/doc_paths is given in the toml file, it must have as many elements as argument code_files/doc_files".into()
             );
         }
         _ => (),
@@ -65,7 +75,8 @@ pub fn copy_files(
                             file_path.display(),
                             entry.get().display(),
                             file.display()
-                        ));
+                        )
+                        .into());
                     }
                     Vacant(entry) => {
                         entry.insert(file.clone());
@@ -76,14 +87,23 @@ pub fn copy_files(
                     std::fs::create_dir_all(file_path.parent().unwrap()).unwrap();
                 }
                 let (from, to) = if reverse {
-                    println!("Copying file {} to {}", file_path.display(), file.display());
                     (&file_path, &file)
                 } else {
-                    println!("Copying file {} to {}", file.display(), file_path.display());
                     (&file, &file_path)
                 };
-                if let Err(err) = std::fs::copy(&from, &to) {
-                    return Err(format!("Error copying file {}: {}", file.display(), err));
+                if files_differ(&from, &to) {
+                    info!("Copying file {} to {}", from.display(), to.display());
+                    if let Err(err) = std::fs::copy(&from, &to) {
+                        return Err(
+                            format!("Error copying file {}: {}", file.display(), err).into()
+                        );
+                    }
+                } else {
+                    info!(
+                        "Skipping copy unchanged file {} to {}",
+                        from.display(),
+                        to.display()
+                    );
                 }
             }
         }

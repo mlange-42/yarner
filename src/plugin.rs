@@ -4,6 +4,7 @@ use std::io::Write;
 use std::path::PathBuf;
 use std::process::{Command, Stdio};
 
+use log::{info, warn};
 use yarner_lib::{Context, Document, YarnerData, YARNER_VERSION};
 
 use crate::config::Config;
@@ -12,6 +13,7 @@ use crate::util::Fallible;
 pub fn run_plugins(
     config: &Config,
     documents: HashMap<PathBuf, Document>,
+    strict: bool,
 ) -> Fallible<HashMap<PathBuf, Document>> {
     let mut docs = documents;
     for (name, config) in &config.plugin {
@@ -20,21 +22,15 @@ pub fn run_plugins(
             .and_then(|cmd| cmd.as_str().map(|s| s.to_owned()))
             .unwrap_or_else(|| format!("yarner-{}", name));
 
-        let arguments: Vec<&str> = match config.get("arguments") {
-            None => vec![],
-            Some(v) => v
-                .as_array()
-                .map(|arr| arr.iter().map(|l| l.as_str().unwrap_or_default()))
-                .ok_or("Can't parse array of plugin arguments")?
-                .collect(),
-        };
-
-        let command_string = format!(
-            "{}{}{}",
-            command,
-            if arguments.is_empty() { "" } else { " " },
-            &arguments.join(" "),
-        );
+        let arguments: Vec<&str> = config
+            .get("arguments")
+            .map(|args| {
+                args.as_array()
+                    .map(|arr| arr.iter().map(|l| l.as_str().unwrap_or_default()).collect())
+                    .ok_or("Can't parse array of plugin arguments")
+            })
+            .transpose()?
+            .unwrap_or_default();
 
         let data = YarnerData {
             context: Context {
@@ -47,7 +43,7 @@ pub fn run_plugins(
 
         let json = to_json(&data)?;
 
-        println!("Running plugin command '{}'", command_string);
+        info!("Running plugin '{}'", name);
 
         let mut child = Command::new(&command)
             .stdin(Stdio::piped())
@@ -56,37 +52,66 @@ pub fn run_plugins(
             .spawn()
             .map_err(|err| format_error(err.into(), &command))?;
 
-        {
-            let stdin = child
-                .stdin
-                .as_mut()
-                .ok_or("Unable to access child process stdin.")
-                .map_err(|err| format_error(err.into(), &command))?;
-            stdin
-                .write_all(json.as_bytes())
-                .map_err(|err| format_error(err.into(), &command))?;
-        }
+        let has_input = if let Err(err) = child
+            .stdin
+            .as_mut()
+            .ok_or_else(|| "No stdin available.".to_string())
+            .and_then(|stdin| {
+                stdin
+                    .write_all(json.as_bytes())
+                    .map_err(|err| err.to_string())
+            }) {
+            warn!(
+                "Plugin '{}' is unable to access child process stdin: {}",
+                name,
+                err.to_string()
+            );
+
+            false
+        } else {
+            true
+        };
 
         let output = child
             .wait_with_output()
             .map_err(|err| format_error(err.into(), &command))?;
 
-        if !output.status.success() {
-            return Err(format!("Plugin command '{}' exits with error.", command_string,).into());
-        }
+        docs = if output.status.success() {
+            if has_input {
+                let out_json = String::from_utf8(output.stdout)
+                    .map_err(|err| format_error(err.into(), &command))?;
 
-        let out_json =
-            String::from_utf8(output.stdout).map_err(|err| format_error(err.into(), &command))?;
-
-        docs = match from_json(&out_json) {
-            Ok(context) => context.documents,
-            Err(err) => {
-                eprintln!(
-                    "Warning: Invalid output from plugin command '{}': {}",
-                    command_string, err
-                );
+                match from_json(&out_json) {
+                    Ok(context) => context.documents,
+                    Err(err) => {
+                        warn!("Invalid output from plugin '{}': {}", name, err);
+                        data.documents
+                    }
+                }
+            } else {
+                if !output.stdout.is_empty() {
+                    info!("{}", String::from_utf8(output.stdout)?);
+                }
                 data.documents
             }
+        } else {
+            if !output.stdout.is_empty() {
+                info!("{}", String::from_utf8(output.stdout)?);
+            }
+
+            let message = format!(
+                "Plugin '{}' exits with error {}.",
+                name,
+                output.status.code().unwrap_or(1)
+            );
+
+            if strict {
+                return Err(message.into());
+            } else {
+                warn!("{}", message);
+            }
+
+            data.documents
         }
     }
     Ok(docs)

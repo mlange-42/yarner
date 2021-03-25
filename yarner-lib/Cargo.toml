@@ -1,9 +1,10 @@
 [package]
 name = "yarner-lib"
-version = "0.5.2"
+version = "0.6.0"
 authors = ["Martin Lange <martin_lange_@gmx.net>"]
 readme = "README.md"
 description = "Library to build plugins for the Literate Programming tool Yarner."
+keywords = ["markdown", "literate-programming", "documentation"]
 repository = "https://github.com/mlange-42/yarner"
 homepage = "https://mlange-42.github.io/yarner/"
 documentation = "https://docs.rs/yarner-lib"
