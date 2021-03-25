@@ -648,7 +648,7 @@ dependencies = [
 
 [[package]]
 name = "yarner"
-version = "0.5.2"
+version = "0.6.0"
 dependencies = [
  "blake3",
  "clap",
@@ -668,7 +668,7 @@ dependencies = [
 
 [[package]]
 name = "yarner-lib"
-version = "0.5.2"
+version = "0.6.0"
 dependencies = [
  "serde",
  "serde_json",
