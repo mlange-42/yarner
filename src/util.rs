@@ -1,5 +1,5 @@
 use std::error::Error;
-use std::fmt::{Display, Write};
+use std::fmt::{Display, Error as FmtError, Formatter};
 
 pub type Fallible<T = ()> = Result<T, Box<dyn Error>>;
 
@@ -31,24 +31,18 @@ pub trait JoinExt
 where
     Self: IntoIterator + Sized,
     Self::Item: Display,
+    Self::IntoIter: Clone,
 {
-    fn join<S, Q>(self, separator: S, quote: Q) -> String
+    fn join<S, Q>(self, separator: S, quote: Q) -> Joined<Self::IntoIter, S, Q>
     where
         S: Display,
         Q: Display,
     {
-        let mut joined = String::new();
-        let mut iter = self.into_iter();
-
-        if let Some(val) = iter.next() {
-            write!(&mut joined, "{}{}{}", quote, val, quote).unwrap();
+        Joined {
+            iter: self.into_iter(),
+            separator,
+            quote,
         }
-
-        for val in iter {
-            write!(&mut joined, "{}{}{}{}", separator, quote, val, quote).unwrap();
-        }
-
-        joined
     }
 }
 
@@ -56,7 +50,36 @@ impl<I> JoinExt for I
 where
     I: IntoIterator,
     I::Item: Display,
+    I::IntoIter: Clone,
 {
+}
+
+pub struct Joined<I, S, Q> {
+    iter: I,
+    separator: S,
+    quote: Q,
+}
+
+impl<I, S, Q> Display for Joined<I, S, Q>
+where
+    I: Iterator + Clone,
+    I::Item: Display,
+    S: Display,
+    Q: Display,
+{
+    fn fmt(&self, fmt: &mut Formatter<'_>) -> Result<(), FmtError> {
+        let mut iter = self.iter.clone();
+
+        if let Some(val) = iter.next() {
+            write!(fmt, "{}{}{}", self.quote, val, self.quote)?;
+        }
+
+        for val in iter {
+            write!(fmt, "{}{}{}{}", self.separator, self.quote, val, self.quote)?;
+        }
+
+        Ok(())
+    }
 }
 
 #[cfg(test)]
@@ -86,10 +109,13 @@ mod tests {
 
     #[test]
     fn join_strs() {
-        assert_eq!(vec!["foo"].join('\n', ""), "foo");
-        assert_eq!(vec!["foo", "bar"].join(", ", '"'), "\"foo\", \"bar\"");
+        assert_eq!(vec!["foo"].join('\n', "").to_string(), "foo");
         assert_eq!(
-            vec!["foo", "bar", "baz"].join('/', '|'),
+            vec!["foo", "bar"].join(", ", '"').to_string(),
+            "\"foo\", \"bar\""
+        );
+        assert_eq!(
+            vec!["foo", "bar", "baz"].join('/', '|').to_string(),
             "|foo|/|bar|/|baz|"
         );
     }
