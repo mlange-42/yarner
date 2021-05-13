@@ -5,16 +5,12 @@ use std::{
 };
 
 use clap::ArgMatches;
+use display_utils::join_format;
 use log::{info, warn};
 
 use yarner_lib::Document;
 
-use crate::{
-    code, compile,
-    config::Config,
-    files, lock, plugin, print,
-    util::{Fallible, JoinExt},
-};
+use crate::{code, compile, config::Config, files, lock, plugin, print, util::Fallible};
 
 #[derive(PartialEq, Copy, Clone)]
 pub enum BuildMode {
@@ -224,7 +220,7 @@ fn process_inputs_reverse(
             "No input files found in patterns: {}\n\
                 For help, use:\n\
                  > yarner -h",
-            input_patterns.iter().join(", ", '"')
+            join_format(input_patterns, ", ", |pat, f| write!(f, "\"{}\"", pat))
         )
         .into());
     }
@@ -302,7 +298,7 @@ fn process_inputs_forward(
             "No input files found in patterns: {}\n\
                 For help, use:\n\
                  > yarner -h",
-            input_patterns.iter().join(", ", '"')
+            join_format(input_patterns, ", ", |pat, f| write!(f, "\"{}\"", pat))
         )
         .into());
     }
