@@ -1,6 +1,7 @@
 pub mod docs {
     use crate::code::RevCodeBlock;
     use crate::config::ParserSettings;
+    use crate::util::JoinExt;
     use std::collections::HashMap;
     use std::fmt::Write;
     use yarner_lib::{CodeBlock, Document, Line, Node, Transclusion};
@@ -17,7 +18,7 @@ pub mod docs {
                     write!(
                         output,
                         "{}{}",
-                        text_block.text.join(&document.newline()),
+                        text_block.text.iter().join(&document.newline(), ""),
                         document.newline()
                     )
                     .unwrap();
@@ -56,7 +57,7 @@ pub mod docs {
                     write!(
                         output,
                         "{}{}",
-                        text_block.text.join(&document.newline()),
+                        text_block.text.iter().join(&document.newline(), ""),
                         document.newline()
                     )
                     .unwrap();
@@ -262,7 +263,7 @@ pub mod docs {
 
 pub mod code {
     use crate::config::LanguageSettings;
-    use crate::util::{Fallible, TryCollectExt};
+    use crate::util::{Fallible, JoinExt, TryCollectExt};
     use std::collections::{HashMap, HashSet};
     use std::fmt::Write;
     use yarner_lib::{CodeBlock, Line};
@@ -337,7 +338,7 @@ pub mod code {
                 result,
                 "{}{}",
                 compile_code_block(block, &code_blocks, settings, newline, &mut trace)?
-                    .join(newline),
+                    .join(newline, ""),
                 newline,
             )
             .unwrap();
@@ -536,7 +537,7 @@ pub mod code {
         fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
             match self {
                 CompileError::Multi(errors) => {
-                    write!(f, "{}", crate::util::JoinExt::join(errors, "\n", ""))
+                    write!(f, "{}", errors.join("\n", ""))
                 }
                 CompileError::Single { line_number, kind } => {
                     write!(f, "{:?} (line {})", kind, line_number)
