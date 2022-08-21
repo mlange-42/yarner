@@ -78,7 +78,7 @@ pub fn parse(
                         None
                     };
                     let (node, error) = start_or_extend_text(
-                        &line,
+                        line,
                         line_number,
                         root_file,
                         path,
@@ -181,10 +181,10 @@ fn start_or_extend_text(
     path: &Path,
     settings: &ParserSettings,
     is_reverse: bool,
-    mut links: &mut Vec<PathBuf>,
+    links: &mut Vec<PathBuf>,
     block: Option<&mut TextBlock>,
 ) -> (Option<Node>, Option<Box<dyn Error>>) {
-    let parsed = parse_links(&line, root_file, path, settings, is_reverse, &mut links);
+    let parsed = parse_links(line, root_file, path, settings, is_reverse, links);
     let line = if parsed.is_some() {
         parsed.as_ref().unwrap()
     } else {
@@ -224,13 +224,13 @@ fn parse_transclusion(
                 .captures_iter(trans)
                 .map(|match_| match_.get(2).unwrap().as_str())
                 .next()
-                .unwrap_or(&trans);
+                .unwrap_or(trans);
 
             let path = into.parent().unwrap_or_else(|| Path::new(".")).join(target);
 
             Ok(Some(Node::Transclusion(Transclusion {
                 file: PathBuf::from(path_clean::clean(
-                    &path.to_str().unwrap().replace("\\", "/"),
+                    &path.to_str().unwrap().replace('\\', "/"),
                 )),
                 original: line.to_owned(),
             })))
@@ -330,12 +330,12 @@ fn absolute_link<P>(link: &str, from: P) -> Option<PathBuf>
 where
     P: AsRef<Path>,
 {
-    if is_relative_link(&link) {
+    if is_relative_link(link) {
         let mut path = from.as_ref().parent().unwrap().to_path_buf();
         path.push(link);
 
         let path = PathBuf::from(path_clean::clean(
-            &path.to_str().unwrap().replace("\\", "/"),
+            &path.to_str().unwrap().replace('\\', "/"),
         ));
 
         Some(path)
@@ -426,7 +426,7 @@ mod tests {
 
         let line = "A single @[non-line] and a path in parentheses: (../link-1.md).";
         let mut links = vec![];
-        let new_line = super::parse_links(line, &root, &from, &settings, false, &mut links);
+        let new_line = super::parse_links(line, root, from, &settings, false, &mut links);
         assert_eq!(new_line, None);
         assert_eq!(links.len(), 0);
     }
@@ -439,7 +439,7 @@ mod tests {
 
         let line = "A single @[link](link-1.md).";
         let mut links = vec![];
-        let new_line = super::parse_links(line, &root, &from, &settings, false, &mut links);
+        let new_line = super::parse_links(line, root, from, &settings, false, &mut links);
         assert_eq!(new_line, Some("A single [link](link-1.md).".to_owned()));
         assert_eq!(links.len(), 1);
         assert_eq!(links[0], PathBuf::from("link-1.md"));
@@ -453,7 +453,7 @@ mod tests {
 
         let line = "One @[link](link-1.md) and another @[link](link-2.md).";
         let mut links = vec![];
-        let new_line = super::parse_links(line, &root, &from, &settings, false, &mut links);
+        let new_line = super::parse_links(line, root, from, &settings, false, &mut links);
         assert_eq!(
             new_line,
             Some("One [link](link-1.md) and another [link](link-2.md).".to_owned())
@@ -471,7 +471,7 @@ mod tests {
 
         let line = "An image link ![image](image.png).";
         let mut links = vec![];
-        let new_line = super::parse_links(line, &root, &from, &settings, false, &mut links);
+        let new_line = super::parse_links(line, root, from, &settings, false, &mut links);
         assert_eq!(
             new_line,
             Some("An image link ![image](docs/image.png).".to_owned())
@@ -487,7 +487,7 @@ mod tests {
 
         let line = "A single @[link](../link-1.md).";
         let mut links = vec![];
-        let new_line = super::parse_links(line, &root, &from, &settings, false, &mut links);
+        let new_line = super::parse_links(line, root, from, &settings, false, &mut links);
         assert_eq!(new_line, Some("A single [link](../link-1.md).".to_owned()));
         assert_eq!(links.len(), 1);
         assert_eq!(links[0], PathBuf::from("link-1.md"));
@@ -501,7 +501,7 @@ mod tests {
 
         let line = "A single @[link](../docs/link-1.md).";
         let mut links = vec![];
-        let new_line = super::parse_links(line, &root, &from, &settings, false, &mut links);
+        let new_line = super::parse_links(line, root, from, &settings, false, &mut links);
         assert_eq!(
             new_line,
             Some("A single [link](../docs/link-1.md).".to_owned())
@@ -518,7 +518,7 @@ mod tests {
 
         let line = "A single @[link](link-1.md).";
         let mut links = vec![];
-        let new_line = super::parse_links(line, &root, &from, &settings, false, &mut links);
+        let new_line = super::parse_links(line, root, from, &settings, false, &mut links);
         assert_eq!(new_line, Some("A single [link](src/link-1.md).".to_owned()));
         assert_eq!(links.len(), 1);
         assert_eq!(links[0], PathBuf::from("src/link-1.md"));
@@ -532,7 +532,7 @@ mod tests {
 
         let line = "A single @[link](link-1.md).";
         let mut links = vec![];
-        let new_line = super::parse_links(line, &root, &from, &settings, false, &mut links);
+        let new_line = super::parse_links(line, root, from, &settings, false, &mut links);
         assert_eq!(
             new_line,
             Some("A single [link](../docs/link-1.md).".to_owned())
@@ -549,7 +549,7 @@ mod tests {
 
         let line = "A single @[link](docs/link-1.md).";
         let mut links = vec![];
-        let new_line = super::parse_links(line, &root, &from, &settings, false, &mut links);
+        let new_line = super::parse_links(line, root, from, &settings, false, &mut links);
         assert_eq!(
             new_line,
             Some("A single [link](../docs/link-1.md).".to_owned())
@@ -566,7 +566,7 @@ mod tests {
 
         let line = "An absolute @[link](https://github.com/mlange-42/yarner).";
         let mut links = vec![];
-        let new_line = super::parse_links(line, &root, &from, &settings, false, &mut links);
+        let new_line = super::parse_links(line, root, from, &settings, false, &mut links);
         assert_eq!(
             new_line,
             Some("An absolute [link](https://github.com/mlange-42/yarner).".to_owned())
@@ -582,7 +582,7 @@ mod tests {
 
         let line = "A single @[link](link-1.md).";
         let mut links = vec![];
-        let new_line = super::parse_links(line, &root, &from, &settings, true, &mut links);
+        let new_line = super::parse_links(line, root, from, &settings, true, &mut links);
         assert_eq!(new_line, None);
         assert_eq!(links.len(), 1);
         assert_eq!(links[0], PathBuf::from("docs/link-1.md"));
@@ -596,7 +596,7 @@ mod tests {
 
         let line = "A single [link](link-1.md).";
         let mut links = vec![];
-        let new_line = super::parse_links(line, &root, &from, &settings, false, &mut links);
+        let new_line = super::parse_links(line, root, from, &settings, false, &mut links);
         assert_eq!(
             new_line,
             Some("A single [link](docs/link-1.md).".to_owned())
@@ -612,7 +612,7 @@ mod tests {
 
         let line = "A single [link-1.md](link-1.md).";
         let mut links = vec![];
-        let new_line = super::parse_links(line, &root, &from, &settings, false, &mut links);
+        let new_line = super::parse_links(line, root, from, &settings, false, &mut links);
         assert_eq!(
             new_line,
             Some("A single [docs/link-1.md](docs/link-1.md).".to_owned())

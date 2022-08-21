@@ -139,7 +139,7 @@ pub mod docs {
         }
 
         for line in &block.source {
-            print_line(&line, settings, indent, newline, write);
+            print_line(line, settings, indent, newline, write);
         }
 
         write!(write, "{}{}{}", indent, fence_sequence, newline).unwrap();
@@ -185,7 +185,7 @@ pub mod docs {
             }
         } else {
             for line in &block.source {
-                print_line(&line, settings, indent, newline, write);
+                print_line(line, settings, indent, newline, write);
             }
         }
         write!(write, "{}{}", fence_sequence, newline).unwrap();
@@ -337,7 +337,7 @@ pub mod code {
             write!(
                 result,
                 "{}{}",
-                compile_code_block(block, &code_blocks, settings, newline, &mut trace)?
+                compile_code_block(block, code_blocks, settings, newline, &mut trace)?
                     .join(newline, ""),
                 newline,
             )
@@ -381,7 +381,7 @@ pub mod code {
             .enumerate()
             .map(|(idx, line)| {
                 compile_line(
-                    &line,
+                    line,
                     line_offset + if block.is_unnamed { idx } else { idx + 1 },
                     code_blocks,
                     settings,

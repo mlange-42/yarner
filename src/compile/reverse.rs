@@ -100,9 +100,9 @@ fn transclude_dry_run(
         trace.insert(file_name.to_owned());
     }
 
-    let source_main = files::read_file_string(&file_name)?;
+    let source_main = files::read_file_string(file_name)?;
     let (document, mut links) =
-        parse::parse(&source_main, &root_file, &file_name, true, &config.parser)?;
+        parse::parse(&source_main, root_file, file_name, true, &config.parser)?;
 
     let transclusions = document.transclusions();
 

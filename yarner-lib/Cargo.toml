@@ -9,7 +9,7 @@ repository = "https://github.com/mlange-42/yarner"
 homepage = "https://mlange-42.github.io/yarner/"
 documentation = "https://docs.rs/yarner-lib"
 license = "MIT"
-edition = "2018"
+edition = "2021"
 
 [dependencies]
 serde = { version = "1.0", features = ["derive"] }

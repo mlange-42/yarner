@@ -46,7 +46,7 @@ pub fn copy_files(
     let mut track_copy_dest: HashMap<PathBuf, PathBuf> = HashMap::new();
     for (idx, file_pattern) in patterns.iter().enumerate() {
         let path = path_mod.as_ref().map(|paths| &paths[idx]);
-        let paths = glob::glob(&file_pattern).map_err(|err| {
+        let paths = glob::glob(file_pattern).map_err(|err| {
             format!(
                 "Unable to parse glob pattern \"{}\" (at index {}): {}",
                 file_pattern, err.pos, err
@@ -64,7 +64,7 @@ pub fn copy_files(
             })?;
 
             if file.is_file() {
-                let out_path = path.map_or(file.clone(), |path| modify_path(&file, &path));
+                let out_path = path.map_or(file.clone(), |path| modify_path(&file, path));
                 let mut file_path = target_dir.to_owned();
                 file_path.push(out_path);
 
@@ -91,7 +91,7 @@ pub fn copy_files(
                 } else {
                     (&file, &file_path)
                 };
-                if files_differ(&from, &to) {
+                if files_differ(from, to) {
                     info!("Copying file {} to {}", from.display(), to.display());
                     if let Err(err) = std::fs::copy(&from, &to) {
                         return Err(
