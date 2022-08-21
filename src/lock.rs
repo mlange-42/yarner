@@ -49,7 +49,7 @@ where
             },
             Err(err) => Err(format!(
                 "Unable to hash file: {}\n  Run forced to re-create code files: `yarner --force`.",
-                err.to_string()
+                err
             )
             .into()),
         })
@@ -75,7 +75,7 @@ impl Lock {
             format!(
                 "Invalid lock file {}: {}\n  Delete the file or run with option `--force`.",
                 path.as_ref().display(),
-                err.to_string()
+                err
             )
         })?;
 

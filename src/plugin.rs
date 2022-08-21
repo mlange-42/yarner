@@ -126,9 +126,5 @@ fn from_json(json: &str) -> serde_json::Result<YarnerData> {
 }
 
 fn format_error(err: Box<dyn Error>, name: &str) -> String {
-    format!(
-        "Failed to run plugin command '{}': {}",
-        name,
-        err.to_string()
-    )
+    format!("Failed to run plugin command '{}': {}", name, err)
 }

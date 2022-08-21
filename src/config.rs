@@ -95,9 +95,7 @@ where
         Regex::new(&format!("({})?{}", prefix, LINK_PATTERN)).map_err(|err| {
             D::Error::custom(format!(
                 "Error compiling Regex pattern {}{}\n{}",
-                prefix,
-                LINK_PATTERN,
-                err.to_string()
+                prefix, LINK_PATTERN, err
             ))
         })?,
     ))
