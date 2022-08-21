@@ -16,7 +16,7 @@ use crate::{
     util::{Fallible, JoinExt},
 };
 
-#[derive(PartialEq, Copy, Clone)]
+#[derive(PartialEq, Eq, Copy, Clone)]
 pub enum BuildMode {
     Forward,
     ForwardDocs,
@@ -60,9 +60,7 @@ pub fn run_with_args(
         lang.clean_code = clean_code;
     }
 
-    let root = matches
-        .value_of("root")
-        .or_else(|| config.paths.root.as_deref());
+    let root = matches.value_of("root").or(config.paths.root.as_deref());
 
     let root_path = if let Some(path) = root {
         env::set_current_dir(path)
@@ -99,9 +97,9 @@ pub fn run_with_args(
     }
 
     let (mut source_files, mut code_files) = if reverse {
-        process_inputs_reverse(&input_patterns, &config)?
+        process_inputs_reverse(input_patterns, &config)?
     } else {
-        process_inputs_forward(&input_patterns, &config, strict, !is_docs_rebuild)?
+        process_inputs_forward(input_patterns, &config, strict, !is_docs_rebuild)?
     };
 
     if !is_docs_rebuild {
@@ -111,7 +109,7 @@ pub fn run_with_args(
             let (copy_in, copy_out) = files::copy_files(
                 code_file_patterns,
                 config.paths.code_paths.as_deref(),
-                &code_dir,
+                code_dir,
                 reverse,
             )?;
             source_files.extend(copy_in);
@@ -126,7 +124,7 @@ pub fn run_with_args(
             files::copy_files(
                 doc_file_patterns,
                 config.paths.doc_paths.as_deref(),
-                &doc_dir,
+                doc_dir,
                 false,
             )?;
         }
@@ -189,7 +187,7 @@ fn process_inputs_reverse(
     let mut source_files: HashSet<PathBuf> = HashSet::new();
 
     for pattern in input_patterns {
-        let paths = glob::glob(&pattern)
+        let paths = glob::glob(pattern)
             .map_err(|err| format!("Unable to process glob pattern \"{}\": {}", pattern, err))?;
 
         for path in paths {
@@ -202,7 +200,7 @@ fn process_inputs_reverse(
                 let file_name = PathBuf::from(&input);
 
                 compile::reverse::compile_all(
-                    &config,
+                    config,
                     &file_name,
                     &mut source_files,
                     &mut code_files,
@@ -229,7 +227,7 @@ fn process_inputs_reverse(
         .into());
     }
 
-    let code_blocks = code::collect_code_blocks(&code_files, &config)?;
+    let code_blocks = code::collect_code_blocks(&code_files, config)?;
     for (path, doc) in documents {
         let blocks: HashMap<_, _> = code_blocks
             .iter()
@@ -268,7 +266,7 @@ fn process_inputs_forward(
     let mut documents = HashMap::new();
     let mut source_file = HashSet::new();
     for pattern in input_patterns {
-        let paths = glob::glob(&pattern)
+        let paths = glob::glob(pattern)
             .map_err(|err| format!("Unable to process glob pattern \"{}\": {}", pattern, err))?;
 
         for path in paths {
@@ -281,7 +279,7 @@ fn process_inputs_forward(
                 let file_name = PathBuf::from(&input);
 
                 compile::forward::collect_documents(
-                    &config,
+                    config,
                     &file_name,
                     &mut documents,
                     &mut source_file,

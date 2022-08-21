@@ -77,7 +77,7 @@ a^2+b^2=c^2
 $$
 ```
 
-### Pandas
+### Pandoc
 
 Pandoc supports TeX-like inline math, surrounded by `$...$` as well as math blocks:
 

@@ -93,7 +93,7 @@ pub struct TextBlock {
 }
 
 /// A `Transclusion` is a reference to another file that should be pulled into the source
-#[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
+#[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
 pub struct Transclusion {
     /// The target file path
     pub file: PathBuf,

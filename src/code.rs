@@ -55,7 +55,7 @@ pub fn collect_code_blocks(
                     .get(language)
                     .and_then(|lang| lang.block_labels.as_ref())
                 {
-                    let source = files::read_file_string(&file)?;
+                    let source = files::read_file_string(file)?;
                     let blocks = parse(&source, &config.parser, labels)?;
 
                     for block in blocks.into_iter() {

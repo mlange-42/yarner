@@ -58,7 +58,7 @@ pub fn extract_code_all(
     let mut code_files = HashMap::new();
 
     for (path, doc) in documents.iter() {
-        extract_code(config, &doc, &path, &mut code_files)?;
+        extract_code(config, doc, path, &mut code_files)?;
     }
 
     Ok(code_files)
@@ -69,7 +69,7 @@ pub fn write_documentation_all(
     documents: &HashMap<PathBuf, Document>,
 ) -> Fallible {
     for (path, doc) in documents.iter() {
-        write_documentation(config, &doc, &path)?;
+        write_documentation(config, doc, path)?;
     }
     Ok(())
 }
@@ -198,9 +198,9 @@ fn transclude(
         trace.insert(file_name.to_owned());
     }
 
-    let source_main = files::read_file_string(&file_name)?;
+    let source_main = files::read_file_string(file_name)?;
     let (mut document, mut links) =
-        parse::parse(&source_main, &root_file, &file_name, false, parser)?;
+        parse::parse(&source_main, root_file, file_name, false, parser)?;
 
     let transclusions = document.transclusions().cloned().collect::<Vec<_>>();
 
