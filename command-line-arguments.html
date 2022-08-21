@@ -1,0 +1,285 @@
+<!DOCTYPE HTML>
+<html lang="en" class="sidebar-visible no-js rust">
+    <head>
+        <!-- Book generated using mdBook -->
+        <meta charset="UTF-8">
+        <title>Command line arguments - Yarner Documentation</title>
+        
+        
+
+
+        <!-- Custom HTML head -->
+        
+
+
+        <meta content="text/html; charset=utf-8" http-equiv="Content-Type">
+        <meta name="description" content="">
+        <meta name="viewport" content="width=device-width, initial-scale=1">
+        <meta name="theme-color" content="#ffffff" />
+
+        
+        <link rel="icon" href="favicon.svg">
+        
+        
+        <link rel="shortcut icon" href="favicon.png">
+        
+        <link rel="stylesheet" href="css/variables.css">
+        <link rel="stylesheet" href="css/general.css">
+        <link rel="stylesheet" href="css/chrome.css">
+        
+        <link rel="stylesheet" href="css/print.css" media="print">
+        
+
+        <!-- Fonts -->
+        <link rel="stylesheet" href="FontAwesome/css/font-awesome.css">
+        
+        <link rel="stylesheet" href="fonts/fonts.css">
+        
+
+        <!-- Highlight.js Stylesheets -->
+        <link rel="stylesheet" href="highlight.css">
+        <link rel="stylesheet" href="tomorrow-night.css">
+        <link rel="stylesheet" href="ayu-highlight.css">
+
+        <!-- Custom theme stylesheets -->
+        
+        <link rel="stylesheet" href="src/css/custom.css">
+        
+
+        
+    </head>
+    <body>
+        <!-- Provide site root to javascript -->
+        <script type="text/javascript">
+            var path_to_root = "";
+            var default_theme = window.matchMedia("(prefers-color-scheme: dark)").matches ? "navy" : "rust";
+        </script>
+
+        <!-- Work around some values being stored in localStorage wrapped in quotes -->
+        <script type="text/javascript">
+            try {
+                var theme = localStorage.getItem('mdbook-theme');
+                var sidebar = localStorage.getItem('mdbook-sidebar');
+
+                if (theme.startsWith('"') && theme.endsWith('"')) {
+                    localStorage.setItem('mdbook-theme', theme.slice(1, theme.length - 1));
+                }
+
+                if (sidebar.startsWith('"') && sidebar.endsWith('"')) {
+                    localStorage.setItem('mdbook-sidebar', sidebar.slice(1, sidebar.length - 1));
+                }
+            } catch (e) { }
+        </script>
+
+        <!-- Set the theme before any content is loaded, prevents flash -->
+        <script type="text/javascript">
+            var theme;
+            try { theme = localStorage.getItem('mdbook-theme'); } catch(e) { }
+            if (theme === null || theme === undefined) { theme = default_theme; }
+            var html = document.querySelector('html');
+            html.classList.remove('no-js')
+            html.classList.remove('rust')
+            html.classList.add(theme);
+            html.classList.add('js');
+        </script>
+
+        <!-- Hide / unhide sidebar before it is displayed -->
+        <script type="text/javascript">
+            var html = document.querySelector('html');
+            var sidebar = 'hidden';
+            if (document.body.clientWidth >= 1080) {
+                try { sidebar = localStorage.getItem('mdbook-sidebar'); } catch(e) { }
+                sidebar = sidebar || 'visible';
+            }
+            html.classList.remove('sidebar-visible');
+            html.classList.add("sidebar-" + sidebar);
+        </script>
+
+        <nav id="sidebar" class="sidebar" aria-label="Table of contents">
+            <div class="sidebar-scrollbox">
+                <ol class="chapter"><li class="chapter-item expanded affix "><a href="introduction.html">Yarner -- Introduction</a></li><li class="chapter-item expanded "><a href="installation.html"><strong aria-hidden="true">1.</strong> Installation</a></li><li class="chapter-item expanded "><a href="getting-started.html"><strong aria-hidden="true">2.</strong> Getting started</a></li><li class="chapter-item expanded "><a href="blocks-and-macros.html"><strong aria-hidden="true">3.</strong> Blocks and macros</a></li><li class="chapter-item expanded "><a href="multiple-code-files.html"><strong aria-hidden="true">4.</strong> Multiple code files</a></li><li class="chapter-item expanded "><a href="dead-and-hidden-code.html"><strong aria-hidden="true">5.</strong> Dead and hidden code</a></li><li class="chapter-item expanded "><a href="links-and-transclusions.html"><strong aria-hidden="true">6.</strong> Links and transclusions</a></li><li class="chapter-item expanded "><a href="copying-files.html"><strong aria-hidden="true">7.</strong> Copying files</a></li><li class="chapter-item expanded "><a href="reverse-mode.html"><strong aria-hidden="true">8.</strong> Reverse mode</a></li><li class="chapter-item expanded "><a href="watch-command.html"><strong aria-hidden="true">9.</strong> Watch command</a></li><li class="chapter-item expanded "><a href="plugins/plugins.html"><strong aria-hidden="true">10.</strong> Plugins</a></li><li><ol class="section"><li class="chapter-item expanded "><a href="plugins/using.html"><strong aria-hidden="true">10.1.</strong> Using plugins</a></li><li class="chapter-item expanded "><a href="plugins/known.html"><strong aria-hidden="true">10.2.</strong> Known plugins</a></li><li class="chapter-item expanded "><a href="plugins/writing.html"><strong aria-hidden="true">10.3.</strong> Writing plugins</a></li></ol></li><li class="chapter-item expanded "><a href="configuration.html"><strong aria-hidden="true">11.</strong> Configuration</a></li><li><ol class="section"><li class="chapter-item expanded "><a href="config-parser.html"><strong aria-hidden="true">11.1.</strong> Parser</a></li><li class="chapter-item expanded "><a href="config-paths.html"><strong aria-hidden="true">11.2.</strong> Paths</a></li><li class="chapter-item expanded "><a href="config-languages.html"><strong aria-hidden="true">11.3.</strong> Languages</a></li><li class="chapter-item expanded "><a href="command-line-arguments.html" class="active"><strong aria-hidden="true">11.4.</strong> Command line arguments</a></li></ol></li><li class="chapter-item expanded "><a href="advanced/advanced-topics.html"><strong aria-hidden="true">12.</strong> Advanced topics</a></li><li><ol class="section"><li class="chapter-item expanded "><a href="advanced/continuous-integration.html"><strong aria-hidden="true">12.1.</strong> Continuous integration</a></li><li class="chapter-item expanded "><a href="advanced/project-structure.html"><strong aria-hidden="true">12.2.</strong> Project structure</a></li><li class="chapter-item expanded "><a href="advanced/effective-markdown.html"><strong aria-hidden="true">12.3.</strong> Effective Markdown</a></li><li class="chapter-item expanded "><a href="advanced/mdbook.html"><strong aria-hidden="true">12.4.</strong> mdBook with Yarner</a></li></ol></li></ol>
+            </div>
+            <div id="sidebar-resize-handle" class="sidebar-resize-handle"></div>
+        </nav>
+
+        <div id="page-wrapper" class="page-wrapper">
+
+            <div class="page">
+                
+                <div id="menu-bar-hover-placeholder"></div>
+                <div id="menu-bar" class="menu-bar sticky bordered">
+                    <div class="left-buttons">
+                        <button id="sidebar-toggle" class="icon-button" type="button" title="Toggle Table of Contents" aria-label="Toggle Table of Contents" aria-controls="sidebar">
+                            <i class="fa fa-bars"></i>
+                        </button>
+                        <button id="theme-toggle" class="icon-button" type="button" title="Change theme" aria-label="Change theme" aria-haspopup="true" aria-expanded="false" aria-controls="theme-list">
+                            <i class="fa fa-paint-brush"></i>
+                        </button>
+                        <ul id="theme-list" class="theme-popup" aria-label="Themes" role="menu">
+                            <li role="none"><button role="menuitem" class="theme" id="light">Light</button></li>
+                            <li role="none"><button role="menuitem" class="theme" id="rust">Rust (default)</button></li>
+                            <li role="none"><button role="menuitem" class="theme" id="coal">Coal</button></li>
+                            <li role="none"><button role="menuitem" class="theme" id="navy">Navy</button></li>
+                            <li role="none"><button role="menuitem" class="theme" id="ayu">Ayu</button></li>
+                        </ul>
+                        
+                        <button id="search-toggle" class="icon-button" type="button" title="Search. (Shortkey: s)" aria-label="Toggle Searchbar" aria-expanded="false" aria-keyshortcuts="S" aria-controls="searchbar">
+                            <i class="fa fa-search"></i>
+                        </button>
+                        
+                    </div>
+
+                    <h1 class="menu-title">Yarner Documentation</h1>
+
+                    <div class="right-buttons">
+                        
+                        <a href="print.html" title="Print this book" aria-label="Print this book">
+                            <i id="print-button" class="fa fa-print"></i>
+                        </a>
+                        
+                        
+                        <a href="https://github.com/mlange-42/yarner" title="Git repository" aria-label="Git repository">
+                            <i id="git-repository-button" class="fa fa-github"></i>
+                        </a>
+                        
+                    </div>
+                </div>
+
+                
+                <div id="search-wrapper" class="hidden">
+                    <form id="searchbar-outer" class="searchbar-outer">
+                        <input type="search" name="search" id="searchbar" name="searchbar" placeholder="Search this book ..." aria-controls="searchresults-outer" aria-describedby="searchresults-header">
+                    </form>
+                    <div id="searchresults-outer" class="searchresults-outer hidden">
+                        <div id="searchresults-header" class="searchresults-header"></div>
+                        <ul id="searchresults">
+                        </ul>
+                    </div>
+                </div>
+                
+
+                <!-- Apply ARIA attributes after the sidebar and the sidebar toggle button are added to the DOM -->
+                <script type="text/javascript">
+                    document.getElementById('sidebar-toggle').setAttribute('aria-expanded', sidebar === 'visible');
+                    document.getElementById('sidebar').setAttribute('aria-hidden', sidebar !== 'visible');
+                    Array.from(document.querySelectorAll('#sidebar a')).forEach(function(link) {
+                        link.setAttribute('tabIndex', sidebar === 'visible' ? 0 : -1);
+                    });
+                </script>
+
+                <div id="content" class="content">
+                    <main>
+                        <h1 id="command-line-arguments"><a class="header" href="#command-line-arguments">Command line arguments</a></h1>
+<p>Some configurations can be overwritten using command line arguments.</p>
+<ul>
+<li><a href="#cli-help">CLI help</a></li>
+</ul>
+<h2 id="cli-help"><a class="header" href="#cli-help">CLI help</a></h2>
+<p>To get help on command line options, use <code>yarner -h</code>.</p>
+<pre><code class="language-plaintext">Literate Programming tool for Markdown
+  https://github.com/mlange-42/yarner
+
+The normal workflow is:
+ 1) Create a project with
+    &gt; yarner init
+ 2) Process the project by running
+    &gt; yarner
+
+USAGE:
+    yarner [FLAGS] [OPTIONS] [FILES]... [SUBCOMMAND]
+
+FLAGS:
+    -C, --clean      Produces clean code output, without block label comments.
+    -F, --force      Forces building, although it would result in overwriting changed files.
+    -h, --help       Prints help information
+    -V, --version    Prints version information
+
+OPTIONS:
+    -o, --code &lt;path&gt;          Directory to output code files to. Optional. Defaults to 'path -&gt; code' from config file.
+    -c, --config &lt;path&gt;        Sets the config file path [default: Yarner.toml]
+    -d, --docs &lt;path&gt;          Directory to output documentation files to. Optional. Defaults to 'path -&gt; docs' from
+                               config file.
+    -e, --entrypoint &lt;name&gt;    The named entrypoint to use when tangling code. Optional. Defaults to 'path -&gt;
+                               entrypoint', or to the unnamed code block(s).
+    -r, --root &lt;path&gt;          Root directory. Optional. Defaults to 'path -&gt; root' from config file, or to the current
+                               directory.
+
+ARGS:
+    &lt;FILES&gt;...    The input source file(s) as glob pattern(s). Optional. Defaults to 'path -&gt; files' from config
+                  file.
+
+SUBCOMMANDS:
+    help       Prints this message or the help of the given subcommand(s)
+    init       Creates a yarner project in the current directory
+    reverse    Reverse mode: play back code changes into source files
+    watch      Watch files and build project on changes
+</code></pre>
+
+                    </main>
+
+                    <nav class="nav-wrapper" aria-label="Page navigation">
+                        <!-- Mobile navigation buttons -->
+                        
+                            <a rel="prev" href="config-languages.html" class="mobile-nav-chapters previous" title="Previous chapter" aria-label="Previous chapter" aria-keyshortcuts="Left">
+                                <i class="fa fa-angle-left"></i>
+                            </a>
+                        
+
+                        
+                            <a rel="next" href="advanced/advanced-topics.html" class="mobile-nav-chapters next" title="Next chapter" aria-label="Next chapter" aria-keyshortcuts="Right">
+                                <i class="fa fa-angle-right"></i>
+                            </a>
+                        
+
+                        <div style="clear: both"></div>
+                    </nav>
+                </div>
+            </div>
+
+            <nav class="nav-wide-wrapper" aria-label="Page navigation">
+                
+                    <a rel="prev" href="config-languages.html" class="nav-chapters previous" title="Previous chapter" aria-label="Previous chapter" aria-keyshortcuts="Left">
+                        <i class="fa fa-angle-left"></i>
+                    </a>
+                
+
+                
+                    <a rel="next" href="advanced/advanced-topics.html" class="nav-chapters next" title="Next chapter" aria-label="Next chapter" aria-keyshortcuts="Right">
+                        <i class="fa fa-angle-right"></i>
+                    </a>
+                
+            </nav>
+
+        </div>
+
+        
+
+        
+
+        
+
+        
+        <script type="text/javascript">
+            window.playground_copyable = true;
+        </script>
+        
+
+        
+
+        
+        <script src="elasticlunr.min.js" type="text/javascript" charset="utf-8"></script>
+        <script src="mark.min.js" type="text/javascript" charset="utf-8"></script>
+        <script src="searcher.js" type="text/javascript" charset="utf-8"></script>
+        
+
+        <script src="clipboard.min.js" type="text/javascript" charset="utf-8"></script>
+        <script src="highlight.js" type="text/javascript" charset="utf-8"></script>
+        <script src="book.js" type="text/javascript" charset="utf-8"></script>
+
+        <!-- Custom JS scripts -->
+        
+
+        
+
+    </body>
+</html>

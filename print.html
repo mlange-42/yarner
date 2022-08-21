@@ -1,0 +1,1271 @@
+<!DOCTYPE HTML>
+<html lang="en" class="sidebar-visible no-js rust">
+    <head>
+        <!-- Book generated using mdBook -->
+        <meta charset="UTF-8">
+        <title>Yarner Documentation</title>
+        
+        <meta name="robots" content="noindex" />
+        
+        
+
+
+        <!-- Custom HTML head -->
+        
+
+
+        <meta content="text/html; charset=utf-8" http-equiv="Content-Type">
+        <meta name="description" content="">
+        <meta name="viewport" content="width=device-width, initial-scale=1">
+        <meta name="theme-color" content="#ffffff" />
+
+        
+        <link rel="icon" href="favicon.svg">
+        
+        
+        <link rel="shortcut icon" href="favicon.png">
+        
+        <link rel="stylesheet" href="css/variables.css">
+        <link rel="stylesheet" href="css/general.css">
+        <link rel="stylesheet" href="css/chrome.css">
+        
+        <link rel="stylesheet" href="css/print.css" media="print">
+        
+
+        <!-- Fonts -->
+        <link rel="stylesheet" href="FontAwesome/css/font-awesome.css">
+        
+        <link rel="stylesheet" href="fonts/fonts.css">
+        
+
+        <!-- Highlight.js Stylesheets -->
+        <link rel="stylesheet" href="highlight.css">
+        <link rel="stylesheet" href="tomorrow-night.css">
+        <link rel="stylesheet" href="ayu-highlight.css">
+
+        <!-- Custom theme stylesheets -->
+        
+        <link rel="stylesheet" href="src/css/custom.css">
+        
+
+        
+    </head>
+    <body>
+        <!-- Provide site root to javascript -->
+        <script type="text/javascript">
+            var path_to_root = "";
+            var default_theme = window.matchMedia("(prefers-color-scheme: dark)").matches ? "navy" : "rust";
+        </script>
+
+        <!-- Work around some values being stored in localStorage wrapped in quotes -->
+        <script type="text/javascript">
+            try {
+                var theme = localStorage.getItem('mdbook-theme');
+                var sidebar = localStorage.getItem('mdbook-sidebar');
+
+                if (theme.startsWith('"') && theme.endsWith('"')) {
+                    localStorage.setItem('mdbook-theme', theme.slice(1, theme.length - 1));
+                }
+
+                if (sidebar.startsWith('"') && sidebar.endsWith('"')) {
+                    localStorage.setItem('mdbook-sidebar', sidebar.slice(1, sidebar.length - 1));
+                }
+            } catch (e) { }
+        </script>
+
+        <!-- Set the theme before any content is loaded, prevents flash -->
+        <script type="text/javascript">
+            var theme;
+            try { theme = localStorage.getItem('mdbook-theme'); } catch(e) { }
+            if (theme === null || theme === undefined) { theme = default_theme; }
+            var html = document.querySelector('html');
+            html.classList.remove('no-js')
+            html.classList.remove('rust')
+            html.classList.add(theme);
+            html.classList.add('js');
+        </script>
+
+        <!-- Hide / unhide sidebar before it is displayed -->
+        <script type="text/javascript">
+            var html = document.querySelector('html');
+            var sidebar = 'hidden';
+            if (document.body.clientWidth >= 1080) {
+                try { sidebar = localStorage.getItem('mdbook-sidebar'); } catch(e) { }
+                sidebar = sidebar || 'visible';
+            }
+            html.classList.remove('sidebar-visible');
+            html.classList.add("sidebar-" + sidebar);
+        </script>
+
+        <nav id="sidebar" class="sidebar" aria-label="Table of contents">
+            <div class="sidebar-scrollbox">
+                <ol class="chapter"><li class="chapter-item expanded affix "><a href="introduction.html">Yarner -- Introduction</a></li><li class="chapter-item expanded "><a href="installation.html"><strong aria-hidden="true">1.</strong> Installation</a></li><li class="chapter-item expanded "><a href="getting-started.html"><strong aria-hidden="true">2.</strong> Getting started</a></li><li class="chapter-item expanded "><a href="blocks-and-macros.html"><strong aria-hidden="true">3.</strong> Blocks and macros</a></li><li class="chapter-item expanded "><a href="multiple-code-files.html"><strong aria-hidden="true">4.</strong> Multiple code files</a></li><li class="chapter-item expanded "><a href="dead-and-hidden-code.html"><strong aria-hidden="true">5.</strong> Dead and hidden code</a></li><li class="chapter-item expanded "><a href="links-and-transclusions.html"><strong aria-hidden="true">6.</strong> Links and transclusions</a></li><li class="chapter-item expanded "><a href="copying-files.html"><strong aria-hidden="true">7.</strong> Copying files</a></li><li class="chapter-item expanded "><a href="reverse-mode.html"><strong aria-hidden="true">8.</strong> Reverse mode</a></li><li class="chapter-item expanded "><a href="watch-command.html"><strong aria-hidden="true">9.</strong> Watch command</a></li><li class="chapter-item expanded "><a href="plugins/plugins.html"><strong aria-hidden="true">10.</strong> Plugins</a></li><li><ol class="section"><li class="chapter-item expanded "><a href="plugins/using.html"><strong aria-hidden="true">10.1.</strong> Using plugins</a></li><li class="chapter-item expanded "><a href="plugins/known.html"><strong aria-hidden="true">10.2.</strong> Known plugins</a></li><li class="chapter-item expanded "><a href="plugins/writing.html"><strong aria-hidden="true">10.3.</strong> Writing plugins</a></li></ol></li><li class="chapter-item expanded "><a href="configuration.html"><strong aria-hidden="true">11.</strong> Configuration</a></li><li><ol class="section"><li class="chapter-item expanded "><a href="config-parser.html"><strong aria-hidden="true">11.1.</strong> Parser</a></li><li class="chapter-item expanded "><a href="config-paths.html"><strong aria-hidden="true">11.2.</strong> Paths</a></li><li class="chapter-item expanded "><a href="config-languages.html"><strong aria-hidden="true">11.3.</strong> Languages</a></li><li class="chapter-item expanded "><a href="command-line-arguments.html"><strong aria-hidden="true">11.4.</strong> Command line arguments</a></li></ol></li><li class="chapter-item expanded "><a href="advanced/advanced-topics.html"><strong aria-hidden="true">12.</strong> Advanced topics</a></li><li><ol class="section"><li class="chapter-item expanded "><a href="advanced/continuous-integration.html"><strong aria-hidden="true">12.1.</strong> Continuous integration</a></li><li class="chapter-item expanded "><a href="advanced/project-structure.html"><strong aria-hidden="true">12.2.</strong> Project structure</a></li><li class="chapter-item expanded "><a href="advanced/effective-markdown.html"><strong aria-hidden="true">12.3.</strong> Effective Markdown</a></li><li class="chapter-item expanded "><a href="advanced/mdbook.html"><strong aria-hidden="true">12.4.</strong> mdBook with Yarner</a></li></ol></li></ol>
+            </div>
+            <div id="sidebar-resize-handle" class="sidebar-resize-handle"></div>
+        </nav>
+
+        <div id="page-wrapper" class="page-wrapper">
+
+            <div class="page">
+                
+                <div id="menu-bar-hover-placeholder"></div>
+                <div id="menu-bar" class="menu-bar sticky bordered">
+                    <div class="left-buttons">
+                        <button id="sidebar-toggle" class="icon-button" type="button" title="Toggle Table of Contents" aria-label="Toggle Table of Contents" aria-controls="sidebar">
+                            <i class="fa fa-bars"></i>
+                        </button>
+                        <button id="theme-toggle" class="icon-button" type="button" title="Change theme" aria-label="Change theme" aria-haspopup="true" aria-expanded="false" aria-controls="theme-list">
+                            <i class="fa fa-paint-brush"></i>
+                        </button>
+                        <ul id="theme-list" class="theme-popup" aria-label="Themes" role="menu">
+                            <li role="none"><button role="menuitem" class="theme" id="light">Light</button></li>
+                            <li role="none"><button role="menuitem" class="theme" id="rust">Rust (default)</button></li>
+                            <li role="none"><button role="menuitem" class="theme" id="coal">Coal</button></li>
+                            <li role="none"><button role="menuitem" class="theme" id="navy">Navy</button></li>
+                            <li role="none"><button role="menuitem" class="theme" id="ayu">Ayu</button></li>
+                        </ul>
+                        
+                        <button id="search-toggle" class="icon-button" type="button" title="Search. (Shortkey: s)" aria-label="Toggle Searchbar" aria-expanded="false" aria-keyshortcuts="S" aria-controls="searchbar">
+                            <i class="fa fa-search"></i>
+                        </button>
+                        
+                    </div>
+
+                    <h1 class="menu-title">Yarner Documentation</h1>
+
+                    <div class="right-buttons">
+                        
+                        <a href="print.html" title="Print this book" aria-label="Print this book">
+                            <i id="print-button" class="fa fa-print"></i>
+                        </a>
+                        
+                        
+                        <a href="https://github.com/mlange-42/yarner" title="Git repository" aria-label="Git repository">
+                            <i id="git-repository-button" class="fa fa-github"></i>
+                        </a>
+                        
+                    </div>
+                </div>
+
+                
+                <div id="search-wrapper" class="hidden">
+                    <form id="searchbar-outer" class="searchbar-outer">
+                        <input type="search" name="search" id="searchbar" name="searchbar" placeholder="Search this book ..." aria-controls="searchresults-outer" aria-describedby="searchresults-header">
+                    </form>
+                    <div id="searchresults-outer" class="searchresults-outer hidden">
+                        <div id="searchresults-header" class="searchresults-header"></div>
+                        <ul id="searchresults">
+                        </ul>
+                    </div>
+                </div>
+                
+
+                <!-- Apply ARIA attributes after the sidebar and the sidebar toggle button are added to the DOM -->
+                <script type="text/javascript">
+                    document.getElementById('sidebar-toggle').setAttribute('aria-expanded', sidebar === 'visible');
+                    document.getElementById('sidebar').setAttribute('aria-hidden', sidebar !== 'visible');
+                    Array.from(document.querySelectorAll('#sidebar a')).forEach(function(link) {
+                        link.setAttribute('tabIndex', sidebar === 'visible' ? 0 : -1);
+                    });
+                </script>
+
+                <div id="content" class="content">
+                    <main>
+                        <h1 id="yarner----introduction"><a class="header" href="#yarner----introduction">Yarner -- Introduction</a></h1>
+<p><a href="https://github.com/mlange-42/yarner/actions/workflows/tests.yml"><img src="https://github.com/mlange-42/yarner/actions/workflows/tests.yml/badge.svg" alt="Test status" /></a>
+<a href="https://github.com/mlange-42/yarner"><img src="https://img.shields.io/badge/github-repo-blue?logo=github" alt="GitHub" /></a>
+<a href="https://crates.io/crates/yarner"><img src="https://img.shields.io/crates/v/yarner.svg" alt="Crate" /></a>
+<a href="https://github.com/mlange-42/yarner/blob/master/LICENSE"><img src="https://img.shields.io/github/license/mlange-42/yarner" alt="MIT license" /></a></p>
+<p><strong>Yarner</strong> is a language-independent Literate Programming command line tool for Markdown.</p>
+<p>From Markdown documents written and structured for humans, Yarner extracts code blocks into compilable source code. It offers sufficient features and flexibility to be usable also for larger projects with numerous files and multiple languages.</p>
+<h3 id="github-project"><a class="header" href="#github-project">GitHub project</a></h3>
+<p>Yarner is Open Source and available <a href="https://github.com/mlange-42/yarner">on GitHub</a>.</p>
+<p>We also provide <a href="https://github.com/mlange-42/yarner/tree/master/examples">examples</a> there for the use of Yarner with different programming languages.</p>
+<h3 id="contributing"><a class="header" href="#contributing">Contributing</a></h3>
+<p>For feature requests and issues, please use the <a href="https://github.com/mlange-42/yarner/issues">issue tracker</a>. Merge requests are welcome.</p>
+<h3 id="license"><a class="header" href="#license">License</a></h3>
+<p>Yarner and all its sources are released under the <a href="https://github.com/mlange-42/yarner/blob/master/LICENSE">MIT License</a>.</p>
+<h1 id="installation"><a class="header" href="#installation">Installation</a></h1>
+<p>There are multiple ways to install Yarner:</p>
+<ul>
+<li><a href="installation.html#binaries">Binaries</a></li>
+<li><a href="installation.html#from-github-using-cargo">From GitHub using <code>cargo</code></a></li>
+<li><a href="installation.html#clone-and-build">Clone and build</a></li>
+</ul>
+<h2 id="binaries"><a class="header" href="#binaries">Binaries</a></h2>
+<ol>
+<li>Download the <a href="https://github.com/mlange-42/yarner/releases">latest binaries</a> for your platform<br />
+(Binaries are available for Linux, Windows and macOS)</li>
+<li>Unzip somewhere</li>
+<li><em>Optional:</em> add the parent directory of the executable to your <code>PATH</code> environmental variable</li>
+</ol>
+<h2 id="from-github-using-cargo"><a class="header" href="#from-github-using-cargo">From GitHub using <code>cargo</code></a></h2>
+<p>In case you have <a href="https://www.rust-lang.org/">Rust</a> installed, you can install with <code>cargo</code>:</p>
+<pre><code>cargo install yarner
+</code></pre>
+<h2 id="clone-and-build"><a class="header" href="#clone-and-build">Clone and build</a></h2>
+<p>To build Yarner locally, e.g. to contribute to the project, you will have to clone the repository on your local machine:</p>
+<pre><code>git clone https://github.com/mlange-42/yarner
+</code></pre>
+<p><code>cd</code> into <code>yarner/</code> and run</p>
+<pre><code>cargo build
+</code></pre>
+<p>The resulting binary can be found in <code>yarner/target/debug/</code> under the name <code>yarner</code> or <code>yarner.exe</code>.</p>
+<h1 id="getting-started"><a class="header" href="#getting-started">Getting started</a></h1>
+<p>Yarner is very easy to use from the command line, requiring only two different commands, <code>yarner init</code> and <code>yarner</code>. This chapter demonstrates how to set up a project and extract sources from Markdown.</p>
+<ul>
+<li><a href="getting-started.html#create-a-project">Create a project</a></li>
+<li><a href="getting-started.html#build-a-project">Build a project</a></li>
+<li><a href="getting-started.html#whats-next">What's next</a></li>
+</ul>
+<h2 id="create-a-project"><a class="header" href="#create-a-project">Create a project</a></h2>
+<p>To set up a new project, use the <code>init</code> sub-command. Run the following in your project's base directory:</p>
+<pre><code class="language-plaintext">&gt; yarner init
+</code></pre>
+<p>This creates a file <code>Yarner.toml</code> with default settings, and a file <code>README.md</code> as starting point for Literate Programming.</p>
+<p>The generated file already contains some content to get started with Yarner's basic features. These are explained in detail in the subsequent chapters.</p>
+<h2 id="build-a-project"><a class="header" href="#build-a-project">Build a project</a></h2>
+<p>To build the project (i.e. extract code and create documentation), simply run:</p>
+<pre><code class="language-plaintext">&gt; yarner
+</code></pre>
+<p>This creates two sub-directories, one containing the extracted code (a minimal but working Rust project), and another containing the final documentation.</p>
+<p>Note that the contents of these directories can then be treated as usual, i.e. compiling the code with the normal compiler, or rendering Markdown to HTML or PDF.</p>
+<h2 id="whats-next"><a class="header" href="#whats-next">What's next</a></h2>
+<p>The following chapters explain the use of Yarner in detail, feature by feature.</p>
+<p>To get an impression how Yarner projects look like, or to find a template to get started with your preferred programming language, see also the <a href="https://github.com/mlange-42/yarner/tree/master/examples">examples</a> in the <a href="https://github.com/mlange-42/yarner">GitHub repository</a>.</p>
+<h1 id="blocks-and-macros"><a class="header" href="#blocks-and-macros">Blocks and macros</a></h1>
+<p>Yarner's aim is to make it possible to create software from documents written and structured for humans.
+The most important features in that respect are (named) code blocks and macros.
+This chapter provides an introduction to their basic usage.</p>
+<ul>
+<li><a href="blocks-and-macros.html#code-blocks">Code blocks</a></li>
+<li><a href="blocks-and-macros.html#file-extensions">File extensions</a></li>
+<li><a href="blocks-and-macros.html#project-structure">Project structure</a></li>
+<li><a href="blocks-and-macros.html#macros">Macros</a></li>
+<li><a href="blocks-and-macros.html#named-entrypoints">Named entrypoints</a></li>
+<li><a href="blocks-and-macros.html#concatenated-code-blocks">Concatenated code blocks</a></li>
+</ul>
+<h2 id="code-blocks"><a class="header" href="#code-blocks">Code blocks</a></h2>
+<p>In the most basic scenario, Yarner extracts code blocks from a Markdown document and writes them to an equally-named file in the <code>code</code> output directory, with the file's <code>md</code> extension stripped off.</p>
+<p>As an example, create a project like this:</p>
+<pre><code class="language-plaintext">&gt; yarner init
+</code></pre>
+<p>This creates a file <code>README.md</code> in your project's directory, and a <code>Yarner.toml</code> file with the default settings.</p>
+<p>File <code>README.md</code> has some template content, but we want to start with a minimal example:</p>
+<pre><code class="language-markdown"># Simple example
+
+The program's entry point:
+
+```rust
+fn main() {
+    println!(&quot;Hello World!&quot;);
+}
+```
+</code></pre>
+<p>Running Yarner with</p>
+<pre><code class="language-plaintext">&gt; yarner
+</code></pre>
+<p>creates a file <code>README</code> in sub-directory <code>code</code>, and a documentation file <code>README.md</code> in sub-directory <code>docs</code>.
+In this case, <code>docs/README.md</code> has the same content as the original file, and <code>code/README</code> contains the extracted code block:</p>
+<pre><code class="language-rust noplaypen">fn main() {
+    println!(&quot;Hello World!&quot;);
+}
+</code></pre>
+<h2 id="file-extensions"><a class="header" href="#file-extensions">File extensions</a></h2>
+<p>A Rust file without the <code>.rs</code> extension is not very useful. We can rename the main file from <code>README.md</code> to <code>main.rs.md</code>.
+Further, in file <code>Yarner.toml</code>, we change option <code>files</code> in section <code>[paths]</code> to:</p>
+<pre><code class="language-toml">files = [&quot;main.rs.md&quot;]
+</code></pre>
+<p>Yarner now produces the files <code>code/main.rs</code> and <code>docs/main.rs.md</code>.</p>
+<p>Please note that only the <code>md</code> extension is stripped for the code output, while any extension-like parts of the main file name are preserved.</p>
+<h2 id="project-structure"><a class="header" href="#project-structure">Project structure</a></h2>
+<p>The project structure of the above example looks like this:</p>
+<pre><code class="language-plaintext">project
+  │
+  ├── code/              &lt;code output&gt;
+  │     └── main.rs
+  │
+  ├── docs/              &lt;doc output&gt;
+  │     └── main.rs.md
+  │
+  ├── main.rs.md         &lt;source document&gt;
+  └── Yarner.toml        &lt;config&gt;
+</code></pre>
+<p>Project structure is flexible an can be configured in the project's <code>Yarner.toml</code>.
+See chapters <a href="./config-paths.html">Paths</a> for configuration, and <a href="./project-structure.html">Project structure</a>
+for other possible layouts.</p>
+<h2 id="macros"><a class="header" href="#macros">Macros</a></h2>
+<p>To allow structuring for humans, Yarner uses macros.
+For that sake, code blocks can be given a name in their first line, by default prefixed with <code>//-</code>.
+Here is a code block named <code>Say hello</code>:</p>
+<pre><code class="language-markdown">```rust
+//- Say hello
+fn say_hello() {
+    println!(&quot;Hello World!&quot;);
+}
+```
+</code></pre>
+<p>During code extraction, code is drawn together by replacing macro invocations by the respective code block's content.
+By default, a macro invocation starts with <code>// ==&gt;</code> and ends with <code>.</code>.</p>
+<pre><code class="language-markdown">```rust
+fn main() {
+    say_hello();
+}
+
+// ==&gt; Say hello.
+```
+</code></pre>
+<p>As a complete example, the content of a file <code>main.rs.md</code> could look like this:</p>
+<pre><code class="language-markdown"># Simple example
+
+The program's entry point:
+
+```rust
+fn main() {
+    say_hello();
+}
+// ==&gt; Say hello.
+```
+
+Here is how we say hello:
+
+```rust
+//- Say hello
+fn say_hello() {
+    println!(&quot;Hello World!&quot;);
+}
+```
+</code></pre>
+<p>The resulting content of <code>code/main.rs</code> looks like this:</p>
+<pre><code class="language-rust noplaypen">fn main() {
+    say_hello();
+}
+fn say_hello() {
+    println!(&quot;Hello World!&quot;);
+}
+</code></pre>
+<p><strong>Macro evaluation is recursive.</strong> Thus, code blocks that are referenced by macros can also contain macro invocations.</p>
+<h2 id="named-entrypoints"><a class="header" href="#named-entrypoints">Named entrypoints</a></h2>
+<p>By default, unnamed code blocks are the entrypoints for code extraction.
+This can be changed in the config file <code>Yarner.toml</code> through the option <code>entrypoint</code> in section <code>[paths]</code>:</p>
+<pre><code class="language-toml">...
+[paths]
+entrypoint = &quot;Main&quot;
+...
+</code></pre>
+<p>The code block named by <code>//- Main</code> in its first line would then be used as entrypoint.</p>
+<h2 id="concatenated-code-blocks"><a class="header" href="#concatenated-code-blocks">Concatenated code blocks</a></h2>
+<p>Multiple code blocks with the same name are concatenated in their order of appearance in the source document.
+As an example, here is an alternative content for <code>main.rs.md</code>:</p>
+<pre><code class="language-markdown"># Simple example
+
+The program's entry point:
+
+```rust
+fn main() {
+    say_hello();
+}
+```
+
+Here is how we say hello:
+
+```rust
+fn say_hello() {
+    println!(&quot;Hello World!&quot;);
+}
+```
+</code></pre>
+<p>The two code blocks are concatenated and result in this content of <code>code/main.rs</code>:</p>
+<pre><code class="language-rust noplaypen">fn main() {
+    say_hello();
+}
+fn say_hello() {
+    println!(&quot;Hello World!&quot;);
+}
+</code></pre>
+<h1 id="multiple-code-files"><a class="header" href="#multiple-code-files">Multiple code files</a></h1>
+<p>For most software projects, a single code file is not sufficient. Yarner provides several features for that purpose.
+The most basic, producing multiple code files from a single Markdown document, is described here.</p>
+<ul>
+<li><a href="multiple-code-files.html#multiple-files-from-a-single-document">Multiple files from a single document</a></li>
+<li><a href="multiple-code-files.html#further-uses-of-the-feature">Further uses of the feature</a></li>
+</ul>
+<h2 id="multiple-files-from-a-single-document"><a class="header" href="#multiple-files-from-a-single-document">Multiple files from a single document</a></h2>
+<p>It is possible to generate multiple code files from a single documentation source file through code blocks named with file paths, prefixed with <code>file:</code> (the default, configurable).</p>
+<pre><code class="language-markdown">```rust
+//- file:path/to/file.ext
+...
+```
+</code></pre>
+<p>As an example, a file <code>main.rs.md</code> with the following content creates file <code>src/lib.rs</code>, besides the main file <code>main.rs</code>:</p>
+<pre><code class="language-markdown"># Multiple files example
+
+File main.rs looks like this:
+
+```rust
+fn main () {
+
+}
+```
+
+And here is the content of file `lib.rs`:
+
+```rust
+//- file:src/lib.rs
+fn first_funtion() {}
+fn second_funtion() {}
+
+// ==&gt; Further functions.
+```
+
+The remaining functions in `lib.rs`:
+
+```rust
+//- Further functions
+fn third_funtion() {}
+fn fourth_funtion() {}
+```
+</code></pre>
+<p>Note that macro invocations are possible as usual, with no special syntax required.</p>
+<p>Each code block named with the <code>file:</code> prefix is treated as separate entrypoint during the build process.</p>
+<h2 id="further-uses-of-the-feature"><a class="header" href="#further-uses-of-the-feature">Further uses of the feature</a></h2>
+<p>This feature can also be used to avoid the somewhat uncommon file naming patterns that were used in this guide so far. We generated code files from source files of the same name, but with an additional <code>md</code> extension. With the <code>file:</code> prefix feature, it is possible to circumvent this restriction completely.</p>
+<p>As an example, it may be desired that the primary documentation file is named <code>README.md</code> (because the project is hosted on GitHub or GitLab), but to create a file <code>main.rs</code> from it. A file <code>README.md</code> with the following content would achieve that:</p>
+<pre><code class="language-markdown"># Simple example
+
+The program's entry point:
+
+```rust
+//- file:main.rs
+fn main() {
+    println!(&quot;Hello World!&quot;);
+}
+```
+</code></pre>
+<p>Thus, file naming in documentation and code can be completely independent of each other.</p>
+<h1 id="dead-and-hidden-code"><a class="header" href="#dead-and-hidden-code">Dead and hidden code</a></h1>
+<p>In some cases, it may be desirable to have code blocks that don't go into code output, or code that is hidden in the documentation.</p>
+<ul>
+<li><a href="dead-and-hidden-code.html#dead-code">Dead code</a></li>
+<li><a href="dead-and-hidden-code.html#hidden-code">Hidden code</a></li>
+</ul>
+<h2 id="dead-code"><a class="header" href="#dead-code">Dead code</a></h2>
+<p>Code blocks like examples may be intended to be excluded from code output. This can be achieved by giving a block a name that is not used in any macro. In this example, the code block named <code>Example</code> will be absent from the generated code as it is not referenced from anywhere:</p>
+<pre><code class="language-markdown"># Dead code example
+
+A function to greet someone:
+
+```rust
+fn say_hello(name: &amp;str) {
+    println!(&quot;Hello {}&quot;, name);
+}
+```
+
+Function `say_hello_to` can be used like that:
+
+```rust
+//- Example
+fn say_hello(&quot;Paul&quot;);
+```
+</code></pre>
+<p>Additionally, if the option <code>entrypoint</code> in section <code>[paths]</code> of the <code>Yarner.toml</code> is set, unnamed blocks are excluded from code output. This can be useful to ignore e.g. simple command line usage examples intended to instruct the reader rather than for code output.</p>
+<h2 id="hidden-code"><a class="header" href="#hidden-code">Hidden code</a></h2>
+<p>Sometimes, it can be useful to exclude code that is of limited interest for the reader from documentation output. This can be achieved by prefixing block names with <code>hidden:</code> (the default, configurable):</p>
+<pre><code>```rust
+//- hidden:A hidden function
+fn hidden() {
+
+}
+```
+</code></pre>
+<p>For code output, hidden blocks are treated like regular code blocks.</p>
+<p>Only named code blocks can be hidden.</p>
+<p>The prefixes <code>hidden:</code> and <code>file:</code> can be combined, but only in that order:</p>
+<pre><code>```rust
+//- hidden:file:secrets.rs
+fn hidden() {
+
+}
+```
+</code></pre>
+<blockquote>
+<p>Also note the features for <a href="./links-and-transclusions.html">Links and transclusions</a> and for <a href="./copying-files.html">Copying files</a>. It is not necessary to have all code in the main document, nor to have it in Markdown code blocks at all.</p>
+</blockquote>
+<h1 id="links-and-transclusions"><a class="header" href="#links-and-transclusions">Links and transclusions</a></h1>
+<p>For larger projects, not only multiple code files are desirable, but also multiple Markdown source and/or documentation files.
+This chapter explains two features serving that purpose.</p>
+<ul>
+<li><a href="links-and-transclusions.html#link-following">Link following</a></li>
+<li><a href="links-and-transclusions.html#transclusions">Transclusions</a></li>
+</ul>
+<h2 id="link-following"><a class="header" href="#link-following">Link following</a></h2>
+<p>By prefixing relative links with <code>@</code> (by default, configurable), Yarner can be instructed to follow these links and include linked files in the build process. E.g. to include file <code>linked.md</code>, it can be linked from the main file like this:</p>
+<pre><code class="language-markdown">The file @[linked.md](linked.md) is also part of this project.
+</code></pre>
+<p>The prefix is stripped from documentation output. The above content is modified to</p>
+<pre><code class="language-markdown">The file [linked.md](linked.md) is also part of this project.
+</code></pre>
+<h2 id="transclusions"><a class="header" href="#transclusions">Transclusions</a></h2>
+<p>A transclusion means that the content of an entire file is drawn into another file.
+Transclusions are achieved by wrapping a file path or a relative link into <code>@{{&lt;path&gt;}}</code>.
+Here are two examples of valid transclusions:</p>
+<pre><code class="language-markdown">@{{path/to/file.md}}
+@{{[file.md](path/to/file.md)}}
+</code></pre>
+<p>In the documentation output, the transclusion is replaced by the content of the referenced file.</p>
+<p>During transclusion, unnamed code blocks are renamed to produce code in the same output file as if the file was not transcluded, but &quot;compiled&quot; directly.
+E.g. an unnamed code block in file <code>transcluded.rs.md</code> is be renamed to <code>file:transcluded.rs</code>.
+Note the prefix <code>file:</code>. See chapter <a href="./multiple-code-files.html">Multiple code files</a> for details.</p>
+<p>Transclusions are processed before macro evaluation. Thus, code blocks from the transcluded document can be used in the transcluding document, and vice versa.</p>
+<p>A transclusion should be the only thing in a line.</p>
+<p><strong>Transclusions are recursive</strong>, so transcluded files can also transculde other files themselves.</p>
+<h3 id="link-correction"><a class="header" href="#link-correction">Link correction</a></h3>
+<p>Relative links in transcluded files are corrected to still point to the correct target.
+E.g., when including a file <code>path/file.md</code> into <code>README.md</code>,
+a link to <code>file2.md</code> in that file would become <code>path/file2.md</code>
+in the documentation output of <code>README.md</code>.</p>
+<h1 id="copying-files"><a class="header" href="#copying-files">Copying files</a></h1>
+<p>Sometimes it may be desired to include code that is not part of the Markdown sources.
+Further, it may be necessary to include files in the documentation that are not processed by Yarner, like images.
+For such cases, Yarner can automatically copy files into code and documentation output.</p>
+<ul>
+<li><a href="copying-files.html#copying-files">Copying files</a></li>
+<li><a href="copying-files.html#modifying-paths">Modifying paths</a></li>
+</ul>
+<h2 id="copying-files-1"><a class="header" href="#copying-files-1">Copying files</a></h2>
+<p>Section <code>[paths]</code> of a project's <code>Yarner.toml</code> provides options to list files and patterns for copying files unchanged, <code>code_files</code> and <code>doc_files</code>. Both accept a list of file names or glob patterns.</p>
+<p>As an example, with the following setting Yarner copies all <code>.png</code> and <code>.jpg</code> files from directory <code>img</code> to <code>docs/img</code>:</p>
+<pre><code class="language-toml">doc_files = [&quot;img/*.png&quot;, &quot;img/*.jpg&quot;]
+</code></pre>
+<p>Equivalently, one could automatically copy all Rust files from <code>src</code> to <code>code/src</code> like this:</p>
+<pre><code class="language-toml">code_files = [&quot;src/*.rs&quot;]
+</code></pre>
+<h2 id="modifying-paths"><a class="header" href="#modifying-paths">Modifying paths</a></h2>
+<p>In some cases it may be inconvenient to be forces to equal structure in sources and outputs.
+Through options <code>code_paths</code> and <code>doc_paths</code>, paths can be modified to some extent during processing.</p>
+<p>Currently, only replacement of path components as well as omission of components are supported.</p>
+<p>As an example, some files may be required to end up at the top level directory of the code output, but should not be at the top level of sources. In the following example, all files and folders from directory <code>additional-code</code> are copied directly into the <code>code</code> output folder:</p>
+<pre><code class="language-toml">code_files = [&quot;additional-code/**/*&quot;]
+code_paths = [&quot;-&quot;]
+</code></pre>
+<p>When present, options <code>code_paths</code> and <code>doc_paths</code> must have as many entries as <code>code_files</code> and <code>doc_files</code>, respectively.
+Each entry of e.g. <code>code_paths</code> is applied to the corresponding entry in <code>code_files</code>.</p>
+<p><strong>Possible modifications:</strong></p>
+<ul>
+<li>Use <code>foo/bar</code> to replace the first two path component by <code>foo</code> and <code>bar</code>.</li>
+<li>Use <code>-</code> (minus) to omit, and <code>_</code> (underscore) to preserve a component.</li>
+<li>Use a single <code>_</code> (underscore) if no path change is intended at all.</li>
+</ul>
+<h1 id="reverse-mode"><a class="header" href="#reverse-mode">Reverse mode</a></h1>
+<p>Programming inside Markdown code blocks may be inconvenient due to missing syntax highlighting and the lack of IDE support in general.
+Yarner offers a &quot;reverse mode&quot; that lets you edit generated code files, e.g. in an IDE, and to play back changes into the Markdown sources.</p>
+<ul>
+<li><a href="reverse-mode.html#usage">Usage</a></li>
+<li><a href="reverse-mode.html#language-settings">Language settings</a></li>
+<li><a href="reverse-mode.html#code-block-labels">Code block labels</a></li>
+<li><a href="reverse-mode.html#copied-files">Copied files</a></li>
+<li><a href="reverse-mode.html#lock-file">Lock file</a></li>
+<li><a href="reverse-mode.html#clean-code-output">Clean code output</a></li>
+<li><a href="reverse-mode.html#limitations">Limitations</a></li>
+</ul>
+<h2 id="usage"><a class="header" href="#usage">Usage</a></h2>
+<p>To use the reverse mode, run the following after making changes to generated code files:</p>
+<pre><code class="language-plaintext">&gt; yarner reverse
+</code></pre>
+<p>Reverse mode requires settings for the target language(s) to be defined. See the following section.</p>
+<h2 id="language-settings"><a class="header" href="#language-settings">Language settings</a></h2>
+<p>To enable the reverse mode, Yarner needs to label code blocks in the generated sources to identify their origin.</p>
+<p>The <code>Yarner.toml</code> file provides a section where settings for multiple languages can be specified. The language is determined from the extension of the output file. The following example provides settings for Rust that would be applied to all <code>.rs</code> files.</p>
+<pre><code class="language-toml">[language.rs]
+clear_blank_lines = true
+eof_newline = true
+
+    [language.rs.block_labels]
+    comment_start = &quot;//&quot;
+    # comment_end = &quot;*/&quot;
+    block_start = &quot;&lt;@&quot;
+    block_next = &quot;&lt;@&gt;&quot;
+    block_end = &quot;@&gt;&quot;
+</code></pre>
+<p>In most cases, only the option <code>comment_start</code> needs to be adapted to the line comment sequence of the target language. E.g., Python requires the following:</p>
+<pre><code class="language-toml">[language.py]
+comment_start = &quot;#&quot;
+...
+</code></pre>
+<p>Option <code>comment_end</code> is provided for languages that support only block comments and should be left out in all other cases.</p>
+<p>For details on the available options, see chapter <a href="./config-languages.html">Languages</a>.</p>
+<p>Multiple languages can be defined by simply adding one section per language.
+It is, however, not necessary to provide language settings for every file extension present.
+Files with no language settings for their extension are simply ignored during reverse mode.</p>
+<h2 id="code-block-labels"><a class="header" href="#code-block-labels">Code block labels</a></h2>
+<p>Code in output intended for the reverse mode is labelled to allow Yarner to identify its file and code block of origin. You can edit everything between labels, but do not modify or delete the labels themselves!</p>
+<p>As an example, a simple Markdown source file <code>main.rs.md</code> could have the following content:</p>
+<pre><code class="language-markdown"># Simple example
+
+The program's entry point:
+
+```rust
+fn main() {
+    // ==&gt; Say hello.
+}
+```
+
+Here is how we say hello:
+
+```rust
+//- Say hello
+println!(&quot;Hello World!&quot;);
+```
+</code></pre>
+<p>With language settings for Rust as given above, the generated code in <code>main.rs</code> looks like this:</p>
+<pre><code class="language-rust noplaypen">// &lt;@main.rs.md##0
+fn main() {
+    // &lt;@main.rs.md#Say hello#0
+    println!(&quot;Hello World!&quot;);
+    // @&gt;main.rs.md#Say hello#0
+}
+// @&gt;main.rs.md##0
+</code></pre>
+<h2 id="copied-files"><a class="header" href="#copied-files">Copied files</a></h2>
+<p>If files were copied as explained in chapter <a href="./copying-files.html">Copying files</a>, Yarner detects these in reverse mode and copies them back. I.e. code in copied files can be modified just like code extracted from code blocks, but without the need to care for block labels.</p>
+<h2 id="lock-file"><a class="header" href="#lock-file">Lock file</a></h2>
+<p>When reverse mode for a project is enabled (by providing the required language settings), a file <code>Yarner.lock</code> is created in the project's <code>root</code>.
+The file is required to prevent accidental overwrites of user edits in Markdown sources as well as code output.
+E.g., after editing the code output, Yarner will refuse to do a forward build as your changes would then be lost.
+To build the project nonetheless, run with option <code>--force</code>:</p>
+<pre><code class="language-plaintext">&gt; yarner --force
+&gt; yarner --force reverse
+</code></pre>
+<p>The file <code>Yarner.lock</code> should be ignored by Version Control Systems (i.e. add <code>Yarner.lock</code> to your <code>.gitignore</code>).</p>
+<h2 id="clean-code-output"><a class="header" href="#clean-code-output">Clean code output</a></h2>
+<p>For clean code output without block labels, run Yarner with option <code>--clean</code>:</p>
+<pre><code class="language-plaintext">&gt; yarner --clean
+</code></pre>
+<p>Of course, the reverse mode does not work with clean output.</p>
+<h2 id="limitations"><a class="header" href="#limitations">Limitations</a></h2>
+<h3 id="block-repetitions"><a class="header" href="#block-repetitions">Block repetitions</a></h3>
+<p>When the same code block is use by multiple macro invocations, it is ambiguous which one to play back into the sources. Here is an example:</p>
+<pre><code class="language-rust noplaypen">fn main() {
+    // ==&gt; Say hello.
+    // ==&gt; Say hello.
+}
+</code></pre>
+<p>In such cases, Yarner emits a warning when called with subcommand <code>reverse</code>. If the occurrences differ, like in the following example of user-modified code output, it aborts with an error.</p>
+<pre><code class="language-rust noplaypen">// &lt;@main.rs.md#
+fn main() {
+    // &lt;@main.rs.md#Say hello#0
+    println!(&quot;Hello World!&quot;);
+    // @&gt;main.rs.md#Say hello#0
+    // &lt;@main.rs.md#Say hello#0
+    println!(&quot;Hello Universe!&quot;);
+    // @&gt;main.rs.md#Say hello#0
+}
+// @&gt;main.rs.md#
+</code></pre>
+<h1 id="watch-command"><a class="header" href="#watch-command">Watch command</a></h1>
+<p>Yarner has a subcommand <code>watch</code> to automatically build a project after files changed.
+This may be particularly convenient when switching back and forth
+between Markdown editing and code editing with reverse mode.</p>
+<div style="border: 2px solid red; padding: 0.5em;">
+Warning: This feature is still experimental and modifies the original Markdown sources.
+Make a backup of the sources before using it!
+</div>
+<ul>
+<li><a href="watch-command.html#usage">Usage</a></li>
+<li><a href="watch-command.html#reverse-pass">Reverse pass</a></li>
+<li><a href="watch-command.html#error-handling">Error handling</a></li>
+</ul>
+<h2 id="usage-1"><a class="header" href="#usage-1">Usage</a></h2>
+<p>To start watching, run subcommand <code>watch</code>:</p>
+<pre><code class="language-plaintext">&gt; yarner watch
+</code></pre>
+<p>Yarner will do one forward build and then watch the detected source files,
+as well as the generated code files, for changes.
+When source files change, Yarner runs a forward build.
+When code files change, it runs a reverse build.</p>
+<p>The config file <code>Yarner.toml</code> is watched as a source file,
+thus a forward run will be done on changes.</p>
+<p>To stop watching, press <code>Ctrl + C</code>.</p>
+<h2 id="reverse-pass"><a class="header" href="#reverse-pass">Reverse pass</a></h2>
+<p>In watch mode, a reverse build is immediately followed by a forward build,
+but exclusively for the documentation output.
+This way, code changes are immediately reflected in the documentation.</p>
+<h2 id="error-handling"><a class="header" href="#error-handling">Error handling</a></h2>
+<p>When watching a project, some errors are handled less strict
+in order to not abort watching unnecessarily.
+Instead of aborting with an error, a warning is printed.
+In particular, this applies to plugin errors.</p>
+<h1 id="plugins"><a class="header" href="#plugins">Plugins</a></h1>
+<p>Plugins allow further functionality to be provided for Yarner. A plugin is an external executable that is called by Yarner during the build process, and that receives and returns the parsed documents in JSON format.</p>
+<p>The following sections explain <a href="plugins/./using.html">how to use</a> and <a href="plugins/./writing.html">how to write</a> plugins.</p>
+<p>Further, a list of <a href="plugins/./known.html">known plugins</a> is provided.</p>
+<h1 id="using-plugins"><a class="header" href="#using-plugins">Using plugins</a></h1>
+<p>This chapter explains how to use plugins.</p>
+<ul>
+<li><a href="plugins/using.html#how-it-works">How it works</a></li>
+<li><a href="plugins/using.html#configuration">Configuration</a></li>
+<li><a href="plugins/using.html#command">Command</a></li>
+</ul>
+<h2 id="how-it-works"><a class="header" href="#how-it-works">How it works</a></h2>
+<p>Plugins are external programs that can modify the documents parsed by Yarner. They communicate with Yarner using JSON through stdin/stdout.</p>
+<h2 id="configuration"><a class="header" href="#configuration">Configuration</a></h2>
+<p>A plugin program must be on the <code>PATH</code> to be usable.</p>
+<p>To use a plugin for a project, add the respective section to the <code>Yarner.toml</code> file. E.g. for a plugin <code>yarner-block-links</code>, add</p>
+<pre><code class="language-toml">[plugin.block-links]
+</code></pre>
+<p>Plugin options follow after the section:</p>
+<pre><code class="language-toml">[plugin.block-links]
+join = &quot; | &quot;
+</code></pre>
+<p>Multiple plugins can be combined. They will process the document in the order they are given, each receiving the output of its precursor.</p>
+<p>With these settings, run Yarner a usual.</p>
+<p>Plugins have no effect in reverse mode.</p>
+<h2 id="command"><a class="header" href="#command">Command</a></h2>
+<p>By default, the command of the plugin is derived from its name in the config file, prefixed with <code>yarner-</code>. E.g., the command derived from <code>[plugin.block-links]</code> is <code>yarner-block-links</code>.</p>
+<p>Alternatively, each plugin section can have optional parameters <code>command</code> and <code>arguments</code>, e.g.</p>
+<pre><code class="language-toml">[plugin.xyz]
+command = &quot;path/to/binary&quot;
+arguments = [&quot;--arg1&quot;, &quot;value1&quot;, &quot;--arg2&quot;, &quot;value2&quot;]
+</code></pre>
+<h1 id="known-plugins"><a class="header" href="#known-plugins">Known plugins</a></h1>
+<p>A list of plugins known to the authors of Yarner.</p>
+<p><strong><a href="https://github.com/mlange-42/yarner-bib">yarner-bib</a></strong> allows for citations using a BibTeX bibliography.</p>
+<p><strong><a href="https://github.com/mlange-42/yarner-toc">yarner-toc</a></strong> adds a Table of Content to each document.</p>
+<p><strong><a href="https://github.com/mlange-42/yarner-block-links">yarner-block-links</a></strong> adds jump links between referenced and referencing code blocks.</p>
+<p><strong><a href="https://github.com/mlange-42/yarner-fold-code">yarner-fold-code</a></strong> puts all code blocks into collapsed <code>&lt;details&gt;</code> tags.</p>
+<h1 id="writing-plugins"><a class="header" href="#writing-plugins">Writing plugins</a></h1>
+<p>This chapter explains how to write plugins for Yarner,
+in Rust or any other language.</p>
+<ul>
+<li><a href="plugins/writing.html#basic-workflow">Basic workflow</a></li>
+<li><a href="plugins/writing.html#rust-library">Rust library</a></li>
+<li><a href="plugins/writing.html#json-schema">JSON schema</a></li>
+</ul>
+<h2 id="basic-workflow"><a class="header" href="#basic-workflow">Basic workflow</a></h2>
+<p>Each plugin is called by Yarner during the build process.
+It receives all documents in their parsed state, after transclusions are performed
+and code is extracted,but before documentation is printed out.
+Each plugin should report back with the changed documents, and potentially added documents.</p>
+<h2 id="rust-library"><a class="header" href="#rust-library">Rust library</a></h2>
+<p>To use the <a href="https://rust-lang.org">Rust</a> crate <code>yarner-lib</code> to write plugins,
+add it to the dependencies of your <code>Cargo.toml</code>:</p>
+<pre><code class="language-toml">[package]
+...
+
+[dependencies]
+yarner-lib = &quot;0.5&quot;
+...
+</code></pre>
+<p>Besides the <code>struct</code>s that make up a document,
+the library offer some convenience functions for JSON conversion.
+Here is an example plugin that adds a simple text paragraph to the end of each document:</p>
+<pre><pre class="playground"><code class="language-rust">use yarner_lib::*;
+
+fn main() {
+    std::process::exit(match run() {
+        Ok(()) =&gt; 0,
+        Err(err) =&gt; {
+            eprintln!(&quot;ERROR: {}&quot;, err);
+            1
+        }
+    });
+}
+
+fn run() -&gt; Result&lt;(), Box&lt;dyn std::error::Error&gt;&gt; {
+    // Get documents from stdin JSON
+    let mut data = yarner_lib::parse_input()?;
+
+    // Get options from the plugin's section in the Yarner.toml
+    let _foo = data.context.config.get(&quot;foo&quot;).unwrap();
+
+    // Manipulate documents
+    for (_path, doc) in data.documents.iter_mut() {
+        doc.nodes.push(Node::Text(TextBlock {
+            text: vec![
+                String::new(),
+                String::from(&quot;Edited by an example plugin.&quot;),
+            ],
+        }));
+    }
+
+    // Convert documents back to JSON and print them to stdout
+    yarner_lib::write_output(&amp;data)?;
+    Ok(())
+}
+</code></pre></pre>
+<p>See the <a href="plugins/./known.html">Known plugins</a> for more complex code examples.</p>
+<h2 id="json-schema"><a class="header" href="#json-schema">JSON schema</a></h2>
+<p>For plugins in languages other than Rust, a JSON schema is provided in the
+<a href="https://github.com/mlange-42/yarner">GitHub repository</a>, folder <a href="https://github.com/mlange-42/yarner/tree/master/schemas">schemas</a>.
+<a href="https://github.com/mlange-42/yarner/tree/master/schemas/yarner-data.json"><code>yarner-data.json</code></a>
+describes the data passed from Yarner to plugins (context with config, as well as documents),
+and back to Yarner.</p>
+<h1 id="configuration-1"><a class="header" href="#configuration-1">Configuration</a></h1>
+<p>All aspects of Yarner's syntax and most of its behaviour can be configured in the project's <code>Yarner.toml</code> file.
+The file is structured into sections <code>parser</code>, <code>paths</code>, and potentially multiple <code>language</code> sections. These sections are explained individually in the following chapters.</p>
+<p>Some options can be overwritten by command line arguments. See chapter <a href="./command-line-arguments.html">Command line arguments</a> for details.</p>
+<h1 id="parser"><a class="header" href="#parser">Parser</a></h1>
+<p>Section <code>parser</code> of a project's <code>Yarner.toml</code> contains all configuration options for Yarner's syntax within Markdown sources.</p>
+<ul>
+<li><a href="config-parser.html#overview">Overview</a></li>
+<li><a href="config-parser.html#options">Options</a></li>
+</ul>
+<h2 id="overview"><a class="header" href="#overview">Overview</a></h2>
+<p>The default <code>parser</code> section as generated by <code>yarner init</code> looks like this (comments removed):</p>
+<pre><code class="language-toml">[parser]
+
+fence_sequence = &quot;```&quot;
+fence_sequence_alt = &quot;~~~&quot;
+
+block_name_prefix = &quot;//-&quot;
+
+macro_start = &quot;// ==&gt;&quot;
+macro_end = &quot;.&quot;
+
+transclusion_start = &quot;@{{&quot;
+transclusion_end = &quot;}}&quot;
+
+link_prefix = &quot;@&quot;
+
+file_prefix = &quot;file:&quot;
+hidden_prefix = &quot;hidden:&quot;
+</code></pre>
+<h2 id="options"><a class="header" href="#options">Options</a></h2>
+<table><thead><tr><th>Option</th><th>Details</th></tr></thead><tbody>
+<tr><td><code>fence_sequence</code></td><td>The sequence used for normal code blocks</td></tr>
+<tr><td><code>fence_sequence_alt</code></td><td>Alternative fence sequence to allow for code blocks inside code blocks. Use this for the outer block</td></tr>
+<tr><td><code>block_name_prefix</code></td><td>Prefix sequence to indicate a block's name in the first line of a code block</td></tr>
+<tr><td><code>macro_start</code> <code>macro_end</code></td><td>Start and end of a macro invocation</td></tr>
+<tr><td><code>transclusion_start</code> <code>transclusion_end</code></td><td>Start and end of a transclusion. E.g. <code>@{{transclude.md}}</code></td></tr>
+<tr><td><code>link_prefix</code></td><td>Prefix for links to make Yarner include the linked file in the build process. E.g. <code>@[Linked file](linked.md)</code></td></tr>
+<tr><td><code>file_prefix</code></td><td>Prefix to treat block names as target file specifiers. E.g. <code>//- file:main.rs</code></td></tr>
+<tr><td><code>hidden_prefix</code></td><td>Prefix to hide a code block in documentation output. E.g. <code>//- hidden:Secret code block</code></td></tr>
+</tbody></table>
+<h1 id="paths"><a class="header" href="#paths">Paths</a></h1>
+<p>Section <code>paths</code> of a project's <code>Yarner.toml</code> contains configuration on which files to process and to copy.</p>
+<ul>
+<li><a href="config-paths.html#overview">Overview</a></li>
+<li><a href="config-paths.html#options">Options</a></li>
+</ul>
+<h2 id="overview-1"><a class="header" href="#overview-1">Overview</a></h2>
+<p>The default <code>paths</code> section as generated by <code>yarner init</code> looks like this (comments removed):</p>
+<pre><code class="language-toml">[paths]
+root = &quot;.&quot;
+code = &quot;code/&quot;
+docs = &quot;docs/&quot;
+
+files = [&quot;README.md&quot;]
+
+# entrypoint = &quot;Main&quot;
+
+# code_files = [&quot;**/*.rs&quot;]
+# code_paths = [&quot;_&quot;]
+
+# doc_files = [&quot;**/*.png&quot;, &quot;**/*.jpg&quot;]
+# doc_paths = [&quot;_&quot;]
+</code></pre>
+<h1 id="options-1"><a class="header" href="#options-1">Options</a></h1>
+<table><thead><tr><th>Option</th><th>Details</th></tr></thead><tbody>
+<tr><td><code>root</code></td><td>The root directory all paths are relative to</td></tr>
+<tr><td><code>code</code></td><td>Path for code output</td></tr>
+<tr><td><code>docs</code></td><td>Path for documentation output</td></tr>
+<tr><td><code>files</code></td><td>List of files to process</td></tr>
+<tr><td><code>entrypoint</code></td><td>Block name to be used as entrypoint. Optional. Uses unnamed entrypoints if not present</td></tr>
+<tr><td><code>code_files</code></td><td>Files or glob patterns for files to copy to the code output. Optional. See <a href="./copying-files.html">Copying files</a></td></tr>
+<tr><td><code>code_paths</code></td><td>Manipulation of code copy paths. Optional. See <a href="./copying-files.html">Copying files</a></td></tr>
+<tr><td><code>doc_files</code></td><td>Files or glob patterns for files to copy to the documentation output. Optional. See <a href="./copying-files.html">Copying files</a></td></tr>
+<tr><td><code>doc_paths</code></td><td>Manipulation of documentation copy paths. Optional. See <a href="./copying-files.html">Copying files</a></td></tr>
+</tbody></table>
+<h1 id="languages"><a class="header" href="#languages">Languages</a></h1>
+<p>Sections <code>language.&lt;lang&gt;</code> of a project's <code>Yarner.toml</code> contain language-specific settings mainly used for the <a href="./reverse-mode.html">Reverse mode</a>.</p>
+<ul>
+<li><a href="config-languages.html#overview">Overview</a></li>
+<li><a href="config-languages.html#options">Options</a></li>
+</ul>
+<h2 id="overview-2"><a class="header" href="#overview-2">Overview</a></h2>
+<p>Language settings are optional. However, they are required for all languages/file extensions to be used in reverse mode.</p>
+<p>Language settings are a section per language, identified from file extensions. Each section looks like this example for Rust (<code>.rs</code> files):</p>
+<pre><code class="language-toml">[language.rs]
+clear_blank_lines = true
+eof_newline = true
+
+    [language.rs.block_labels]
+    comment_start = &quot;//&quot;
+    # comment_end = &quot;*/&quot;
+    block_start = &quot;&lt;@&quot;
+    block_next = &quot;&lt;@&gt;&quot;
+    block_end = &quot;@&gt;&quot;
+</code></pre>
+<p>When language settings are requires for setting <code>clear_blank_lines</code> or <code>eof_newline</code>,
+but block labels in the target language are not wanted or not supported, leave out section <code>[block_labels]</code>.</p>
+<h2 id="options-2"><a class="header" href="#options-2">Options</a></h2>
+<table><thead><tr><th>Option</th><th>Details</th></tr></thead><tbody>
+<tr><td><code>clear_blank_lines</code></td><td>Replaces lines containing only whitespaces by blank lines, in code output. Defaults to <code>true</code> when no language settings are present</td></tr>
+<tr><td><code>eof_newline</code></td><td>Enforces code files to always end with a blank line. Defaults to <code>true</code> when no language settings are present</td></tr>
+<tr><td><code>[language.&lt;lang&gt;.block_labels]</code></td><td>Settings for block labels for reverse mode (see table below). Optional. When absent, reverse mode for the language is disabled</td></tr>
+</tbody></table>
+<p><strong>Reverse mode</strong></p>
+<p>Section <code>[language.&lt;lang&gt;.block_labels]</code> is disabled by default. To enable reverse mode for a language, that section with the following settings is required.</p>
+<table><thead><tr><th>Option</th><th>Details</th></tr></thead><tbody>
+<tr><td><code>comment_start</code></td><td>Start of comments in the language. Used for code block labels for reverse mode. Can be start of line or block comments</td></tr>
+<tr><td><code>comment_end</code></td><td>End of comments. Optional, only for languages that support only block comments</td></tr>
+<tr><td><code>block_start</code></td><td>Start sequence of block labels</td></tr>
+<tr><td><code>block_next</code></td><td>Start of next block with the same name</td></tr>
+<tr><td><code>block_end</code></td><td>End of block labels</td></tr>
+</tbody></table>
+<h1 id="command-line-arguments"><a class="header" href="#command-line-arguments">Command line arguments</a></h1>
+<p>Some configurations can be overwritten using command line arguments.</p>
+<ul>
+<li><a href="command-line-arguments.html#cli-help">CLI help</a></li>
+</ul>
+<h2 id="cli-help"><a class="header" href="#cli-help">CLI help</a></h2>
+<p>To get help on command line options, use <code>yarner -h</code>.</p>
+<pre><code class="language-plaintext">Literate Programming tool for Markdown
+  https://github.com/mlange-42/yarner
+
+The normal workflow is:
+ 1) Create a project with
+    &gt; yarner init
+ 2) Process the project by running
+    &gt; yarner
+
+USAGE:
+    yarner [FLAGS] [OPTIONS] [FILES]... [SUBCOMMAND]
+
+FLAGS:
+    -C, --clean      Produces clean code output, without block label comments.
+    -F, --force      Forces building, although it would result in overwriting changed files.
+    -h, --help       Prints help information
+    -V, --version    Prints version information
+
+OPTIONS:
+    -o, --code &lt;path&gt;          Directory to output code files to. Optional. Defaults to 'path -&gt; code' from config file.
+    -c, --config &lt;path&gt;        Sets the config file path [default: Yarner.toml]
+    -d, --docs &lt;path&gt;          Directory to output documentation files to. Optional. Defaults to 'path -&gt; docs' from
+                               config file.
+    -e, --entrypoint &lt;name&gt;    The named entrypoint to use when tangling code. Optional. Defaults to 'path -&gt;
+                               entrypoint', or to the unnamed code block(s).
+    -r, --root &lt;path&gt;          Root directory. Optional. Defaults to 'path -&gt; root' from config file, or to the current
+                               directory.
+
+ARGS:
+    &lt;FILES&gt;...    The input source file(s) as glob pattern(s). Optional. Defaults to 'path -&gt; files' from config
+                  file.
+
+SUBCOMMANDS:
+    help       Prints this message or the help of the given subcommand(s)
+    init       Creates a yarner project in the current directory
+    reverse    Reverse mode: play back code changes into source files
+    watch      Watch files and build project on changes
+</code></pre>
+<h1 id="advanced-topics"><a class="header" href="#advanced-topics">Advanced topics</a></h1>
+<p>This part of the guide provides more advanced information for effective work with Yarner, and with Markdown in general.</p>
+<p>Chapter <a href="advanced/./continuous-integration.html"><strong>Continuous integration</strong></a> demonstrates how to automate Yarner using different CIs (GitLab, GitHub Actions, GitHub Travis-CI), and how to publish the documentation output.</p>
+<p>Chapter <a href="advanced/./project-structure.html"><strong>Project structure</strong></a> presents some typical project layouts for different Yarner use cases.</p>
+<p>Chapter <a href="advanced/./effective-markdown.html"><strong>Effective Markdown</strong></a> provides a list of tools for Markdown, as well as some tips how to use Markdown effectively.</p>
+<p>Chapter <a href="advanced/./mdbook.html"><strong>mdBook with Yarner</strong></a> shows how to use Yarner in conjunction with <a href="https://github.com/rust-lang/mdBook">mdBook</a> to write good-looking Literate Programming documents (the book you are currently reading was created with mdBook).</p>
+<h1 id="continuous-integration"><a class="header" href="#continuous-integration">Continuous integration</a></h1>
+<p>This chapter shows some examples how to use Yarner with Continuous integration, and how to publish Literate Programming documents.</p>
+<ul>
+<li><a href="advanced/continuous-integration.html#github-with-travis-ci">GitHub with Travis-CI</a></li>
+<li><a href="advanced/continuous-integration.html#github-actions">GitHub Actions</a></li>
+<li><a href="advanced/continuous-integration.html#gitlab-ci">GitLab CI</a></li>
+</ul>
+<h2 id="github-with-travis-ci"><a class="header" href="#github-with-travis-ci">GitHub with Travis-CI</a></h2>
+<h2 id="github-actions"><a class="header" href="#github-actions">GitHub Actions</a></h2>
+<h2 id="gitlab-ci"><a class="header" href="#gitlab-ci">GitLab CI</a></h2>
+<p>In your GitLab project, create a file <code>.gitlab-ci-yml</code> with the following content:</p>
+<pre><code class="language-yml">image: ubuntu:latest
+
+variables:
+  YARNER_VERSION: 0.3.0
+
+before_script:
+  - apt-get update; apt-get -y install curl
+  - curl -L -o- https://github.com/mlange-42/yarner/releases/download/${YARNER_VERSION}/yarner-${YARNER_VERSION}-linux-amd64.tar.gz | tar xz
+  - export PATH=&quot;$PWD:$PATH&quot;
+
+build:
+  script:
+    - yarner --clean
+  artifacts:
+    paths:
+      - docs/
+      - code/
+</code></pre>
+<p>You should use the latest Yarner version for variable <code>YARNER_VERSION</code>.</p>
+<h1 id="project-structure-1"><a class="header" href="#project-structure-1">Project structure</a></h1>
+<p>Yarner offers flexibility regarding the structure of projects. This chapter presents some project layouts recommended for different use cases.</p>
+<ul>
+<li><a href="advanced/project-structure.html#settings">Settings</a></li>
+<li><a href="advanced/project-structure.html#default-structure">Default structure</a></li>
+<li><a href="advanced/project-structure.html#three-folders-structure">Three folders structure</a></li>
+<li><a href="advanced/project-structure.html#top-level-documentation-structure">Top-level documentation structure</a></li>
+</ul>
+<h2 id="settings"><a class="header" href="#settings">Settings</a></h2>
+<p>For an explanation of all settings that serve to configure the project structure, see chapter <a href="advanced/../config-paths.html">Paths</a>. The most important settings are:</p>
+<pre><code class="language-toml">[paths]
+root = &quot;.&quot;
+code = &quot;code/&quot;
+docs = &quot;docs/&quot;
+
+files = [&quot;README.md&quot;]
+</code></pre>
+<p><code>root</code> is the path all other paths are relative to. <code>code</code> is for code output, and <code>docs</code> for documentation output. <code>files</code> are the entrypoint files of the project (normally one, but can be more, or even glob patterns).</p>
+<h2 id="default-structure"><a class="header" href="#default-structure">Default structure</a></h2>
+<p>The default setup created by <code>init</code> uses the setting listed above and produces this project structure:</p>
+<pre><code class="language-plaintext">project
+  │
+  ├── code/              &lt;code output&gt;
+  ├── docs/              &lt;doc output&gt;
+  │
+  ├── README.md          &lt;source document&gt;
+  └── Yarner.toml        &lt;config&gt;
+</code></pre>
+<p>The structure is well suited for small projects that use only a single source file and no transclusions or links to be followed (<code>@</code>). In this case, the documentation output looks exactly like the sources. The source file (e.g. <code>README.md</code>) can thus be used as the documentation directly, and directory <code>docs</code> can be ignored by Git (in file <code>.gitignore</code>):</p>
+<pre><code class="language-plaintext">/docs/
+</code></pre>
+<h2 id="three-folders-structure"><a class="header" href="#three-folders-structure">Three folders structure</a></h2>
+<p>Another possible structure is to have the Markdown sources in a separate sub-folder, e.g. <code>lp</code>:</p>
+<pre><code class="language-plaintext">project
+  │
+  ├── code/              &lt;code output&gt;
+  ├── docs/              &lt;doc output&gt;
+  ├── lp/                &lt;source files&gt;
+  │     ├── README.md
+  │     └── ...
+  │
+  └── Yarner.toml        &lt;config&gt;
+</code></pre>
+<p>The required settings look like this:</p>
+<pre><code class="language-toml">[paths]
+root = &quot;lp/&quot;
+code = &quot;../code/&quot;
+docs = &quot;../docs/&quot;
+
+files = [&quot;README.md&quot;]
+</code></pre>
+<p>This layout is suitable for larger projects with potentially many linked or transcluded source files.</p>
+<p>Here, an additional file <code>README.md</code> that contains no Literate Programming code can be placed at the top level of the project. The compiled documentation for readers (after transclusion, and with clean links) can be found in directory <code>docs</code>.</p>
+<h2 id="top-level-documentation-structure"><a class="header" href="#top-level-documentation-structure">Top-level documentation structure</a></h2>
+<p>A further useful layout is to place the documentation output at the top project level, while the sources are in a sub-folder (here, <code>lp</code>):</p>
+<pre><code class="language-plaintext">project
+  │
+  ├── code/              &lt;code output&gt;
+  ├── lp/                &lt;source files&gt;
+  │     ├── README.md
+  │     └── ...
+  │
+  └── Yarner.toml        &lt;config&gt;
+</code></pre>
+<p>The required settings look like this:</p>
+<pre><code class="language-toml">[paths]
+root = &quot;lp/&quot;
+code = &quot;../code/&quot;
+docs = &quot;../&quot;
+
+files = [&quot;README.md&quot;]
+</code></pre>
+<p>Here, the &quot;compiled&quot; documentation output (e.g. <code>README.md</code>) is placed directly in the project directory and thus presented to the reader.</p>
+<p>This structure is useful for larger projects that use link following and transclusions, but still want the Literate Programming document directly presented to the reader, e.g. as the repository's <code>README.md</code>.</p>
+<h1 id="effective-markdown"><a class="header" href="#effective-markdown">Effective Markdown</a></h1>
+<p>This chapter gives advice on how to use Markdown effectively, with Yarner and in general. It lists tools like editors and explains how to create rendered documents. Further, it provides tips like how to render math formulas with Markdown.</p>
+<ul>
+<li><a href="advanced/effective-markdown.html#why-markdown">Why Markdown?</a></li>
+<li><a href="advanced/effective-markdown.html#markdown-editors">Markdown editors</a></li>
+<li><a href="advanced/effective-markdown.html#markdown-conversion">Markdown conversion</a></li>
+<li><a href="advanced/effective-markdown.html#math-formulas">Math formulas</a></li>
+<li><a href="advanced/effective-markdown.html#diagrams">Diagrams</a></li>
+<li><a href="advanced/effective-markdown.html#further-reading">Further reading</a></li>
+</ul>
+<h2 id="why-markdown"><a class="header" href="#why-markdown">Why Markdown?</a></h2>
+<p>Markdown is a lightweight markup language for creating formatted text documents. It is designed for writing in a plaintext editor, and to be simple and well readable for humans in its source code form. With that, Markdown is easy to learn and use, as well as future-proof. To the minimal Markdown syntax, Yarner adds some simple syntax elements for Literate Programming that do not break rendering of the source documents.</p>
+<p>Using different tools, Markdown documents can be easily converted to HTML or PDF, or to other text editing formats like LaTeX or even MS Word.</p>
+<p>When working with Git and a Git forge like GitHub or GitLab, Markdown offers the additional advantage that <code>.md</code> files are rendered on repository pages. Thus, Markdown sources and the &quot;compiled&quot; documentation output can be presented there directly, or automatically published using e.g. GitHub Pages or GitLab Pages.</p>
+<h2 id="markdown-editors"><a class="header" href="#markdown-editors">Markdown editors</a></h2>
+<p><a href="https://notepad-plus-plus.org"><strong>Notepad++</strong></a> is a versatile Open Source text editor. Syntax highlighting for Markdown is available as <a href="https://github.com/Edditoria/markdown-plus-plus">plugin</a></p>
+<p><a href="https://atom.io/"><strong>Atom</strong></a> is a powerful and extensible Open Source text editor. Markdown syntax highlighting is built-in. For a rendered Markdown preview, multiple plugins are available, e.g. <a href="https://atom.io/packages/markdown-preview-enhanced">Markdown Preview Enhanced</a>.</p>
+<p>Most <strong>IDEs</strong> support Markdown syntax highlighting, and some even a rendered preview (potentially via a plugin).</p>
+<p><a href="https://marktext.app/"><strong>MarkText</strong></a> is a pure Markdown editor with &quot;real-time preview&quot; (WYSIWYG). It is Open Source, and designed to be minimalistic and distraction-free. It supports all Markdown features necessary for using it in Yarner projects.</p>
+<p><a href="https://typora.io/"><strong>Typora</strong></a> is similar to MarkText, but only freeware, not Open Source.</p>
+<h2 id="markdown-conversion"><a class="header" href="#markdown-conversion">Markdown conversion</a></h2>
+<p><a href="https://pandoc.org/"><strong>Pandoc</strong></a> is a command line tool for conversion between different markup formats. Besides Markdown, it supports a vast range of other formats for conversion in both directions: HTML, LaTeX, WikiText, MS Word, OpenOffice, LibreOffice, ...</p>
+<p><a href="https://github.com/rust-lang/mdBook"><strong>mdBook</strong></a> is a command line tool to create online books from Markdown files (e.g. the book you are currently reading). For details on how to use it with Yarner, see chapter <a href="advanced/./mdbook.html">mdBook with Yarner</a>.</p>
+<p>Dedicated <strong>Markdown editors</strong> like <a href="https://marktext.app/">MarkText</a> and <a href="https://typora.io/">Typora</a> provide functionality to export Markdown documents as HTML and PDF.</p>
+<h2 id="math-formulas"><a class="header" href="#math-formulas">Math formulas</a></h2>
+<p>Different renderers and platforms support different ways to write math formulas.</p>
+<h3 id="gitlab"><a class="header" href="#gitlab">GitLab</a></h3>
+<p>GitLab supports inline math, enclosed in <code>$`...`$</code>, e.g. <code>$`E = m c^2`$</code>.</p>
+<p>Math blocks are possible in fenced code blocks with language <code>math</code>:</p>
+<pre><code class="language-markdown">```math
+a^2+b^2=c^2
+```
+</code></pre>
+<h3 id="github"><a class="header" href="#github">GitHub</a></h3>
+<p>GitHub does unfortunately not support any math syntax in Markdown. As a workaround, GitHub's math rendering service can be used to include formulas as images.</p>
+<pre><code class="language-html">&lt;img src=&quot;https://render.githubusercontent.com/render/math?math=&lt;formula&gt;&quot;&gt;
+&lt;img src=&quot;https://render.githubusercontent.com/render/math?math=E = m c^2&quot;&gt;
+</code></pre>
+<h3 id="marktext"><a class="header" href="#marktext">MarkText</a></h3>
+<p>MarkText supports inline math, enclosed in <code>$...$</code>, e.g. <code>$E = m c^2$</code>. This is similar to GitLab, except for the missing backticks.</p>
+<p>For math blocks, fenced code blocks with language <code>math</code> are supported, like in GitLab:</p>
+<pre><code class="language-markdown">```math
+a^2+b^2=c^2
+```
+</code></pre>
+<p>Further, TeX-like math blocks can be used:</p>
+<pre><code class="language-markdown">$$
+a^2+b^2=c^2
+$$
+</code></pre>
+<h3 id="pandoc"><a class="header" href="#pandoc">Pandoc</a></h3>
+<p>Pandoc supports TeX-like inline math, surrounded by <code>$...$</code> as well as math blocks:</p>
+<pre><code class="language-markdown">$$
+a^2+b^2=c^2
+$$
+</code></pre>
+<h3 id="mdbook"><a class="header" href="#mdbook">mdBook</a></h3>
+<p>mdBook requires to explicitly enable math support in the <code>book.toml</code> config file through</p>
+<pre><code class="language-toml">[output.html]
+mathjax-support = true
+</code></pre>
+<p>Inline equations must be enclosed in <code>\\(...\\)</code>.</p>
+<p>Math blocks use <code>\\[</code> and <code>\\]</code> as delimiters:</p>
+<pre><code class="language-markdown">\\[
+a^2+b^2=c^2
+\\]
+</code></pre>
+<h2 id="diagrams"><a class="header" href="#diagrams">Diagrams</a></h2>
+<p>Some editors and platforms support <a href="https://mermaid-js.github.io/mermaid/">Mermaid</a> graphs through code blocks with language <code>mermaid</code>:</p>
+<pre><code class="language-markdown">```mermaid
+graph TD;
+    A--&gt;B;
+    A--&gt;C;
+    B--&gt;D;
+    C--&gt;D;
+```
+</code></pre>
+<p>Mermaid is supported by GitLab, MarkText, Typora, and by mdBook through a pre-processor.</p>
+<h2 id="further-reading"><a class="header" href="#further-reading">Further reading</a></h2>
+<ul>
+<li>The <a href="https://www.markdownguide.org/">Markdown Guide</a></li>
+</ul>
+<h1 id="mdbook-with-yarner"><a class="header" href="#mdbook-with-yarner">mdBook with Yarner</a></h1>
+<p><a href="https://github.com/rust-lang/mdBook">mdBook</a> is a command line tool to create online books from Markdown files (e.g. the book you are currently reading). This chapter explains how to use it together with Yarner.</p>
+<ul>
+<li><a href="advanced/mdbook.html#initialization">Initialization</a></li>
+<li><a href="advanced/mdbook.html#settings">Settings</a></li>
+<li><a href="advanced/mdbook.html#project-structure">Project structure</a></li>
+</ul>
+<h2 id="initialization"><a class="header" href="#initialization">Initialization</a></h2>
+<p>To create a project for mdBook and Yarner, run both with their sub-command <code>init</code>:</p>
+<pre><code class="language-plaintext">&gt; yarner init
+&gt; mdbook init
+</code></pre>
+<p>Delete the file <code>README.md</code> created by Yarner (or better, fill it with a readme for the project). Further, the correct paths need to be set in file <code>Yarner.toml</code>. See the next section.</p>
+<h2 id="settings-1"><a class="header" href="#settings-1">Settings</a></h2>
+<p>Change section <code>[paths]</code> in file <code>Yarner.toml</code> to use these options:</p>
+<pre><code class="language-toml">[parser]
+...
+
+[paths]
+root = &quot;lp/&quot;
+code = &quot;../code/&quot;
+docs = &quot;../src/&quot;
+
+files = [&quot;SUMMARY.md&quot;]
+...
+</code></pre>
+<h2 id="project-structure-2"><a class="header" href="#project-structure-2">Project structure</a></h2>
+<p>The recommended structure as resulting from the above initialization and settings looks like this (some directories are initially missing):</p>
+<pre><code class="language-plaintext">project
+  │
+  ├── book/        &lt;───────┐       &lt;rendered book&gt;
+  │                        │
+  ├── code/                │       &lt;code output&gt;
+  │     └── ...         &lt;──┼──┐
+  │                        │  │
+  ├── src/                 │  │
+  │     ├── SUMMARY.md  ───┘  │    &lt;doc output/book sources&gt;
+  │     └── capter-1.md &lt;─────┤
+  │                           │
+  ├── lp/                     │
+  │     ├── SUMMARY.md   ─────┘    &lt;yarner sources&gt;
+  │     └── capter-1.md
+  │
+  ├── book.toml
+  └── Yarner.toml
+</code></pre>
+<p>Directory <code>lp</code> contains the Markdown source files. Write these files as you would normally write mdBook files in directory <code>src</code>. The only difference is that entries in <code>SUMMARY.md</code> that contain Literate Programming code are prefixed with <code>@</code> (for link-following). As an example, <code>lp/SUMMARY.md</code> could look like this:</p>
+<pre><code class="language-markdown"># Summary
+
+* @[Chapter 1](./chapter-1.md)
+* @[Chapter 2](./chapter-2.md)
+</code></pre>
+<p>From the Markdown sources in <code>lp</code>, Yarner creates files for mdBook in directory <code>src</code>, as well as extracted code in directory <code>code</code>:</p>
+<pre><code class="language-plaintext">&gt; yarner
+</code></pre>
+<p>Finally, mdBook uses the files in <code>src</code> to create the HTML website in directory <code>book</code>:</p>
+<pre><code class="language-plaintext">&gt; mdbook build
+</code></pre>
+
+                    </main>
+
+                    <nav class="nav-wrapper" aria-label="Page navigation">
+                        <!-- Mobile navigation buttons -->
+                        
+
+                        
+
+                        <div style="clear: both"></div>
+                    </nav>
+                </div>
+            </div>
+
+            <nav class="nav-wide-wrapper" aria-label="Page navigation">
+                
+
+                
+            </nav>
+
+        </div>
+
+        
+
+        
+
+        
+
+        
+        <script type="text/javascript">
+            window.playground_copyable = true;
+        </script>
+        
+
+        
+
+        
+        <script src="elasticlunr.min.js" type="text/javascript" charset="utf-8"></script>
+        <script src="mark.min.js" type="text/javascript" charset="utf-8"></script>
+        <script src="searcher.js" type="text/javascript" charset="utf-8"></script>
+        
+
+        <script src="clipboard.min.js" type="text/javascript" charset="utf-8"></script>
+        <script src="highlight.js" type="text/javascript" charset="utf-8"></script>
+        <script src="book.js" type="text/javascript" charset="utf-8"></script>
+
+        <!-- Custom JS scripts -->
+        
+
+        
+        
+        <script type="text/javascript">
+        window.addEventListener('load', function() {
+            window.setTimeout(window.print, 100);
+        });
+        </script>
+        
+        
+
+    </body>
+</html>
